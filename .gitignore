@@ -22,3 +22,9 @@ npm-debug.log*
 # Logs and scratch
 *.log
 scratch/
+
+# Next.js build
+.next/
+out/
+tsconfig.tsbuildinfo
+_legacy/

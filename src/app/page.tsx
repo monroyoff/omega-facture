@@ -1,0 +1,192 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Header } from '@/components/layout/Header';
+import { StatCards } from '@/components/dashboard/StatCards';
+import { RevenueOverview } from '@/components/dashboard/RevenueChart';
+import { RecentInvoicesTable, DashboardTableTab } from '@/components/dashboard/RecentInvoicesTable';
+import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
+import { useInvoices } from '@/lib/store/invoice-context';
+import { Invoice } from '@/lib/types';
+import { formatFCFA } from '@/lib/money/format';
+import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+
+export default function DashboardPage() {
+  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
+  const { periodInvoices, periodKPIs, periodLabel } = useInvoices();
+
+  const scrollToInvoices = () => {
+    const el = document.getElementById('invoices-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleCardClick = (cardType: 'invoiced' | 'paid' | 'pending' | 'overdue') => {
+    if (cardType === 'invoiced') {
+      // If only 1 invoice exists for the selected period (as in the screenshot), open it directly!
+      if (periodInvoices.length === 1) {
+        setSelectedInvoice(periodInvoices[0]);
+      } else {
+        setActiveTab('all');
+        scrollToInvoices();
+      }
+    } else if (cardType === 'paid') {
+      const paid = periodInvoices.filter((i) => i.status === 'paid');
+      const withAcompte = periodInvoices.filter((i) => i.amountPaid > 0 && i.status !== 'paid');
+      const allCollected = periodInvoices.filter((i) => i.amountPaid > 0);
+
+      // If only 1 invoice has collected money (paid or acompte), open it!
+      if (allCollected.length === 1) {
+        setSelectedInvoice(allCollected[0]);
+      } else if (paid.length > 0) {
+        // If paid invoices exist, show the 'paid' tab with 'acompte' right next to it
+        setActiveTab('paid');
+        scrollToInvoices();
+      } else if (withAcompte.length > 0) {
+        // If only acomptes exist, display 'acompte' tab
+        setActiveTab('acompte');
+        scrollToInvoices();
+      } else {
+        router.push('/payments');
+      }
+    } else if (cardType === 'pending') {
+      const pending = periodInvoices.filter((i) => i.status === 'sent');
+      if (pending.length === 1) {
+        setSelectedInvoice(pending[0]);
+      } else {
+        setActiveTab('sent');
+        scrollToInvoices();
+      }
+    } else if (cardType === 'overdue') {
+      const overdue = periodInvoices.filter((i) => i.status === 'overdue');
+      if (overdue.length === 1) {
+        setSelectedInvoice(overdue[0]);
+      } else {
+        setActiveTab('overdue');
+        scrollToInvoices();
+      }
+    }
+  };
+
+  const handleStatusClick = (status: 'all' | 'paid' | 'sent' | 'overdue') => {
+    if (status === 'all') handleCardClick('invoiced');
+    else if (status === 'paid') handleCardClick('paid');
+    else if (status === 'sent') handleCardClick('pending');
+    else if (status === 'overdue') handleCardClick('overdue');
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#070a0f] flex flex-col">
+      {/* Sidebar Navigation */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activePath="/dashboard"
+      />
+
+      {/* Main Content Area */}
+      <div className="lg:pl-72 flex flex-col flex-1">
+        {/* Top Header */}
+        <Header onOpenSidebar={() => setSidebarOpen(true)} />
+
+        {/* Dashboard Main Body */}
+        <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+          {/* Welcome & Context Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-600 via-brand-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-brand-500/15 relative overflow-hidden">
+            {/* Background decorative circles */}
+            <div className="absolute right-0 top-0 -translate-y-12 translate-x-12 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+            <div className="absolute right-48 bottom-0 translate-y-12 w-48 h-48 rounded-full bg-blue-400/20 blur-xl pointer-events-none" />
+
+            <div className="relative z-10 space-y-1.5 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-semibold mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Espace de Facturation Professionnelle — Zone UEMOA</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
+                Bonjour, MONROY 👋
+              </h1>
+              <p className="text-sm text-blue-100 font-normal leading-relaxed">
+                Votre entreprise a généré{' '}
+                <button
+                  type="button"
+                  onClick={() => handleCardClick('invoiced')}
+                  className="text-white font-bold underline underline-offset-2 hover:text-amber-200 transition-colors cursor-pointer"
+                >
+                  {formatFCFA(periodKPIs.totalInvoiced)}
+                </button>{' '}
+                de facturations pour <strong className="text-white font-semibold">{periodLabel}</strong>, dont{' '}
+                <button
+                  type="button"
+                  onClick={() => handleCardClick('paid')}
+                  className="text-emerald-300 font-bold underline underline-offset-2 hover:text-emerald-100 transition-colors cursor-pointer"
+                >
+                  {formatFCFA(periodKPIs.totalPaid)}
+                </button>{' '}
+                déjà encaissés.
+              </p>
+            </div>
+
+            <div className="relative z-10 flex items-center gap-3">
+              <Link
+                href="/invoices/new"
+                className="px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center gap-2 group whitespace-nowrap"
+              >
+                <span>Créer une Facture</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          </div>
+
+          {/* 4 Financial KPI Cards */}
+          <section aria-label="Indicateurs clés">
+            <StatCards
+              kpis={periodKPIs}
+              onCardClick={handleCardClick}
+            />
+          </section>
+
+          {/* Charts: Monthly Revenue & Distribution */}
+          <section aria-label="Graphiques financiers">
+            <RevenueOverview
+              onStatusClick={handleStatusClick}
+              onTotalClick={() => handleCardClick('invoiced')}
+            />
+          </section>
+
+          {/* Recent Invoices Data Table */}
+          <section aria-label="Dernières factures">
+            <RecentInvoicesTable
+              id="invoices-section"
+              invoices={periodInvoices}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onSelectInvoice={(inv) => setSelectedInvoice(inv)}
+            />
+          </section>
+
+          {/* Legal / Security badge footer */}
+          <div className="pt-4 pb-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 dark:text-slate-500 border-t border-slate-200/80 dark:border-slate-800/80 gap-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Conforme aux normes de facturation UEMOA (Bénin, Côte d’Ivoire, Sénégal, Togo, etc.)</span>
+            </div>
+            <span>© 2026 OMEGA FACTURE — Par MONROY</span>
+          </div>
+        </main>
+      </div>
+
+      {/* Live A4 Invoice Preview Modal */}
+      <InvoicePreviewModal
+        invoice={selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+      />
+    </div>
+  );
+}
