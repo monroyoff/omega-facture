@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMEGA Facture | Générateur & Gestionnaire de Factures & Devis Professionnels</title>
+    <meta name="description" content="Application professionnelle de création, gestion et impression de factures, devis et reçus pour entreprises et commerçants. Conforme, rapide et moderne.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563EB'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='16' y1='13' x2='8' y2='13'/><line x1='16' y1='17' x2='8' y2='17'/><polyline points='10 9 9 9 8 9'/></svg>">
+</head>
+<body>
+
+    <!-- Top Application Bar -->
+    <header class="app-header no-print">
+        <div class="header-left">
+            <div class="brand">
+                <div class="brand-badge">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">OMEGA <span class="brand-accent">FACTURE</span></span>
+                    <span class="brand-tag">Facturation & Devis Pro</span>
+                </div>
+            </div>
+
+            <!-- Document Type Selector -->
+            <div class="doc-type-pill" id="docTypeSelector">
+                <button type="button" class="type-btn active" data-type="Facture">Facture</button>
+                <button type="button" class="type-btn" data-type="Devis">Devis</button>
+                <button type="button" class="type-btn" data-type="Proforma">Proforma</button>
+                <button type="button" class="type-btn" data-type="Reçu">Reçu</button>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- Currency selector -->
+            <div class="currency-wrapper" title="Changer la devise">
+                <label for="currencySelect" class="sr-only">Devise</label>
+                <select id="currencySelect" class="select-currency">
+                    <option value="FCFA" selected>FCFA (Bénin / UEMOA)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                </select>
+            </div>
+
+            <!-- History / Dashboard toggle button -->
+            <button type="button" id="openHistoryBtn" class="btn btn-secondary" title="Voir l'historique et les statistiques">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                </svg>
+                <span>Mes Factures</span>
+                <span class="badge-count" id="invoiceCountBadge">0</span>
+            </button>
+
+            <!-- New invoice button -->
+            <button type="button" id="newInvoiceBtn" class="btn btn-secondary" title="Créer un nouveau document vierge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Nouveau</span>
+            </button>
+
+            <!-- Save button -->
+            <button type="button" id="saveInvoiceBtn" class="btn btn-primary" title="Enregistrer localement (⌘+S)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Enregistrer</span>
+            </button>
+
+            <!-- Print / PDF button -->
+            <button type="button" id="printBtn" class="btn btn-accent glow-effect" title="Imprimer ou enregistrer en PDF (⌘+P)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                <span>Imprimer / PDF</span>
+            </button>
+
+            <!-- WhatsApp Share -->
+            <button type="button" id="shareWaBtn" class="btn btn-whatsapp" title="Envoyer le résumé au client sur WhatsApp">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+                <span>WhatsApp</span>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button type="button" id="themeToggleBtn" class="btn btn-icon" title="Basculer thème clair/sombre">
+                <svg id="moonIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <svg id="sunIcon" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile View Switcher (Editor vs Preview) -->
+    <div class="mobile-tabs no-print">
+        <button type="button" class="mobile-tab-btn active" id="tabShowEditor">✏️ Éditeur</button>
+        <button type="button" class="mobile-tab-btn" id="tabShowPreview">📄 Aperçu A4</button>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE -->
+    <main class="workspace-container">
+        
+        <!-- LEFT COLUMN: INTERACTIVE FORM EDITOR -->
+        <section class="editor-pane no-print" id="editorPane">
+            <div class="editor-inner">
+
+                <!-- Accordion 1: Informations Générales & Numérotation -->
+                <div class="form-card">
+                    <div class="card-header">
+                        <span class="card-step">01</span>
+                        <h3>Paramètres du Document</h3>
+                    </div>
+                    <div class="form-grid grid-3">
+                        <div class="input-group">
+                            <label for="docNumber">Numéro de document</label>
+                            <input type="text" id="docNumber" value="FACT-2026-001" placeholder="FACT-2026-001">
+                        </div>
+                        <div class="input-group">
+                            <label for="docDate">Date d'émission</label>
+                            <input type="date" id="docDate">
+                        </div>
+                        <div class="input-group">
+                            <label for="docDueDate">Date d'échéance</label>
+                            <input type="date" id="docDueDate">
+                        </div>
+                    </div>
+                    <div class="form-grid grid-2 mt-3">
+                        <div class="input-group">
+                            <label for="docStatus">Statut du document</label>
+                            <select id="docStatus">
+                                <option value="EN ATTENTE" selected>⏳ En attente de paiement</option>
+                                <option value="PAYÉE">✅ Payée</option>
+                                <option value="ACOMPTE">🔄 Acompte versé</option>
+                                <option value="BROUILLON">📝 Brouillon</option>
+                                <option value="ANNULÉE">❌ Annulée</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="docObject">Objet / Référence</label>
+                            <input type="text" id="docObject" value="Prestation de livraison express & logistique" placeholder="Ex: Livraison colis, Matériel informatique...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 2: Émetteur (Votre Entreprise) -->
+                <div class="form-card">
+                    <div class="card-header">
+                        <span class="card-step">02</span>
+                        <h3>Émetteur (Votre Entreprise)</h3>
+                    </div>
+                    <div class="form-grid grid-2">
+                        <div class="input-group">
+                            <label for="companyName">Nom de l'entreprise</label>
+                            <input type="text" id="companyName" value="OMEGA LivrExpress" placeholder="Votre société">
+                        </div>
+                        <div class="input-group">
+                            <label for="companyTagline">Sous-titre / Activité</label>
+                            <input type="text" id="companyTagline" value="Transport express, logistique & courses urbaines" placeholder="Slogan ou activité">
+                        </div>
+                    </div>
+
+                    <div class="form-grid grid-3 mt-3">
+                        <div class="input-group">
+                            <label for="companyPhone">Téléphone / WhatsApp</label>
+                            <input type="text" id="companyPhone" value="+229 01 95 44 44 30" placeholder="+229 01 95 44 44 30">
+                        </div>
+                        <div class="input-group">
+                            <label for="companyEmail">Email professionnel</label>
+                            <input type="email" id="companyEmail" value="contact@omegalivrexpress.bj" placeholder="contact@domaine.com">
+                        </div>
+                        <div class="input-group">
+                            <label for="companyNif">NIF / IFU / RCCM</label>
+                            <input type="text" id="companyNif" value="IFU : 0202612345678" placeholder="IFU / NIF / Registre">
+                        </div>
+                    </div>
+
+                    <div class="form-grid grid-2 mt-3">
+                        <div class="input-group">
+                            <label for="companyAddress">Adresse & Ville</label>
+                            <input type="text" id="companyAddress" value="Face Marché Principal & Gare ferroviaire, Allada, Bénin" placeholder="Adresse complète">
+                        </div>
+                        <div class="input-group">
+                            <label for="logoInput">Logo de l'entreprise</label>
+                            <div class="logo-upload-box">
+                                <input type="file" id="logoInput" accept="image/*" class="file-input">
+                                <button type="button" id="removeLogoBtn" class="btn btn-sm btn-ghost hidden">Supprimer logo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 3: Destinataire (Client) -->
+                <div class="form-card">
+                    <div class="card-header">
+                        <span class="card-step">03</span>
+                        <h3>Destinataire (Client)</h3>
+                    </div>
+                    <div class="form-grid grid-2">
+                        <div class="input-group">
+                            <label for="clientName">Nom du Client ou Société</label>
+                            <input type="text" id="clientName" value="Boutique Glamour Mode" placeholder="Mme / M. ou Nom de l'entreprise">
+                        </div>
+                        <div class="input-group">
+                            <label for="clientAttention">À l'attention de</label>
+                            <input type="text" id="clientAttention" value="Mme Chantal Houndégbé" placeholder="Contact privilégié">
+                        </div>
+                    </div>
+                    <div class="form-grid grid-3 mt-3">
+                        <div class="input-group">
+                            <label for="clientPhone">Téléphone client</label>
+                            <input type="text" id="clientPhone" value="+229 97 00 55 66" placeholder="+229 ...">
+                        </div>
+                        <div class="input-group">
+                            <label for="clientEmail">Email client</label>
+                            <input type="email" id="clientEmail" value="chantal.glamour@gmail.com" placeholder="client@gmail.com">
+                        </div>
+                        <div class="input-group">
+                            <label for="clientAddress">Adresse de livraison / Siège</label>
+                            <input type="text" id="clientAddress" value="Allada Centre, Face Église Catholique" placeholder="Quartier, Ville">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 4: Lignes d'articles et de prestations -->
+                <div class="form-card">
+                    <div class="card-header space-between">
+                        <div class="title-with-step">
+                            <span class="card-step">04</span>
+                            <h3>Prestations & Articles</h3>
+                        </div>
+                        <div class="presets-dropdown">
+                            <button type="button" class="btn btn-sm btn-secondary" id="addPresetBtn">+ Ajouter prestation type</button>
+                        </div>
+                    </div>
+
+                    <div class="items-editor-container">
+                        <div class="items-editor-header">
+                            <span class="col-desc">Description / Prestation</span>
+                            <span class="col-qty">Qté</span>
+                            <span class="col-price">Prix Unit.</span>
+                            <span class="col-total">Total</span>
+                            <span class="col-act"></span>
+                        </div>
+                        <div id="itemsContainer" class="items-list">
+                            <!-- Injected dynamically via app.js -->
+                        </div>
+
+                        <div class="items-footer-actions">
+                            <button type="button" id="addItemBtn" class="btn btn-secondary btn-full">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Ajouter une ligne de prestation</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Calculs, Taxes et Remises -->
+                    <div class="financial-adjustments">
+                        <div class="adjustment-item">
+                            <label for="taxRate">TVA (%)</label>
+                            <div class="input-inline">
+                                <input type="number" id="taxRate" value="0" min="0" max="100" step="0.5">
+                                <span>%</span>
+                            </div>
+                        </div>
+                        <div class="adjustment-item">
+                            <label for="discountAmount">Remise commerciale</label>
+                            <div class="input-inline">
+                                <input type="number" id="discountAmount" value="0" min="0" step="100">
+                                <span class="currency-label">FCFA</span>
+                            </div>
+                        </div>
+                        <div class="adjustment-item">
+                            <label for="depositAmount">Acompte déjà versé</label>
+                            <div class="input-inline">
+                                <input type="number" id="depositAmount" value="0" min="0" step="100">
+                                <span class="currency-label">FCFA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 5: Modalités de Paiement & Mentions Légales -->
+                <div class="form-card">
+                    <div class="card-header">
+                        <span class="card-step">05</span>
+                        <h3>Paiement & Mentions</h3>
+                    </div>
+                    <div class="form-grid grid-2">
+                        <div class="input-group">
+                            <label for="paymentMethod">Mode de règlement</label>
+                            <select id="paymentMethod">
+                                <option value="Mobile Money (MTN MoMo / Moov Money / Celtiis)" selected>📱 Mobile Money (MTN MoMo / Moov Money / Celtiis)</option>
+                                <option value="Espèces à la livraison">💵 Espèces à la livraison (Cash on Delivery)</option>
+                                <option value="Virement Bancaire">🏦 Virement Bancaire</option>
+                                <option value="Chèque">🧾 Chèque bancaire</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="paymentDetails">Coordonnées de règlement</label>
+                            <input type="text" id="paymentDetails" value="MTN MoMo : +229 01 95 44 44 30 / Moov : +229 97 00 12 34" placeholder="Numéros Mobile Money ou RIB">
+                        </div>
+                    </div>
+                    <div class="input-group mt-3">
+                        <label for="invoiceNotes">Notes de bas de page & Conditions</label>
+                        <textarea id="invoiceNotes" rows="2" placeholder="Conditions de livraison, validité de l'offre...">Marchandises vérifiées et réceptionnées en bon état. En cas de retard de paiement, une pénalité légale pourra être appliquée. Merci pour votre confiance !</textarea>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: PIXEL-PERFECT A4 PRINT PREVIEW -->
+        <section class="preview-pane" id="previewPane">
+            <div class="preview-toolbar no-print">
+                <span class="preview-hint">📄 Aperçu d'impression A4 en temps réel</span>
+                <div class="zoom-controls">
+                    <button type="button" class="btn-zoom" id="zoomOutBtn" title="Réduire">−</button>
+                    <span id="zoomLevel">100%</span>
+                    <button type="button" class="btn-zoom" id="zoomInBtn" title="Agrandir">+</button>
+                    <button type="button" class="btn-zoom" id="zoomResetBtn" title="Réinitialiser">1:1</button>
+                </div>
+            </div>
+
+            <!-- THE ACTUAL PRINTABLE A4 INVOICE SHEET -->
+            <div class="sheet-viewport" id="sheetViewport">
+                <div class="a4-sheet" id="invoiceSheet">
+                    
+                    <!-- Decorative Top Accent Bar -->
+                    <div class="sheet-top-bar"></div>
+
+                    <!-- Invoice Header -->
+                    <div class="sheet-header">
+                        <div class="sheet-emitter">
+                            <div class="sheet-logo-wrap" id="previewLogoContainer">
+                                <div class="default-sheet-logo">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                </div>
+                                <img id="previewLogoImg" src="" alt="Logo" class="hidden logo-img">
+                            </div>
+                            <div class="emitter-details">
+                                <h1 class="emitter-name" id="pCompanyName">OMEGA LivrExpress</h1>
+                                <p class="emitter-tagline" id="pCompanyTagline">Transport express, logistique & courses urbaines</p>
+                                <p class="emitter-meta" id="pCompanyAddress">Face Marché Principal & Gare ferroviaire, Allada, Bénin</p>
+                                <p class="emitter-meta">
+                                    <span id="pCompanyPhone">📞 +229 01 95 44 44 30</span> • 
+                                    <span id="pCompanyEmail">✉️ contact@omegalivrexpress.bj</span>
+                                </p>
+                                <p class="emitter-nif" id="pCompanyNif">IFU : 0202612345678</p>
+                            </div>
+                        </div>
+
+                        <div class="sheet-doc-meta">
+                            <div class="doc-badge" id="pDocType">FACTURE</div>
+                            <div class="doc-number-box">
+                                <span class="doc-label">Numéro</span>
+                                <span class="doc-val" id="pDocNumber">FACT-2026-001</span>
+                            </div>
+                            <div class="status-stamp" id="pStatusStamp">EN ATTENTE</div>
+                        </div>
+                    </div>
+
+                    <!-- Client and Document Dates Section -->
+                    <div class="sheet-parties">
+                        <div class="party-box client-box">
+                            <span class="box-label">FACTURÉ À / DESTINATAIRE :</span>
+                            <h2 class="client-title" id="pClientName">Boutique Glamour Mode</h2>
+                            <p class="client-att" id="pClientAttention">Attn: Mme Chantal Houndégbé</p>
+                            <p class="client-address" id="pClientAddress">Allada Centre, Face Église Catholique</p>
+                            <p class="client-contact">
+                                <span id="pClientPhone">Tel: +229 97 00 55 66</span>
+                                <span id="pClientEmail"> • chantal.glamour@gmail.com</span>
+                            </p>
+                        </div>
+
+                        <div class="party-box dates-box">
+                            <span class="box-label">DÉTAILS DU DOSSIER :</span>
+                            <div class="date-row">
+                                <span class="d-label">Date d'émission :</span>
+                                <span class="d-val" id="pDocDate">18/10/2026</span>
+                            </div>
+                            <div class="date-row">
+                                <span class="d-label">Date d'échéance :</span>
+                                <span class="d-val" id="pDocDueDate">25/10/2026</span>
+                            </div>
+                            <div class="date-row">
+                                <span class="d-label">Mode de règlement :</span>
+                                <span class="d-val" id="pPaymentMethod">Mobile Money</span>
+                            </div>
+                            <div class="date-row highlight-obj">
+                                <span class="d-label">Objet :</span>
+                                <span class="d-val" id="pDocObject">Prestation de livraison express</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="sheet-table-wrap">
+                        <table class="invoice-table">
+                            <thead>
+                                <tr>
+                                    <th class="th-num">#</th>
+                                    <th class="th-desc">Désignation des Prestations / Articles</th>
+                                    <th class="th-qty text-center">Qté</th>
+                                    <th class="th-price text-right">Prix Unitaire</th>
+                                    <th class="th-total text-right">Montant Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pItemsBody">
+                                <!-- Generated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Financial Summary & Words Amount -->
+                    <div class="sheet-summary-grid">
+                        <div class="summary-left">
+                            <div class="words-amount-box">
+                                <span class="words-title">Arrêtée la présente facture à la somme de :</span>
+                                <p class="words-text" id="pWordsAmount">Quarante-deux mille cinq cents Francs CFA.</p>
+                            </div>
+
+                            <div class="payment-instructions-box">
+                                <span class="inst-title">Coordonnées de règlement :</span>
+                                <p class="inst-body" id="pPaymentDetails">MTN MoMo : +229 01 95 44 44 30 / Moov : +229 97 00 12 34</p>
+                            </div>
+
+                            <div class="sheet-notes-box">
+                                <p id="pInvoiceNotes">Marchandises vérifiées et réceptionnées en bon état. En cas de retard de paiement, une pénalité légale pourra être appliquée. Merci pour votre confiance !</p>
+                            </div>
+                        </div>
+
+                        <div class="summary-right">
+                            <table class="totals-table">
+                                <tr>
+                                    <td class="t-label">Sous-Total Brut :</td>
+                                    <td class="t-val text-right" id="pSubtotal">42 500 FCFA</td>
+                                </tr>
+                                <tr id="pDiscountRow" class="hidden">
+                                    <td class="t-label text-success">Remise accordée :</td>
+                                    <td class="t-val text-right text-success" id="pDiscount">- 0 FCFA</td>
+                                </tr>
+                                <tr id="pTaxRow" class="hidden">
+                                    <td class="t-label" id="pTaxLabel">TVA (18%) :</td>
+                                    <td class="t-val text-right" id="pTax">0 FCFA</td>
+                                </tr>
+                                <tr class="total-ttc-row">
+                                    <td class="t-label-ttc">TOTAL NET :</td>
+                                    <td class="t-val-ttc text-right" id="pTotalTtc">42 500 FCFA</td>
+                                </tr>
+                                <tr id="pDepositRow" class="hidden">
+                                    <td class="t-label">Acompte perçu :</td>
+                                    <td class="t-val text-right" id="pDeposit">- 0 FCFA</td>
+                                </tr>
+                                <tr class="net-due-row">
+                                    <td class="t-label-due">NET À PAYER :</td>
+                                    <td class="t-val-due text-right" id="pBalanceDue">42 500 FCFA</td>
+                                </tr>
+                            </table>
+
+                            <!-- Signatures block -->
+                            <div class="signature-block">
+                                <div class="sig-col">
+                                    <span class="sig-title">Le Client</span>
+                                    <span class="sig-sub">Mention "Bon pour accord"</span>
+                                    <div class="sig-line"></div>
+                                </div>
+                                <div class="sig-col">
+                                    <span class="sig-title">La Direction</span>
+                                    <span class="sig-sub">Signature & Cachet</span>
+                                    <div class="sig-seal">
+                                        <div class="seal-inner">OMEGA FACTURE<br>★ CERTIFIÉ ★</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="sheet-footer">
+                        <p class="footer-legal">OMEGA FACTURE — Document commercial officiel émis en conformité avec les usages en vigueur. Document généré avec rigueur & traçabilité.</p>
+                        <p class="footer-page">Page 1 / 1</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- INVOICE HISTORY / STATS MODAL -->
+    <div class="modal-overlay hidden" id="historyModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <div class="modal-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20v-6M6 20V10M18 20V4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2>Gestionnaire & Historique des Factures</h2>
+                        <p class="modal-subtitle">Consultez, rechargez ou dupliquez vos factures sauvegardées en local.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-modal" id="closeHistoryBtn">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Quick KPI Stats Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <span class="kpi-label">Total Facturé</span>
+                        <span class="kpi-value text-primary" id="kpiTotalBilled">0 FCFA</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Total Encaissé (Payé)</span>
+                        <span class="kpi-value text-success" id="kpiTotalPaid">0 FCFA</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Reste en Attente</span>
+                        <span class="kpi-value text-warning" id="kpiTotalPending">0 FCFA</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Nombre de Documents</span>
+                        <span class="kpi-value" id="kpiDocCount">0</span>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="history-controls">
+                    <div class="search-input-wrap">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="historySearchInput" placeholder="Rechercher par client, numéro ou objet...">
+                    </div>
+                    <div class="filter-group">
+                        <button type="button" class="filter-btn active" data-filter="ALL">Toutes</button>
+                        <button type="button" class="filter-btn" data-filter="PAYÉE">Payées</button>
+                        <button type="button" class="filter-btn" data-filter="EN ATTENTE">En attente</button>
+                        <button type="button" class="filter-btn" data-filter="BROUILLON">Brouillons</button>
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="history-table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Numéro</th>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Montant Net</th>
+                                <th>Statut</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Injected dynamically -->
+                        </tbody>
+                    </table>
+                    <div id="historyEmptyState" class="empty-state hidden">
+                        <p>Aucune facture enregistrée pour le moment. Remplissez le formulaire et cliquez sur <strong>« Enregistrer »</strong> !</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="exportBackupBtn" class="btn btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Exporter Sauvegarde JSON</span>
+                </button>
+                <button type="button" id="clearAllHistoryBtn" class="btn btn-danger-outline">Tout effacer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Component -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

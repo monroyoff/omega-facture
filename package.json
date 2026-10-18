@@ -1,0 +1,18 @@
+{
+  "name": "omega-facture",
+  "version": "1.0.0",
+  "description": "Suite de facturation et devis professionnels pour OMEGA",
+  "private": true,
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "facture",
+    "devis",
+    "invoicing",
+    "omega",
+    "benin"
+  ],
+  "author": "MONROY <jobovog@gmail.com>",
+  "license": "MIT"
+}
