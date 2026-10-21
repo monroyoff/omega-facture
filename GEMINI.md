@@ -87,7 +87,13 @@
   2. *Relance ferme (Retard 15-30 jours)*
   3. *Mise en demeure formelle avec références juridiques UEMOA (+ de 60 jours)*.
 
-### E. Gestion des Règlements & Encaissements (`/payments`)
+### E. Gestion des Règlements, Encaissements & Flux de Trésorerie (`/payments`)
+- **Export Multi-Formats des Paiements & Flux (`ExportPaymentsModal`)** : Bouton d'action dédié « Exporter les flux » dans l'en-tête de la page permettant d'exporter les encaissements sous tous les formats existants :
+  1. **Document PDF Officiel (`.pdf`)** : Bordereau complet d'encaissement A4 généré en haute résolution avec en-tête d'entreprise, IFU, 4 cartes KPI, tableau détaillé et mentions de certification.
+  2. **Tableur Excel / CSV (`.csv`)** : Export tableur complet encodé UTF-8 avec BOM `\uFEFF` (garantissant l'absence de caractères corrompus sous Excel), métadonnées globales et colonnes complètes (*Date, Réf, Client, Facture, Moyen de paiement, Montant FCFA*).
+  3. **Image Haute Définition PNG (`.png`)** : Synthèse visuelle grand format (1200px) générée par Canvas pour transmission rapide via WhatsApp ou email.
+  4. **Impression Directe (`Print`)** : Dialogue d'impression optimisé A4 avec mise en page dédiée.
+  - **Sélecteur de Périmètre d'Export** : Bascule instantanée entre « Période active » (filtrée par le calendrier) et « Toutes les transactions » (Exercice complet).
 - **Calendrier Unique et Universel** : Un seul calendrier fonctionnel dédié sur la page (suppression du calendrier dupliqué du header avec `hidePeriodPicker={true}`), proposant tous les modes temporels : *Mois*, *Jour précis*, *Plage libre (Du ... Au ...)*, *Trimestre (T1-T4)*, *Semestre (S1-S2)*, et *Année complète*. Ce calendrier unique pilote instantanément l'ensemble des 4 cartes KPI (*Total Encaissé, Mobile Money, Virements Bancaires, Espèces / Caisse*) ainsi que l'intégralité du tableau des transactions.
 - **Formulaire d'Encaissement Vierge** : À l'ouverture de `NewPaymentModal` via le bouton principal « Enregistrer un Paiement », aucun pré-rempli n'est imposé : le menu déroulant démarre sur l'option neutre `-- Sélectionner une facture à encaisser --`, le montant est à 0 et la référence est vierge.
 - Enregistrement d'un encaissement pour tous les canaux UEMOA : **Mobile Money (MTN, Moov, Wave)**, **Virement bancaire**, **Chèque**, **Espèces (Caisse)**.

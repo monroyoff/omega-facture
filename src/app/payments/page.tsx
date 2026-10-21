@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { NewPaymentModal } from '@/components/payments/NewPaymentModal';
+import { ExportPaymentsModal } from '@/components/payments/ExportPaymentsModal';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 import {
   CreditCard,
@@ -18,6 +19,12 @@ import {
   CheckCircle2,
   Clock,
   RotateCcw,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  Printer,
+  ChevronDown,
 } from 'lucide-react';
 
 export default function PaymentsPage() {
@@ -26,6 +33,9 @@ export default function PaymentsPage() {
   const [selectedMethod, setSelectedMethod] = useState<'all' | 'mobile_money' | 'bank_transfer' | 'cash' | 'check'>('all');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>('date_desc');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = React.useRef<HTMLDivElement>(null);
 
   const {
     payments,
@@ -46,6 +56,19 @@ export default function PaymentsPage() {
       }
     }
   }, [setSelectedPeriod]);
+
+  // Close export dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    };
+    if (exportMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [exportMenuOpen]);
 
   // Active payments filtered by the period selected in calendar
   const activePayments = periodPayments;
@@ -155,6 +178,109 @@ export default function PaymentsPage() {
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Dedicated Calendar dropdown for Payments */}
               <PeriodPickerDropdown buttonVariant="card" />
+
+              {/* Export dropdown menu */}
+              <div className="relative" ref={exportMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-2xs cursor-pointer active:scale-98"
+                  title="Exporter les paiements et flux sous différents formats"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Exporter les flux</span>
+                  <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${exportMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {exportMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#111622] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
+                      Formats d'export disponibles
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        setIsExportModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FileText className="w-4 h-4 text-rose-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Bordereau PDF</div>
+                          <div className="text-[10px] text-slate-400">Document officiel A4</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        setIsExportModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Tableur Excel / CSV</div>
+                          <div className="text-[10px] text-slate-400">Données encodées UTF-8</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        setIsExportModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <ImageIcon className="w-4 h-4 text-purple-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Image HD (PNG)</div>
+                          <div className="text-[10px] text-slate-400">Synthèse visuelle de partage</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExportMenuOpen(false);
+                        setIsExportModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Printer className="w-4 h-4 text-slate-500 shrink-0" />
+                        <div>
+                          <div className="font-bold">Imprimer le registre</div>
+                          <div className="text-[10px] text-slate-400">Format d'impression direct</div>
+                        </div>
+                      </div>
+                    </button>
+
+                    <div className="pt-1 mt-1 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExportMenuOpen(false);
+                          setIsExportModalOpen(true);
+                        }}
+                        className="w-full py-1.5 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors text-center cursor-pointer"
+                      >
+                        Aperçu avant export...
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -359,6 +485,7 @@ export default function PaymentsPage() {
       </div>
 
       <NewPaymentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ExportPaymentsModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} />
     </div>
   );
 }
