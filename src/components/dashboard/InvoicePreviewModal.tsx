@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   X,
   Printer,
@@ -14,6 +15,16 @@ import {
   ShieldCheck,
   Pencil,
   BellRing,
+  Menu,
+  ChevronDown,
+  LayoutDashboard,
+  FileText,
+  Users,
+  Package,
+  ArrowLeftRight,
+  BarChart3,
+  Settings,
+  Plus,
 } from 'lucide-react';
 import { Invoice } from '@/lib/types';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
@@ -29,7 +40,9 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   invoice,
   onClose,
 }) => {
+  const router = useRouter();
   const [isRelanceOpen, setIsRelanceOpen] = useState(false);
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
 
   if (!invoice) return null;
 
@@ -44,56 +57,137 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       {/* Modal Container */}
-      <div className="relative w-full max-w-4xl bg-slate-100 dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[92vh] flex flex-col">
-        {/* Top Action Bar matching screenshot */}
-        <div className="px-6 py-4 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+      <div className="relative w-full max-w-4xl bg-slate-100 dark:bg-[#0c1017] rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[92vh] sm:max-h-[90vh] flex flex-col">
+        {/* Top Action & Navigation Bar */}
+        <div className="px-4 sm:px-6 py-3.5 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">
-              Aperçu du Document
-            </h3>
-            <StatusBadge status={invoice.status} />
+            {/* Quick Navigation Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNavMenuOpen(!navMenuOpen)}
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all cursor-pointer ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs active:scale-95"
+                title="Navigation rapide"
+              >
+                <Menu className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                <span className="hidden sm:inline">Menu</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                    navMenuOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {navMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setNavMenuOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-2 w-64 bg-white dark:bg-[#111622] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 mb-1 flex items-center justify-between">
+                      <span>Navigation OMEGA</span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-brand-50 text-brand-700 font-semibold">Accès Direct</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      {[
+                        { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
+                        { label: 'Factures & Devis', href: '/invoices', icon: FileText },
+                        { label: 'Clients & Contacts', href: '/clients', icon: Users },
+                        { label: 'Produits & Services', href: '/products', icon: Package },
+                        { label: 'Paiements & Flux', href: '/payments', icon: ArrowLeftRight },
+                        { label: 'Rapports financiers & KPI', href: '/reports', icon: BarChart3 },
+                        { label: 'Paramètres Organisation', href: '/settings', icon: Settings },
+                      ].map((m) => {
+                        const Icon = m.icon;
+                        return (
+                          <button
+                            key={m.label}
+                            type="button"
+                            onClick={() => {
+                              setNavMenuOpen(false);
+                              onClose();
+                              router.push(m.href);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer text-left font-medium"
+                          >
+                            <Icon className="w-4 h-4 text-slate-400" />
+                            <span>{m.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNavMenuOpen(false);
+                          onClose();
+                          router.push('/invoices/new');
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold hover:bg-brand-100 transition-colors cursor-pointer text-left"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Créer une Facture</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                Aperçu {invoice.number}
+              </h3>
+              <StatusBadge status={invoice.status} />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {invoice.status === 'overdue' && (
               <button
                 type="button"
                 onClick={() => setIsRelanceOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 active:scale-95 transition-all cursor-pointer"
                 title="Relancer le client"
               >
                 <BellRing className="w-3.5 h-3.5 animate-pulse" />
-                <span>Relancer</span>
+                <span className="hidden sm:inline">Relancer</span>
               </button>
             )}
             {invoice.status === 'draft' && (
               <Link
                 href={`/invoices/${invoice.id}/edit`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all"
               >
                 <Pencil className="w-3.5 h-3.5" />
-                <span>Modifier ce brouillon</span>
+                <span className="hidden sm:inline">Modifier</span>
               </Link>
             )}
             <button
               onClick={handleWhatsApp}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
+              title="Envoyer par WhatsApp"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>WhatsApp</span>
+              <span className="hidden sm:inline">WhatsApp</span>
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 transition-opacity"
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
+              title="Imprimer ou enregistrer en PDF"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Imprimer (PDF)</span>
+              <span>Imprimer</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-2"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-1 cursor-pointer"
               aria-label="Fermer"
             >
               <X className="w-5 h-5" />
@@ -102,43 +196,29 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
         </div>
 
         {/* Scrollable Document Canvas */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-100/80 dark:bg-[#080b11]">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-6 md:p-8 flex justify-center items-start bg-slate-200/70 dark:bg-[#070a0f] min-h-0">
           {/* A4 Sheet Container */}
-          <div className="w-full max-w-[760px] bg-white text-slate-900 rounded-2xl p-8 sm:p-12 shadow-paper border border-slate-200/80 select-text font-sans">
+          <div className="w-full max-w-[800px] h-fit min-h-full bg-white text-slate-900 rounded-2xl p-4 sm:p-8 md:p-12 shadow-paper border border-slate-200/80 select-text font-sans my-0 sm:my-2">
             {/* Header: Title, Number, and Company Logo */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-8 mb-8">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-6 sm:pb-8 mb-6 sm:mb-8">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-widest text-brand-600 mb-1 block">
                   Document Officiel
                 </span>
-                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                   FACTURE
                 </h1>
-                <p className="text-sm font-semibold text-slate-500 mt-1">
+                <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
                   N° {invoice.number}
                 </p>
               </div>
 
               {/* Company Logo Badge */}
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
-                  <svg
-                    width="26"
-                    height="26"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 3v18" />
-                    <path d="M3 12h18" />
-                    <circle cx="12" cy="12" r="3" fill="currentColor" />
-                  </svg>
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 font-bold text-lg">
+                  Ω
                 </div>
-                <div className="text-right">
+                <div className="text-right hidden sm:block">
                   <div className="font-extrabold text-slate-900 text-sm tracking-tight">
                     OMEGA FACTURE
                   </div>
@@ -149,18 +229,18 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               </div>
             </div>
 
-            {/* Billed By & Billed To columns (styled from screenshot) */}
-            <div className="grid grid-cols-2 gap-8 pb-8 border-b border-slate-100 text-xs">
+            {/* Billed By & Billed To columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 pb-6 sm:pb-8 border-b border-slate-100 text-xs">
               {/* Emetteur */}
-              <div>
-                <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+              <div className="p-3 sm:p-0 rounded-xl bg-slate-50/60 sm:bg-transparent border sm:border-0 border-slate-100">
+                <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1 sm:mb-2">
                   Émis par :
                 </span>
                 <div className="font-bold text-slate-900 text-sm">
                   MONROY Business Solutions
                 </div>
-                <div className="text-slate-600 mt-1 space-y-0.5">
-                  <p>Allada, République du Bénin</p>
+                <div className="text-slate-600 mt-1 space-y-0.5 leading-relaxed">
+                  <p>Allada & Cotonou, République du Bénin</p>
                   <p>IFU : 0202110485960 — RCCM : RB/COT/21 B 1042</p>
                   <p>Email : jobovog@gmail.com</p>
                   <p>Tél : +229 01 95 44 44 30</p>
@@ -168,17 +248,17 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               </div>
 
               {/* Client */}
-              <div>
-                <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+              <div className="p-3 sm:p-0 rounded-xl bg-slate-50/60 sm:bg-transparent border sm:border-0 border-slate-100">
+                <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1 sm:mb-2">
                   Facturé à :
                 </span>
                 <div className="font-bold text-slate-900 text-sm">
-                  {invoice.client.company}
+                  {invoice.client.company || invoice.client.name}
                 </div>
-                <div className="text-slate-600 mt-1 space-y-0.5">
+                <div className="text-slate-600 mt-1 space-y-0.5 leading-relaxed">
                   <p>À l’attention de : {invoice.client.name}</p>
                   <p>{invoice.client.city}, {invoice.client.country}</p>
-                  {invoice.client.taxId && <p>{invoice.client.taxId}</p>}
+                  {invoice.client.taxId && <p>IFU Client : {invoice.client.taxId}</p>}
                   <p>Email : {invoice.client.email}</p>
                   <p>Tél : {invoice.client.phone}</p>
                 </div>
@@ -186,7 +266,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
             </div>
 
             {/* Dates row */}
-            <div className="grid grid-cols-2 gap-8 py-5 border-b border-slate-100 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-8 py-4 sm:py-5 border-b border-slate-100 text-xs">
               <div>
                 <span className="text-slate-400 block font-medium">Date d’émission :</span>
                 <span className="font-bold text-slate-900 text-sm">
@@ -201,9 +281,9 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               </div>
             </div>
 
-            {/* Line Items Table (styled exactly from screenshot) */}
-            <div className="py-6">
-              <table className="w-full text-left text-xs border-collapse">
+            {/* Line Items Table */}
+            <div className="py-6 overflow-x-auto w-full">
+              <table className="w-full text-left text-xs border-collapse min-w-[480px]">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[10px] font-semibold">
                     <th className="py-3 pr-4">Description de la prestation</th>
@@ -235,7 +315,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
             {/* Financial Summary */}
             <div className="border-t border-slate-200 pt-5 flex justify-end">
-              <div className="w-full sm:w-72 space-y-2 text-xs">
+              <div className="w-full sm:w-80 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>Sous-total HT :</span>
                   <span className="font-semibold text-slate-900">
@@ -243,10 +323,10 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   </span>
                 </div>
                 {invoice.discount > 0 && (
-                  <div className="flex justify-between text-rose-600">
-                    <span>Remise commerciale :</span>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Remise commerciale accordée :</span>
                     <span className="font-semibold">
-                      - {formatFCFA(invoice.discount)}
+                      -{formatFCFA(invoice.discount)}
                     </span>
                   </div>
                 )}
@@ -278,8 +358,8 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               </div>
             </div>
 
-            {/* Payment instructions & Signature (matching screenshot) */}
-            <div className="mt-10 pt-6 border-t border-slate-100 grid grid-cols-2 gap-6 text-xs">
+            {/* Payment instructions & Signature */}
+            <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
               <div>
                 <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                   Moyens de Règlement Acceptés :
@@ -296,12 +376,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               </div>
 
               {/* Signature block */}
-              <div className="text-right flex flex-col items-end justify-between">
+              <div className="text-left sm:text-right flex flex-col items-start sm:items-end justify-between">
                 <div>
                   <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                     Pour OMEGA FACTURE
                   </span>
-                  <div className="text-brand-700 italic font-serif text-lg tracking-wider pt-2">
+                  <div className="text-brand-700 italic font-serif text-lg tracking-wider pt-1">
                     Monroy J.
                   </div>
                   <span className="text-[10px] text-slate-400">

@@ -59,7 +59,9 @@
 - **Aperçu A4 Live réactif** : Document imprimable visualisé en temps réel sur la colonne de droite, synchronisé à chaque frappe.
 - **Fiabilité SSR** : Numérotation séquentielle déterministe (`FAC-YYYY-XXXX`) avec calcul client-side pour éliminer toute erreur d'hydratation Next.js.
 
-### C. Rapports Financiers, KPI & Drilldown Interactif (`/reports`)
+### C. Rapports financiers & KPI & Drilldown Interactif (`/reports`)
+- **Titre officiel** : « Rapports financiers & KPI » (intégré dans la barre latérale, le header et les modales).
+- **Architecture Modale Responsif & Universel** : Modales d'aperçu de documents (`PrintReportModal` et `InvoicePreviewModal`) conçues en `z-[100]` avec canevas de défilement `items-start`, tables scrollables horizontalement en mode mobile (`overflow-x-auto min-w-[500px]`), dimensions adaptatives A4 sans troncature ni débordement, et menu de navigation déroulant direct `Menu Principal` en en-tête.
 - **6 Sections Interactives Cliquables** :
   1. **Chiffre d’Affaires Cumulé 2026** : Toutes les factures validées de l'exercice.
   2. **Taux de Recouvrement Global** : Analyse des flux perçus vs solde restant.

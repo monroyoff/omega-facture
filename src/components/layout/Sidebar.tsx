@@ -118,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Clients & Contacts', href: '/clients', icon: Users },
     { label: 'Produits & Services', href: '/products', icon: Package },
     { label: 'Paiements & Flux', href: '/payments', icon: ArrowLeftRight },
-    { label: 'Rapports & KPI', href: '/reports', icon: BarChart3 },
+    { label: 'Rapports financiers & KPI', href: '/reports', icon: BarChart3 },
   ];
 
   return (

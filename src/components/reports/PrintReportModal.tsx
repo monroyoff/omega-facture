@@ -506,10 +506,10 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         `,
       }} />
 
-      <div className="fixed inset-0 lg:left-72 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-950/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200 no-print">
-        <div className="relative w-full max-w-5xl bg-slate-100 dark:bg-[#0c1017] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[94vh] flex flex-col">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200 no-print">
+        <div className="relative w-full max-w-5xl bg-slate-100 dark:bg-[#0c1017] rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[92vh] sm:max-h-[90vh] flex flex-col">
           {/* Top Action & Navigation Bar */}
-          <div className="px-5 py-3.5 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="px-4 sm:px-6 py-3.5 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* Top-Left: Menu Déroulant & Navigation Rapide */}
             <div className="flex items-center gap-3">
               {/* Menu Déroulant Principal */}
@@ -549,7 +549,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                           { label: 'Clients & Contacts', href: '/clients', icon: Users },
                           { label: 'Produits & Services', href: '/products', icon: Package },
                           { label: 'Paiements & Règlements', href: '/payments', icon: ArrowLeftRight },
-                          { label: 'Rapports Financiers & KPI', href: '/reports', icon: BarChart3 },
+                          { label: 'Rapports financiers & KPI', href: '/reports', icon: BarChart3 },
                           { label: 'Paramètres Organisation', href: '/settings', icon: Settings },
                         ].map((m) => {
                           const Icon = m.icon;
@@ -752,12 +752,12 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
           </div>
 
           {/* Scrollable Visual Canvas Container */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-200/60 dark:bg-[#070a0f]">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 flex justify-center items-start bg-slate-200/60 dark:bg-[#070a0f] min-h-0">
             {/* A4 Sheet Preview Card */}
             <div
               ref={printRef}
               id="printable-report-card"
-              className="w-full max-w-4xl bg-white text-slate-900 rounded-2xl shadow-paper border border-slate-200/90 p-8 sm:p-12 space-y-8 select-text"
+              className="w-full max-w-4xl h-fit min-h-full bg-white text-slate-900 rounded-2xl shadow-paper border border-slate-200/90 p-4 sm:p-8 md:p-12 space-y-6 sm:space-y-8 select-text my-0 sm:my-2"
             >
               {/* Sheet Header */}
               <div className="flex items-start justify-between border-b border-slate-200 pb-6">
@@ -889,50 +889,52 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                   </span>
                 </div>
 
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                      <th className="py-2.5">N° Facture</th>
-                      <th className="py-2.5">Client</th>
-                      <th className="py-2.5">Date Émission</th>
-                      <th className="py-2.5 text-right">Montant TTC</th>
-                      <th className="py-2.5 text-right">Encaissé</th>
-                      <th className="py-2.5 text-right">Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-[11px]">
-                    {filteredInvoices.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-6 text-center text-slate-400 italic">
-                          Aucune facture enregistrée pour cette période.
-                        </td>
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left text-xs min-w-[540px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
+                        <th className="py-2.5">N° Facture</th>
+                        <th className="py-2.5">Client</th>
+                        <th className="py-2.5">Date Émission</th>
+                        <th className="py-2.5 text-right">Montant TTC</th>
+                        <th className="py-2.5 text-right">Encaissé</th>
+                        <th className="py-2.5 text-right">Statut</th>
                       </tr>
-                    ) : (
-                      filteredInvoices.slice(0, 8).map((inv) => (
-                        <tr key={inv.id}>
-                          <td className="py-2.5 font-bold text-slate-900">{inv.number}</td>
-                          <td className="py-2.5 font-medium text-slate-700">{inv.client?.name || 'Client'}</td>
-                          <td className="py-2.5 text-slate-500">{formatDateFR(inv.issueDate)}</td>
-                          <td className="py-2.5 text-right font-bold text-slate-900">{formatFCFA(inv.total)}</td>
-                          <td className="py-2.5 text-right font-bold text-emerald-600">{formatFCFA(inv.amountPaid)}</td>
-                          <td className="py-2.5 text-right font-semibold">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] ${
-                                inv.status === 'paid'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : inv.status === 'overdue'
-                                  ? 'bg-rose-50 text-rose-700'
-                                  : 'bg-amber-50 text-amber-700'
-                              }`}
-                            >
-                              {inv.status === 'paid' ? 'Payée' : inv.status === 'overdue' ? 'En retard' : inv.status === 'sent' ? 'Envoyée' : 'Brouillon'}
-                            </span>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-[11px]">
+                      {filteredInvoices.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-6 text-center text-slate-400 italic">
+                            Aucune facture enregistrée pour cette période.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        filteredInvoices.slice(0, 8).map((inv) => (
+                          <tr key={inv.id}>
+                            <td className="py-2.5 font-bold text-slate-900">{inv.number}</td>
+                            <td className="py-2.5 font-medium text-slate-700">{inv.client?.name || 'Client'}</td>
+                            <td className="py-2.5 text-slate-500">{formatDateFR(inv.issueDate)}</td>
+                            <td className="py-2.5 text-right font-bold text-slate-900">{formatFCFA(inv.total)}</td>
+                            <td className="py-2.5 text-right font-bold text-emerald-600">{formatFCFA(inv.amountPaid)}</td>
+                            <td className="py-2.5 text-right font-semibold">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] ${
+                                  inv.status === 'paid'
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : inv.status === 'overdue'
+                                    ? 'bg-rose-50 text-rose-700'
+                                    : 'bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                {inv.status === 'paid' ? 'Payée' : inv.status === 'overdue' ? 'En retard' : inv.status === 'sent' ? 'Envoyée' : 'Brouillon'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Certification & Signature Footer */}
