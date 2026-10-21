@@ -88,17 +88,30 @@
   3. *Mise en demeure formelle avec références juridiques UEMOA (+ de 60 jours)*.
 
 ### E. Gestion des Règlements & Encaissements (`/payments`)
-- Enregistrement rapide d'un encaissement via `NewPaymentModal`.
-- Support de tous les moyens de paiement : **Mobile Money (MTN, Moov, Wave)**, **Virement bancaire**, **Chèque bancaire**, **Espèces**.
-- Rapprochement automatique : mise à jour instantanée du solde de la facture et passage automatique au statut `paid` lorsque le montant total est atteint.
+- **Calendrier Unique et Universel** : Un seul calendrier fonctionnel dédié sur la page (suppression du calendrier dupliqué du header avec `hidePeriodPicker={true}`), proposant tous les modes temporels : *Mois*, *Jour précis*, *Plage libre (Du ... Au ...)*, *Trimestre (T1-T4)*, *Semestre (S1-S2)*, et *Année complète*. Ce calendrier unique pilote instantanément l'ensemble des 4 cartes KPI (*Total Encaissé, Mobile Money, Virements Bancaires, Espèces / Caisse*) ainsi que l'intégralité du tableau des transactions.
+- **Formulaire d'Encaissement Vierge** : À l'ouverture de `NewPaymentModal` via le bouton principal « Enregistrer un Paiement », aucun pré-rempli n'est imposé : le menu déroulant démarre sur l'option neutre `-- Sélectionner une facture à encaisser --`, le montant est à 0 et la référence est vierge.
+- Enregistrement d'un encaissement pour tous les canaux UEMOA : **Mobile Money (MTN, Moov, Wave)**, **Virement bancaire**, **Chèque**, **Espèces (Caisse)**.
+- Rapprochement automatique : mise à jour en direct du solde restant dû et bascule automatique au statut `paid` à solde nul.
 
 ### F. Gestion des Clients (`/clients`)
 - Annuaire complet avec contacts, raison sociale, ville, pays, téléphone et numéro IFU/fiscal.
 - Modal de création/édition (`NewClientModal`) avec gestion d'avatars et presets professionnels.
+- Prise en charge des paramètres de recherche d'URL pour navigation directe depuis la recherche globale.
 
 ### G. Catalogue Produits & Services (`/products`)
 - Liste des prestations et fournitures avec prix HT, TVA applicable (18% ou exonéré 0%) et unité de facturation.
 - Insertion directe dans les factures via le sélecteur rapide de catalogue.
+- Prise en charge des paramètres de recherche d'URL.
+
+### H. Recherche Globale Applicative (`GlobalSearchModal` & `⌘K`)
+- **Barre de Recherche Active du Menu Principal** : Située en haut du menu latéral (`Sidebar.tsx`), totalement fonctionnelle avec déclenchement au clic et raccourci clavier universel `⌘K` / `Ctrl+K` (fermeture par `Échap`).
+- **Moteur de Recherche Instantané Multi-Entités** : Recherche globale en temps réel dans :
+  1. **Factures** : Par numéro (`FAC-...`), nom du client, société, statut (*Payée, Envoyée, En retard, Brouillon*) et montant en FCFA.
+  2. **Clients** : Par raison sociale, nom du contact, email, téléphone et ville.
+  3. **Produits & Services** : Par désignation, catégorie, unité et tarif unitaire.
+  4. **Paiements** : Par référence de transaction (`MTN-...`, `VIR-...`), facture associée et montant.
+  5. **Navigation & Raccourcis** : Accès direct à toutes les sections de l'application en un clic.
+- **Expérience Utilisateur Moderne** : Filtres par onglets de catégorie, navigation au clavier (flèches `↑↓` et `Entrée`), mise en surbrillance, badges d'état colorés et synchronisation d'URL.
 
 ---
 

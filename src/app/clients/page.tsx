@@ -17,6 +17,14 @@ export default function ClientsPage() {
 
   const { clients } = useInvoices();
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get('search');
+      if (s) setSearchQuery(s);
+    }
+  }, []);
+
   const filtered = clients.filter((c) => {
     const q = searchQuery.toLowerCase();
     return c.name.toLowerCase().includes(q) || c.company.toLowerCase().includes(q) || c.city.toLowerCase().includes(q);

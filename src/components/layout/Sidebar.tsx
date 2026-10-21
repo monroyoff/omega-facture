@@ -29,6 +29,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
+import { GlobalSearchModal } from '@/components/common/GlobalSearchModal';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isDark, setIsDark] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [loginEmail, setLoginEmail] = useState('jobovog@gmail.com');
   const [loginPassword, setLoginPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
@@ -53,6 +55,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const pendingCount = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue').length;
+
+  // Global keyboard shortcut Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   useEffect(() => {
     // Check initial dark mode preference
@@ -165,14 +179,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Quick Search Bar */}
           <div className="px-4 pt-4 pb-2">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchModalOpen(true);
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full relative flex items-center justify-between px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white transition-all shadow-2xs group cursor-pointer text-left"
+              title="Recherche globale dans toute l'application (⌘K)"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-600 transition-colors" />
+                <span className="font-medium">Recherche globale...</span>
+              </div>
+              <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-md bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                ⌘K
+              </kbd>
+            </button>
           </div>
 
           {/* Main Navigation */}
@@ -527,6 +550,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Global Search Modal / Command Palette (⌘K) */}
+      <GlobalSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+      />
     </>
   );
 };

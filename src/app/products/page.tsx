@@ -15,6 +15,14 @@ export default function ProductsPage() {
 
   const { products } = useInvoices();
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get('search');
+      if (s) setSearchQuery(s);
+    }
+  }, []);
+
   const filtered = products.filter((p) => {
     const q = searchQuery.toLowerCase();
     return p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q);

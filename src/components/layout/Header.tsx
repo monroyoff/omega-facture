@@ -29,9 +29,10 @@ import { Invoice } from '@/lib/types';
 interface HeaderProps {
   onOpenSidebar: () => void;
   onNewInvoice?: () => void;
+  hidePeriodPicker?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hidePeriodPicker = false }) => {
   const router = useRouter();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -127,7 +128,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice }) =
         {/* Right: Period Selector, Notification, and New Invoice CTA */}
         <div className="flex items-center gap-3 relative">
           {/* Interactive Period Selector (Calendar) */}
-          <div className="relative">
+          {!hidePeriodPicker && (
+            <div className="relative">
             <button
               type="button"
               onClick={() => {
@@ -394,7 +396,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice }) =
                 </div>
               </>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Interactive Notifications Bell */}
           <div className="relative">

@@ -59,6 +59,18 @@ export interface PeriodOption {
 
 export const formatPeriodLabel = (periodId: string): string => {
   if (periodId === 'ALL') return 'Année 2026 complète';
+  if (periodId.startsWith('range:')) {
+    const parts = periodId.split(':');
+    if (parts.length === 3) {
+      const [_, start, end] = parts;
+      const formatDateShort = (iso: string) => {
+        const [y, m, d] = iso.split('-');
+        return `${d}/${m}/${y}`;
+      };
+      return `Du ${formatDateShort(start)} au ${formatDateShort(end)}`;
+    }
+    return 'Plage personnalisée';
+  }
   if (periodId.startsWith('day:')) {
     const dateStr = periodId.replace('day:', '');
     const parts = dateStr.split('-');
@@ -827,6 +839,15 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const periodInvoices = React.useMemo(() => {
     if (selectedPeriod === 'ALL') return invoices;
 
+    // Custom date range filter: 'range:YYYY-MM-DD:YYYY-MM-DD'
+    if (selectedPeriod.startsWith('range:')) {
+      const parts = selectedPeriod.split(':');
+      if (parts.length === 3) {
+        const [_, start, end] = parts;
+        return invoices.filter((inv) => inv.issueDate >= start && inv.issueDate <= end);
+      }
+    }
+
     // Day filter: 'day:YYYY-MM-DD'
     if (selectedPeriod.startsWith('day:')) {
       const targetDate = selectedPeriod.replace('day:', '');
@@ -877,6 +898,15 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Extended filter for Payments by period
   const periodPayments = React.useMemo(() => {
     if (selectedPeriod === 'ALL') return payments;
+
+    // Custom date range filter: 'range:YYYY-MM-DD:YYYY-MM-DD'
+    if (selectedPeriod.startsWith('range:')) {
+      const parts = selectedPeriod.split(':');
+      if (parts.length === 3) {
+        const [_, start, end] = parts;
+        return payments.filter((p) => p.date >= start && p.date <= end);
+      }
+    }
 
     // Day filter: 'day:YYYY-MM-DD'
     if (selectedPeriod.startsWith('day:')) {

@@ -51,6 +51,18 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   const [relanceInvoice, setRelanceInvoice] = useState<Invoice | null>(null);
   const [relanceToast, setRelanceToast] = useState<string | null>(null);
 
+  // If navigated from global search with a query param, pre-fill search and switch to ALL
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get('search');
+      if (s) {
+        setSearchQuery(s);
+        setSelectedPeriod('ALL');
+      }
+    }
+  }, [setSelectedPeriod]);
+
   const handleRelanceSent = (inv: Invoice, channel: string) => {
     setRelanceToast(`Relance ${channel} transmise pour ${inv.client.name} (${inv.number})`);
     setTimeout(() => setRelanceToast(null), 4000);

@@ -17,8 +17,10 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
 }) => {
   const { selectedPeriod, setSelectedPeriod, periodLabel } = useInvoices();
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'month' | 'day' | 'quarter' | 'semester' | 'year'>('month');
+  const [activeTab, setActiveTab] = useState<'month' | 'day' | 'range' | 'quarter' | 'semester' | 'year'>('month');
   const [customDate, setCustomDate] = useState('2026-10-18');
+  const [rangeStart, setRangeStart] = useState('2026-10-01');
+  const [rangeEnd, setRangeEnd] = useState('2026-10-31');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close when clicking outside
@@ -125,6 +127,7 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
             {[
               { id: 'month', label: 'Mois' },
               { id: 'day', label: 'Jour' },
+              { id: 'range', label: 'Plage' },
               { id: 'quarter', label: 'Trimestre' },
               { id: 'semester', label: 'Semestre' },
               { id: 'year', label: 'Année' },
@@ -235,7 +238,71 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
               </div>
             )}
 
-            {/* 3. TRIMESTRE */}
+            {/* 3. PLAGE LIBRE (RANGE) */}
+            {activeTab === 'range' && (
+              <div className="space-y-3 p-1">
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  Définir une période libre (Du ... Au ...) :
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Date de début :</label>
+                    <input
+                      type="date"
+                      value={rangeStart}
+                      onChange={(e) => setRangeStart(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">Date de fin :</label>
+                    <input
+                      type="date"
+                      value={rangeEnd}
+                      onChange={(e) => setRangeEnd(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRangeStart('2026-10-01');
+                      setRangeEnd('2026-10-18');
+                    }}
+                    className="flex-1 py-1 text-[10px] font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Mois à ce jour
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRangeStart('2026-10-11');
+                      setRangeEnd('2026-10-18');
+                    }}
+                    className="flex-1 py-1 text-[10px] font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    7 derniers jours
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (rangeStart && rangeEnd) {
+                      setSelectedPeriod(`range:${rangeStart}:${rangeEnd}`);
+                      setIsOpen(false);
+                    }
+                  }}
+                  className="w-full mt-1 py-2 text-xs font-bold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Filtrer sur cette période</span>
+                </button>
+              </div>
+            )}
+
+            {/* 4. TRIMESTRE */}
             {activeTab === 'quarter' &&
               quarters.map((q) => {
                 const isSelected = selectedPeriod === q.id;

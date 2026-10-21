@@ -35,6 +35,18 @@ export default function PaymentsPage() {
     periodLabel,
   } = useInvoices();
 
+  // If navigated from global search with a query param, pre-fill search and switch to ALL
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const s = params.get('search');
+      if (s) {
+        setSearchQuery(s);
+        setSelectedPeriod('ALL');
+      }
+    }
+  }, [setSelectedPeriod]);
+
   // Active payments filtered by the period selected in calendar
   const activePayments = periodPayments;
 
@@ -109,7 +121,7 @@ export default function PaymentsPage() {
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#070a0f] flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} activePath="/payments" />
       <div className="lg:pl-72 flex flex-col flex-1">
-        <Header onOpenSidebar={() => setSidebarOpen(true)} />
+        <Header onOpenSidebar={() => setSidebarOpen(true)} hidePeriodPicker={true} />
 
         <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
           {/* Header Action Row */}

@@ -28,14 +28,21 @@ export const NewPaymentModal: React.FC<NewPaymentModalProps> = ({
 
   React.useEffect(() => {
     if (isOpen) {
-      const targetId = initialInvoiceId || unpaidInvoices[0]?.id || invoices[0]?.id || '';
-      setSelectedInvoiceId(targetId);
-      const inv = invoices.find((i) => i.id === targetId);
-      if (inv) {
-        setAmount(Math.max(1, inv.total - inv.amountPaid));
+      if (initialInvoiceId) {
+        setSelectedInvoiceId(initialInvoiceId);
+        const inv = invoices.find((i) => i.id === initialInvoiceId);
+        if (inv) {
+          setAmount(Math.max(1, inv.total - inv.amountPaid));
+        }
+      } else {
+        // Pas de prérempli quand l'utilisateur clique sur Enregistrer un paiement
+        setSelectedInvoiceId('');
+        setAmount(0);
+        setReference('');
       }
+      setDate('2026-10-18');
     }
-  }, [isOpen, initialInvoiceId]);
+  }, [isOpen, initialInvoiceId, invoices]);
 
   if (!isOpen) return null;
 
@@ -43,7 +50,14 @@ export const NewPaymentModal: React.FC<NewPaymentModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentInvoice) return;
+    if (!selectedInvoiceId || !currentInvoice) {
+      alert('Veuillez sélectionner une facture à encaisser.');
+      return;
+    }
+    if (amount <= 0) {
+      alert('Veuillez indiquer un montant supérieur à 0.');
+      return;
+    }
 
     addPayment({
       invoiceId: currentInvoice.id,
@@ -60,7 +74,7 @@ export const NewPaymentModal: React.FC<NewPaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -91,13 +105,20 @@ export const NewPaymentModal: React.FC<NewPaymentModalProps> = ({
             </label>
             <select
               value={selectedInvoiceId}
+              required
               onChange={(e) => {
-                setSelectedInvoiceId(e.target.value);
-                const inv = invoices.find((i) => i.id === e.target.value);
-                if (inv) setAmount(inv.total - inv.amountPaid);
+                const newId = e.target.value;
+                setSelectedInvoiceId(newId);
+                const inv = invoices.find((i) => i.id === newId);
+                if (inv) {
+                  setAmount(Math.max(1, inv.total - inv.amountPaid));
+                } else {
+                  setAmount(0);
+                }
               }}
               className="w-full px-3 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold cursor-pointer"
             >
+              <option value="">-- Sélectionner une facture à encaisser --</option>
               {invoices
                 .filter((i) => i.status !== 'draft')
                 .map((inv) => (
