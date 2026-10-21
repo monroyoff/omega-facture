@@ -25,7 +25,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('+229 ');
+  const [phone, setPhone] = useState('');
   const [city, setCity] = useState('Cotonou');
   const [country, setCountry] = useState('Bénin');
   const [taxId, setTaxId] = useState('');
@@ -37,7 +37,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       setName(clientToEdit.name || '');
       setCompany(clientToEdit.company || '');
       setEmail(clientToEdit.email || '');
-      setPhone(clientToEdit.phone || '+229 ');
+      setPhone(clientToEdit.phone || '');
       setCity(clientToEdit.city || 'Cotonou');
       setCountry(clientToEdit.country || 'Bénin');
       setTaxId(clientToEdit.taxId ? clientToEdit.taxId.replace(/^IFU\s*/, '') : '');
@@ -46,7 +46,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       setName('');
       setCompany('');
       setEmail('');
-      setPhone('+229 ');
+      setPhone('');
       setCity('Cotonou');
       setCountry('Bénin');
       setTaxId('');

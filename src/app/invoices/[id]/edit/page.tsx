@@ -91,9 +91,9 @@ export default function EditInvoicePage() {
     setItems((prev) => [
       ...prev,
       {
-        description: 'Nouvelle prestation / service',
+        description: '',
         quantity: 1,
-        unitPrice: 100000,
+        unitPrice: 0,
         discountPct: 0,
         vatRate: 18,
       },

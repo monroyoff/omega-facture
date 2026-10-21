@@ -1,70 +1,249 @@
-# DIRECTIVES & RÈGLE DE DÉVELOPPEMENT OMEGA FACTURE
+# DIRECTIVES D'ARCHITECTURE & GUIDE MAÎTRE DU PROJET — OMEGA FACTURE
 
-Ce document est la règle d'or pour Antigravity dans ce projet. Toute modification, composant existant ou nouvelle fonctionnalité doit obligatoirement respecter l'ensemble des règles suivantes issues du design et de l'architecture du Dashboard.
-
----
-
-## 1. RÈGLES STRICTES DU DOMAINE (ZONE UEMOA / AFRIQUE FRANCOPHONE)
-- **Monnaie FCFA = Entiers stricts** : Les centimes n'existent pas en FCFA. Ne jamais manipuler de nombres décimaux pour l'argent (`bigint` ou `number` entier).
-- **Formatage monétaire** : Toujours utiliser `formatFCFA(montant)` (`@/lib/money/format`).
-- **Formatage des dates** : Toujours utiliser `formatDateFR(isoDate)` (`@/lib/money/format`).
-- **Composants Client Next.js 14** : Toujours ajouter `'use client';` en ligne 1 de tout fichier utilisant des hooks React (`useState`, `useEffect`, `useRef`, etc.) ou des interactions utilisateur.
-- **Source unique de données** : Toujours passer par `useInvoices()` (`@/lib/store/invoice-context`). Les données doivent être synchronisées avec le filtre temporel (`selectedPeriod`, `periodInvoices`, `periodPayments`, `periodKPIs`).
+> **Document de Référence & Règle d'Or du Projet**  
+> Ce document est la source unique de vérité technique, fonctionnelle et ergonomique d'**OMEGA FACTURE**. Tout modèle d'Intelligence Artificielle ou développeur intervenant sur cette base de code doit obligatoirement consulter et appliquer les directives ci-dessous.
 
 ---
 
-## 2. DESIGN SYSTÈME & COHÉRENCE VISUELLE
+## 1. VISION & PRÉSENTATION DU PRODUIT
 
-### A. Structure des Pages
-- Fond de page global : `min-h-screen bg-[#F8F9FA] dark:bg-[#070a0f] flex flex-col`
-- Décalage Desktop : `lg:pl-72 flex flex-col flex-1`
-- Largeur maximale : `max-w-7xl w-full mx-auto`
-- Espacement et padding : `p-4 sm:p-8 space-y-6`
+**OMEGA FACTURE** est un SaaS B2B moderne et haut de gamme de **facturation, devis et pilotage financier** conçu spécialement pour les entreprises, PME, startups et consultants de la **zone UEMOA / Afrique Francophone** (Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger, Guinée-Bissau).
 
-### B. Couleurs & Mode Sombre (Dark Mode)
-- **Fond des Cartes / Conteneurs** : `bg-white dark:bg-[#111622]`
-- **Bordures Standards** : `border border-slate-200/80 dark:border-slate-800/80`
-- **Bordures Subtiles / Séparateurs** : `border-slate-100 dark:border-slate-800`
-- **Texte Principal** : `text-slate-900 dark:text-white`
+### Spécificités régionales intégrées nativement :
+1. **Monnaie FCFA (XOF / XAF)** : Traitée en **entiers stricts** (les centimes n'existent pas en FCFA).
+2. **Paiements Mobiles UEMOA** : Intégration prioritaire de **Mobile Money** (MTN, Moov, Wave, Orange Money) aux côtés des virements bancaires, chèques et espèces.
+3. **Fiscalité locale** : TVA normale UEMOA à **18%** ou exonération (**0%**), mentions fiscales légales (**Numéro IFU au Bénin, NCC en Côte d'Ivoire, NINEA au Sénégal**).
+4. **Relances multicanales** : Relances directes via **WhatsApp** (canal n°1 des affaires en Afrique de l'Ouest) et Email professionnel.
+5. **Acomptes & Modalités de paiement échelonné** : Indispensables sur les marchés africains pour sécuriser le démarrage des prestations.
+
+---
+
+## 2. STACK TECHNIQUE & DÉPENDANCES
+
+| Domaine | Technologie / Bibliothèque | Rôle & Justification |
+| :--- | :--- | :--- |
+| **Framework Web** | **Next.js 14.2.15** (App Router) | Rendu hybride SSR/Client, routage par dossiers, performances maximales. |
+| **Langage** | **TypeScript 5.6.3** | Typage strict de bout en bout, prévention des régressions financières. |
+| **Styling & CSS** | **Tailwind CSS 3.4.14** + PostCSS | Système de design fluide, classes utilitaires standardisées, dark mode natif. |
+| **Icônes** | **Lucide React 0.453.0** | Iconographie vectorielle cohérente, légère et hautement expressive. |
+| **Gestion d'État** | **React Context** (`useInvoices`) | Source unique de vérité partagée, synchronisation instantanée inter-composants. |
+| **Persistance locale** | **LocalStorage (versionné `facturo:v1:*`)** | Fonctionnement autonome hors-ligne et persistance immédiate des données démo. |
+| **Formatage financier** | Utilitaires dédiés (`@/lib/money/format`) | Formatage monétaire `formatFCFA` avec espaces insécables et dates `formatDateFR`. |
+
+---
+
+## 3. FONCTIONNALITÉS IMPLÉMENTÉES
+
+### A. Dashboard Principal (`/` et `/dashboard`)
+- **Cartes KPI en temps réel** : Chiffre d'affaires facturé, Total encaissé, Montant en attente de règlement, Créances en retard, avec badges de variation en pourcentage.
+- **Sélecteur Temporel Universel (`PeriodPickerDropdown`)** : Filtrage de toutes les métriques par Mois (ex: *Octobre 2026*), Trimestre (*Q3, Q4*), Semestre (*S1, S2*), Année complète (*2026*) ou Jour précis.
+- **Graphique d'activité (`RevenueChart`)** : Visualisation mensuelle du chiffre d'affaires et des encaissements.
+- **Tableau des Factures Récentes (`RecentInvoicesTable`)** : Onglets de filtres rapides (*Toutes, Payées, Envoyées, Brouillons, En retard*), recherche textuelle, tri et pagination.
+- **Aperçu Instantané (`InvoicePreviewModal`)** : Modale d'aperçu d'un document complet avec actions d'impression, relance et partage.
+
+### B. Création & Édition de Factures (`/invoices/new` et `/invoices/[id]/edit`)
+- **Formulaire Vierge à l'Ouverture** :
+  - **Articles / Lignes** : Démarre avec une seule ligne vide sans aucun montant pré-rempli (0 FCFA).
+  - **Placeholders discrets** pour la description et les prix.
+  - **Bouton `+ Ajouter une ligne vide`** : Insère une ligne propre sans texte ni montant imposé.
+  - **Remise commerciale** : Décochée par défaut (0 FCFA).
+  - **Totaux en temps réel** : Sous-total HT, TVA 18% et Total TTC démarrent à 0 FCFA.
+- **Espace Client Vierge & Polyvalent** :
+  - **Mode `Client existant`** : Menu déroulant débutant sur une option neutre `-- Sélectionner un client enregistré --` (aucun client pré-sélectionné).
+  - **Mode `+ Nouveau client`** : Champs de saisie directe (*Nom du contact, Entreprise, Email, Téléphone*) tous vierges par défaut. Sauvegarde automatique du client dans le carnet d'adresses à l'émission.
+  - **Modale d'ajout complet (`NewClientModal`)** : Disponible en raccourci pour renseigner l'IFU, la ville et l'avatar.
+- **Types de facturation avancés** :
+  1. **Standard** : Facture classique à échéance unique.
+  2. **Facture d'Acompte / Échelonnée** : Échéancier paramétrable (presets *30%-70%*, *40%-30%-30%*, *50%-50%*, *4x25%* ou sur-mesure) avec dates d'exigibilité par tranche.
+  3. **Facture Récurrente / Abonnement** : Périodicité mensuelle, trimestrielle ou annuelle avec calcul automatique de la date de renouvellement.
+- **Aperçu A4 Live réactif** : Document imprimable visualisé en temps réel sur la colonne de droite, synchronisé à chaque frappe.
+- **Fiabilité SSR** : Numérotation séquentielle déterministe (`FAC-YYYY-XXXX`) avec calcul client-side pour éliminer toute erreur d'hydratation Next.js.
+
+### C. Rapports Financiers, KPI & Drilldown Interactif (`/reports`)
+- **6 Sections Interactives Cliquables** :
+  1. **Chiffre d’Affaires Cumulé 2026** : Toutes les factures validées de l'exercice.
+  2. **Taux de Recouvrement Global** : Analyse des flux perçus vs solde restant.
+  3. **Délai Moyen de Règlement** : Délais réels constatés entre émission et encaissement (*Règlement rapide ≤ 7j*, *Conforme UEMOA 8-20j*, *Différé > 20j*).
+  4. **Balance Âgée : 0 à 30 jours (Créances saines)** : Factures récentes à échéance normale.
+  5. **Balance Âgée : 31 à 60 jours (À surveiller)** : Factures avec retard modéré et relance recommandée.
+  6. **Balance Âgée : + de 60 jours (Contentieux)** : Créances en souffrance critique nécessitant une mise en demeure.
+- **Volet Drilldown des Opérations (`SectionOperationsDetail`)** :
+  - S'ouvre sous les cartes d'un simple clic avec animation fluide et scroll automatique.
+  - Tableau complet des opérations concernées (factures ou règlements).
+  - Recherche instantanée, filtres par mode d'encaissement et badges d'état.
+  - Boutons d'action directs : **Voir la facture** (Aperçu A4), **Relancer le client** (WhatsApp/Email), **Encaisser** (Nouveau paiement).
+- **Impression du Bilan Certifié (`PrintReportModal`)** : Bilan financier au format document officiel avec ratios, ventilation et graphiques.
+
+### D. Module de Relance Commerciale & Contentieux (`RelanceModal`)
+- **Canal WhatsApp** : Préparation de messages pré-formatés prêts à l'envoi direct via l'API Web WhatsApp (`https://wa.me/...`).
+- **Canal Email** : Modèles d'emails personnalisés selon la sévérité du retard.
+- **3 Niveaux de Procédure** :
+  1. *Rappel courtois (Échéance proche)*
+  2. *Relance ferme (Retard 15-30 jours)*
+  3. *Mise en demeure formelle avec références juridiques UEMOA (+ de 60 jours)*.
+
+### E. Gestion des Règlements & Encaissements (`/payments`)
+- Enregistrement rapide d'un encaissement via `NewPaymentModal`.
+- Support de tous les moyens de paiement : **Mobile Money (MTN, Moov, Wave)**, **Virement bancaire**, **Chèque bancaire**, **Espèces**.
+- Rapprochement automatique : mise à jour instantanée du solde de la facture et passage automatique au statut `paid` lorsque le montant total est atteint.
+
+### F. Gestion des Clients (`/clients`)
+- Annuaire complet avec contacts, raison sociale, ville, pays, téléphone et numéro IFU/fiscal.
+- Modal de création/édition (`NewClientModal`) avec gestion d'avatars et presets professionnels.
+
+### G. Catalogue Produits & Services (`/products`)
+- Liste des prestations et fournitures avec prix HT, TVA applicable (18% ou exonéré 0%) et unité de facturation.
+- Insertion directe dans les factures via le sélecteur rapide de catalogue.
+
+---
+
+## 4. STRUCTURE DES DOSSIERS & FICHIERS
+
+```
+OMEGA FACTURE/
+├── package.json                   # Dépendances (Next 14, React 18, Tailwind, Lucide)
+├── tsconfig.json                  # Configuration TypeScript stricte (alias @/*)
+├── tailwind.config.ts             # Configuration Tailwind (couleurs brand, ombres)
+├── postcss.config.mjs             # Plugins PostCSS
+├── next.config.mjs                # Configuration Next.js
+├── GEMINI.md                      # GUIDE MAÎTRE DU PROJET (ce document)
+│
+├── src/
+│   ├── app/                       # Routage Next.js 14 App Router
+│   │   ├── layout.tsx             # Layout racine avec InvoiceProvider et métadonnées
+│   │   ├── globals.css            # Styles globaux, tokens Tailwind, variables
+│   │   ├── page.tsx               # Tableau de bord principal (Dashboard)
+│   │   ├── dashboard/             # Alias du Dashboard
+│   │   ├── invoices/              # Module Factures
+│   │   │   ├── page.tsx           # Liste de toutes les factures + filtres + export CSV
+│   │   │   ├── new/page.tsx       # Créateur de facture (vierge, A4 live, échelonné)
+│   │   │   └── [id]/edit/page.tsx # Édition d'une facture existante
+│   │   ├── clients/page.tsx       # Annuaire et gestion des fiches clients
+│   │   ├── products/page.tsx      # Catalogue des produits et prestations de services
+│   │   ├── payments/page.tsx      # Historique et saisie des encaissements
+│   │   ├── reports/page.tsx       # Rapports financiers, KPI & Balance Âgée interactive
+│   │   ├── settings/page.tsx      # Paramètres de l'entreprise (IFU, devise, profil)
+│   │   └── support/page.tsx       # FAQ et assistance utilisateur
+│   │
+│   ├── components/                # Composants React modulaires
+│   │   ├── layout/
+│   │   │   ├── Sidebar.tsx        # Navigation latérale responsive avec badges
+│   │   │   └── Header.tsx         # Barre supérieure (recherche, notifications, profil)
+│   │   ├── dashboard/
+│   │   │   ├── StatCards.tsx      # Cartes de statistiques synthétiques
+│   │   │   ├── RecentInvoicesTable.tsx # Tableau riche des factures récentes
+│   │   │   ├── RevenueChart.tsx   # Graphique en barres de chiffre d'affaires
+│   │   │   └── InvoicePreviewModal.tsx # Modale d'aperçu du document certifié A4
+│   │   ├── common/
+│   │   │   └── PeriodPickerDropdown.tsx # Sélecteur de période temporelle globale
+│   │   ├── invoices/
+│   │   │   └── RelanceModal.tsx   # Modale de relance client (WhatsApp, Email, Mise en demeure)
+│   │   ├── clients/
+│   │   │   └── NewClientModal.tsx # Modale d'ajout et d'édition client (avec IFU)
+│   │   ├── products/
+│   │   │   └── NewProductModal.tsx # Modale d'ajout au catalogue de produits
+│   │   ├── payments/
+│   │   │   └── NewPaymentModal.tsx # Modale d'enregistrement d'un règlement
+│   │   ├── reports/
+│   │   │   ├── PrintReportModal.tsx # Modale d'impression officielle du bilan financier
+│   │   │   └── SectionOperationsDetail.tsx # Volet drilldown des opérations par section
+│   │   └── ui/
+│   │       └── Badge.tsx          # Badges de statut standardisés (StatusBadge)
+│   │
+│   └── lib/                       # Logique métier, types et état
+│       ├── types.ts               # Définitions TypeScript (Invoice, Client, KPIs, etc.)
+│       ├── mock-data.ts           # Données de démonstration cohérentes UEMOA
+│       ├── invoice/
+│       │   └── calc.ts            # Moteur de calcul financier (TTC, HT, TVA 18%, remises)
+│       ├── money/
+│       │   └── format.ts          # Formatage monétaire formatFCFA et dates formatDateFR
+│       └── store/
+│           └── invoice-context.tsx# Context React (InvoiceProvider, useInvoices, CRUD)
+```
+
+---
+
+## 5. RÈGLES STRICTES DU DOMAINE (ZONE UEMOA)
+
+1. **Monnaie FCFA = Entiers Stricts** :
+   - Le Franc CFA n'a **pas de centimes**.
+   - Tout calcul monétaire doit utiliser `Math.round()` et ne jamais produire de nombres à virgule flottante visibles.
+   - Toujours formater avec `formatFCFA(montant)` (`@/lib/money/format`). Exemple : `1 770 000 FCFA`.
+2. **Formatage des Dates en Français** :
+   - Format standard : `JJ/MM/AAAA`.
+   - Toujours utiliser `formatDateFR(isoDate)` (`@/lib/money/format`). Exemple : `"2026-10-18"` -> `"18/10/2026"`.
+3. **Fiscalité UEMOA** :
+   - Le taux standard de TVA est fixé à **18%**.
+   - Le régime d'exonération est à **0%**.
+4. **Identifiants Légaux** :
+   - Les formulaires d'entreprises et clients supportent le **Numéro IFU** (Identifiant Fiscal Unique à 13 chiffres du Bénin) ou les équivalents UEMOA (**NCC** en Côte d'Ivoire, **NINEA** au Sénégal).
+
+---
+
+## 6. DESIGN SYSTEM & COHÉRENCE VISUELLE
+
+### A. Palette de Couleurs Standardisée
+- **Fond général** : `bg-[#F8F9FA] dark:bg-[#070a0f]`
+- **Cartes & Conteneurs** : `bg-white dark:bg-[#111622]`
+- **Bordures standard** : `border border-slate-200/80 dark:border-slate-800/80`
+- **Texte Primaire** : `text-slate-900 dark:text-white`
 - **Texte Secondaire** : `text-slate-500 dark:text-slate-400`
-- **Texte Tertiaire** : `text-slate-400 dark:text-slate-500`
+- **Bleu Primaire (Brand)** : `bg-brand-600 hover:bg-brand-700 text-white`, `text-brand-600 dark:text-brand-400`
+- **Émeraude (Succès, Payé, Recouvrement)** : `text-emerald-600 dark:text-emerald-400`, `bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200`
+- **Ambre (En attente, Mobile Money, À surveiller)** : `text-amber-700 dark:text-amber-300`, `bg-amber-50 dark:bg-amber-950/40 border-amber-200`
+- **Rose / Rouge (Retard, Contentieux, Dettes)** : `text-rose-700 dark:text-rose-300`, `bg-rose-50 dark:bg-rose-950/40 border-rose-200`
+- **Violet (Délais, Virements, Chèques)** : `text-purple-700 dark:text-purple-300`, `bg-purple-50 dark:bg-purple-950/40 border-purple-200`
 
-### C. Palette Thématique
-- **Bleu Primaire (Brand)** : `bg-brand-600 hover:bg-brand-700 text-white`, `text-brand-600 dark:text-brand-400`, `focus:ring-brand-500/20`
-- **Émeraude (Paiements, Succès, Encaissé)** : `bg-emerald-600 hover:bg-emerald-700 text-white`, `text-emerald-600 dark:text-emerald-400`, `bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200`
-- **Ambre (En attente, Mobile Money, Brouillons)** : `bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200`
-- **Rose (En retard, Contentieux, Relance)** : `bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200`, bouton `bg-rose-600 hover:bg-rose-700 text-white`
-- **Violet (Format Visuel, Chèque)** : `bg-purple-600 hover:bg-purple-700 text-white`
+### B. Rayons de Courbure (Border Radius) & Ombres
+- **Grands conteneurs, tableaux, panneaux de détails** : `rounded-3xl shadow-card`
+- **Cartes KPI, fiches statistiques** : `rounded-2xl`
+- **Boutons, champs d'input, sélecteurs** : `rounded-xl`
+- **Pastilles d'état, badges** : `rounded-full`
 
-### D. Rayons de Courbure (Border Radius) & Ombres
-- **Grand conteneur / Tableau / Modale** : `rounded-3xl`
-- **Carte KPI / Bloc Statistique / Fiche** : `rounded-2xl`
-- **Bouton / Champ de saisie / Onglet** : `rounded-xl`
-- **Badge / Pastille d'état** : `rounded-full`
-- **Ombres** : `shadow-card`, `shadow-2xs`, `shadow-xl`, `shadow-paper`
-
-### E. Micro-Animations & Réactivité
-- Clics boutons : `active:scale-95 transition-all cursor-pointer`
-- Survol icônes : `transition-transform group-hover:scale-110`
-- Survol lignes de tableau : `hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors`
-- Modales et Dropdowns : animation `animate-in fade-in zoom-in-95 duration-200` avec backdrop `backdrop-blur-sm` ou `backdrop-blur-md`
-- Toasts de succès : confirmation centrée avec icône de coche verte en anneau (`ring-8 ring-emerald-500/10`)
+### C. Micro-Animations & Réactivité
+- Tous les boutons interactifs doivent comporter : `active:scale-95 transition-all cursor-pointer`.
+- Les modales et panneaux s'animent avec : `animate-in fade-in duration-200 backdrop-blur-sm`.
+- Les cartes cliquables s'illuminent avec un anneau actif (ex: `ring-2 ring-brand-500`).
 
 ---
 
-## 3. COMPOSANTS MODÈLES OBLIGATOIRES
+## 7. INSTRUCTIONS OBLIGATOIRES POUR LES FUTURS MODÈLES IA
 
-1. **Carte KPI (`StatCards`)** :
-   Structure avec titre en majuscule discrète (`text-xs font-semibold text-slate-500 uppercase tracking-wider`), boîte d'icône colorée arrondie (`w-9 h-9 rounded-xl`), montant géant en gras (`text-2xl sm:text-[26px] font-bold text-slate-900 dark:text-white`), et badge d'évolution positive/négative en pied de carte.
+Lors de toute intervention future sur ce dépôt, vous **DEVEZ IMPÉRATIVEMENT** suivre ces 7 règles d'or :
 
-2. **Onglets de filtre (`Tabs`)** :
-   Barre défilante horizontale avec pillules actives (`bg-slate-900 dark:bg-white text-white dark:text-slate-900`) et inactives (`bg-white dark:bg-[#111622] text-slate-600 border border-slate-200`), incluant un compteur numérique dans chaque onglet.
+1. **Directive `'use client'`** : Tout composant utilisant des hooks React (`useState`, `useEffect`, `useMemo`, `useRef`), le routeur Next.js ou des événements DOM doit obligatoirement avoir `'use client';` en ligne 1.
+2. **Source Unique de Données (`useInvoices`)** : Ne jamais recréer d'état local isolé pour les factures ou les clients. Toujours consommer et mettre à jour les données via le hook `useInvoices()` issu de `@/lib/store/invoice-context`.
+3. **Formulaires de Création Toujours Vierges** : Lors de la création d'une nouvelle entité (facture, devis, client, produit), les formulaires **ne doivent jamais contenir de données ou montants fictifs pré-remplis**. Ils doivent démarrer vides, avec des totaux à zéro et des placeholders indicatifs.
+4. **Hydratation SSR & Éléments Aléatoires** : Ne **JAMAIS** utiliser `Math.random()`, `Date.now()` ou `new Date()` directement dans l'état initial d'un composant (`useState(...)`). Utilisez des valeurs initiales déterministes et mettez-les à jour dans un `useEffect` côté client, ou ajoutez `suppressHydrationWarning`.
+5. **Intégrité Monétaire** : Ne jamais réintroduire de décimales pour les montants en FCFA. Toujours envelopper l'affichage des sommes dans `formatFCFA(...)`.
+6. **Pas d'Écrasement Destructeur** : Respectez l'architecture existante. Si vous ajoutez un champ ou un filtre, assurez-vous qu'il s'intègre harmonieusement dans les composants existants (`RecentInvoicesTable`, `SectionOperationsDetail`, etc.).
+7. **Validation TypeScript Stricte** : Avant de terminer une tâche, assurez-vous que la commande `npx tsc --noEmit` s'exécute avec zéro erreur TypeScript.
 
-3. **Tableau de données (`RecentInvoicesTable`)** :
-   Enveloppé dans un conteneur `rounded-3xl shadow-card overflow-hidden`, avec en-têtes majuscules légères, colonnes alignées (dates et libellés à gauche, montants à droite en gras émeraude ou ardoise), et ligne d'état vide (`EmptyState`) ergonomique si 0 résultat.
+---
 
-4. **Sélecteur de période (`PeriodPickerDropdown`)** :
-   Intégration du calendrier par onglets (Mois, Jour précis, Trimestre, Semestre, Année) synchronisé avec le contexte global.
+## 8. INTÉGRATION BACKEND SUPABASE & ARCHITECTURE FULL-STACK
 
-5. **Responsivité** :
-   Grilles adaptatives `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4`, boutons empilables en colonne sur mobile (`flex-col sm:flex-row`), table défilable avec wrapper `overflow-x-auto`.
+Le projet est entièrement connecté et synchronisé avec le backend **Supabase** via MCP et le SDK `@supabase/ssr` :
+
+- **Projet Supabase** : `Monroy Omega Facture` (`nqazzedahsebuyvxjbvw`)
+- **URL API & Région** : `https://nqazzedahsebuyvxjbvw.supabase.co` (Londres, `eu-west-2`)
+- **Tables PostgreSQL en production** :
+  1. `public.companies` : Données de l'organisation émettrice, identifiants IFU/RCCM, coordonnées et devise XOF.
+  2. `public.clients` : Annuaire des clients avec IFU/NCC/NINEA et contacts.
+  3. `public.products` : Catalogue des articles et prestations avec tarifs HT et TVA 18% / 0%.
+  4. `public.invoices` : Factures et devis avec numérotation séquentielle et montants entiers `BIGINT`.
+  5. `public.invoice_items` : Lignes d'articles détaillées avec prix unitaire, remise et TVA.
+  6. `public.invoice_installments` : Échéanciers d'acomptes (modalités 30%-70%, 50%-50%, etc.).
+  7. `public.payments` : Historique des règlements (Mobile Money MTN/Moov/Wave, virements, espèces, chèques).
+- **Triggers PostgreSQL** : `trg_sync_invoice_payments` recalcule automatiquement `amount_paid` et bascule la facture en `paid` dès l'atteinte du solde.
+- **Sécurité RLS** : Active sur toutes les tables (`ROW LEVEL SECURITY`).
+- **Typage Strict** : `src/lib/supabase/database.types.ts` généré directement depuis la base PostgreSQL.
+- **Couche d'Accès aux Données (`src/lib/supabase/services.ts`)** :
+  - `fetchSupabaseData()` : Récupération des données distantes.
+  - `supabaseAddInvoice()`, `supabaseAddClient()`, `supabaseAddProduct()`, `supabaseAddPayment()`.
+- **Synchronisation Hybride Résiliente (`invoice-context.tsx`)** :
+  - Mise à jour optimiste instantanée de l'interface (zéro latence perçue).
+  - Persistance asynchrone dans Supabase.
+  - Cache local (`facturo:v1:*`) garantissant un fonctionnement continu même en cas de coupure temporaire de connexion internet.
+
+

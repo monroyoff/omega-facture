@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -58,7 +58,7 @@ function calculateMonthOffset(baseDate: string, months: number): string {
 
 export default function CreateInvoicePage() {
   const router = useRouter();
-  const { clients, products, addInvoice } = useInvoices();
+  const { invoices, clients, products, addInvoice, addClient } = useInvoices();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
@@ -79,45 +79,83 @@ export default function CreateInvoicePage() {
   const [sellerEmail, setSellerEmail] = useState('jobovog@gmail.com');
   const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
 
-  const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id || 'cli-1');
+  // Client mode: 'existing' | 'new' (both completely empty on start!)
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+
+  // New Client fields (all blank by default)
+  const [newClientName, setNewClientName] = useState<string>('');
+  const [newClientCompany, setNewClientCompany] = useState<string>('');
+  const [newClientEmail, setNewClientEmail] = useState<string>('');
+  const [newClientPhone, setNewClientPhone] = useState<string>('');
+  const [newClientCity, setNewClientCity] = useState<string>('Cotonou');
+  const [newClientCountry, setNewClientCountry] = useState<string>('Bénin');
+  const [newClientTaxId, setNewClientTaxId] = useState<string>('');
+
   const [issueDate, setIssueDate] = useState('2026-10-18');
   const [dueDate, setDueDate] = useState('2026-11-02');
-  const [invoiceNumber, setInvoiceNumber] = useState(`FAC-2026-00${Math.floor(Math.random() * 90 + 10)}`);
+  const [invoiceNumber, setInvoiceNumber] = useState('FAC-2026-0044');
   const [currency, setCurrency] = useState('FCFA');
 
-  // Line items state
+  // Compute sequential invoice number safely on client mount without hydration mismatch
+  useEffect(() => {
+    if (invoices && invoices.length > 0) {
+      const numbers = invoices
+        .map((inv) => {
+          const m = inv.number.match(/FAC-\d+-(\d+)/);
+          return m ? parseInt(m[1], 10) : 0;
+        })
+        .filter((n) => !isNaN(n));
+      const maxNum = numbers.length > 0 ? Math.max(...numbers) : 43;
+      setInvoiceNumber(`FAC-2026-${String(maxNum + 1).padStart(4, '0')}`);
+    }
+  }, [invoices]);
+
+  // Line items state - completely empty on creation
   const [items, setItems] = useState<LineItemInput[]>([
     {
-      description: 'Développement d’application web & API Mobile',
+      description: '',
       quantity: 1,
-      unitPrice: 1200000,
+      unitPrice: 0,
       discountPct: 0,
       vatRate: 18,
-    },
-    {
-      description: 'Intégration passerelle Mobile Money (MTN & Moov)',
-      quantity: 1,
-      unitPrice: 450000,
-      discountPct: 0,
-      vatRate: 18,
-    },
-    {
-      description: 'Hébergement haute disponibilité & Nom de domaine',
-      quantity: 2,
-      unitPrice: 75000,
-      discountPct: 0,
-      vatRate: 0,
     },
   ]);
 
-  // Discount
-  const [hasDiscount, setHasDiscount] = useState(true);
-  const [discountAmount, setDiscountAmount] = useState(50000);
+  // Discount - unchecked by default, 0 FCFA
+  const [hasDiscount, setHasDiscount] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   // Selected client object
   const currentClient = useMemo(() => {
-    return clients.find((c) => c.id === selectedClientId) || clients[0];
-  }, [clients, selectedClientId]);
+    if (clientMode === 'existing') {
+      if (!selectedClientId) return null;
+      return clients.find((c) => c.id === selectedClientId) || null;
+    } else {
+      if (!newClientName.trim() && !newClientCompany.trim()) return null;
+      return {
+        id: 'cli-new-temp',
+        name: newClientName.trim() || newClientCompany.trim(),
+        company: newClientCompany.trim() || newClientName.trim(),
+        email: newClientEmail.trim() || 'contact@client.bj',
+        phone: newClientPhone.trim() || '+229 01 00 00 00',
+        city: newClientCity.trim() || 'Cotonou',
+        country: newClientCountry.trim() || 'Bénin',
+        taxId: newClientTaxId.trim() ? `IFU ${newClientTaxId.trim()}` : undefined,
+      };
+    }
+  }, [
+    clientMode,
+    selectedClientId,
+    clients,
+    newClientName,
+    newClientCompany,
+    newClientEmail,
+    newClientPhone,
+    newClientCity,
+    newClientCountry,
+    newClientTaxId,
+  ]);
 
   // Real-time financial totals
   const totals = useMemo(() => {
@@ -188,9 +226,9 @@ export default function CreateInvoicePage() {
     setItems((prev) => [
       ...prev,
       {
-        description: 'Nouvelle prestation / service',
+        description: '',
         quantity: 1,
-        unitPrice: 100000,
+        unitPrice: 0,
         discountPct: 0,
         vatRate: 18,
       },
@@ -226,11 +264,35 @@ export default function CreateInvoicePage() {
   };
 
   const handleSendInvoice = () => {
+    let finalClient = currentClient;
+    let finalClientId = selectedClientId;
+
+    if (!finalClient) {
+      alert('Veuillez sélectionner ou renseigner un client avant d’émettre la facture.');
+      return;
+    }
+
+    if (clientMode === 'new') {
+      const created = addClient({
+        name: newClientName.trim() || newClientCompany.trim(),
+        company: newClientCompany.trim() || newClientName.trim(),
+        email: newClientEmail.trim() || 'contact@client.bj',
+        phone: newClientPhone.trim() || '+229 01 00 00 00',
+        city: newClientCity.trim() || 'Cotonou',
+        country: 'Bénin',
+        taxId: newClientTaxId.trim() ? `IFU ${newClientTaxId.trim()}` : undefined,
+      });
+      finalClient = created;
+      finalClientId = created.id;
+    }
+
+    const clientToUse: import('@/lib/types').Client = finalClient as import('@/lib/types').Client;
+
     const newInv = {
       id: `inv-${Date.now()}`,
       number: invoiceNumber,
-      clientId: selectedClientId,
-      client: currentClient,
+      clientId: finalClientId || clientToUse.id,
+      client: clientToUse,
       issueDate,
       dueDate,
       status: 'sent' as const,
@@ -283,11 +345,35 @@ export default function CreateInvoicePage() {
   };
 
   const handleSaveDraft = () => {
+    let finalClient = currentClient;
+    let finalClientId = selectedClientId;
+
+    if (!finalClient) {
+      alert('Veuillez sélectionner ou renseigner un client avant d’enregistrer le brouillon.');
+      return;
+    }
+
+    if (clientMode === 'new') {
+      const created = addClient({
+        name: newClientName.trim() || newClientCompany.trim(),
+        company: newClientCompany.trim() || newClientName.trim(),
+        email: newClientEmail.trim() || 'contact@client.bj',
+        phone: newClientPhone.trim() || '+229 01 00 00 00',
+        city: newClientCity.trim() || 'Cotonou',
+        country: 'Bénin',
+        taxId: newClientTaxId.trim() ? `IFU ${newClientTaxId.trim()}` : undefined,
+      });
+      finalClient = created;
+      finalClientId = created.id;
+    }
+
+    const clientToUse: import('@/lib/types').Client = finalClient as import('@/lib/types').Client;
+
     const newDraft = {
       id: `inv-${Date.now()}`,
       number: invoiceNumber,
-      clientId: selectedClientId,
-      client: currentClient,
+      clientId: finalClientId || clientToUse.id,
+      client: clientToUse,
       issueDate,
       dueDate,
       status: 'draft' as const,
@@ -661,35 +747,115 @@ export default function CreateInvoicePage() {
                     </div>
                   </div>
 
-                  {/* Billed To (Client sélectionné) */}
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-1">
+                  {/* Billed To (Client sélectionné ou nouveau) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
                       <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                         Facturé à (Client) *
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsClientModalOpen(true)}
-                        className="text-[11px] font-bold text-brand-600 hover:underline"
-                      >
-                        + Nouveau client
-                      </button>
+                      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => setClientMode('existing')}
+                          className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                            clientMode === 'existing'
+                              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
+                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          Client existant
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClientMode('new')}
+                          className={`px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                            clientMode === 'new'
+                              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
+                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          + Nouveau client
+                        </button>
+                      </div>
                     </div>
-                    <div className="relative">
-                      <Building2 className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <select
-                        value={selectedClientId}
-                        onChange={(e) => setSelectedClientId(e.target.value)}
-                        className="w-full pl-10 pr-10 py-3 text-xs sm:text-sm bg-transparent border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 appearance-none cursor-pointer"
-                      >
-                        {clients.map((cli) => (
-                          <option key={cli.id} value={cli.id} className="dark:bg-slate-900">
-                            {cli.company} ({cli.name})
+
+                    {clientMode === 'existing' ? (
+                      <div className="relative">
+                        <Building2 className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={selectedClientId}
+                          onChange={(e) => setSelectedClientId(e.target.value)}
+                          className="w-full pl-10 pr-10 py-3 text-xs sm:text-sm bg-transparent border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 appearance-none cursor-pointer"
+                        >
+                          <option value="" className="text-slate-400">
+                            -- Sélectionner un client enregistré ({clients.length}) --
                           </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                          {clients.map((cli) => (
+                            <option key={cli.id} value={cli.id} className="dark:bg-slate-900">
+                              {cli.company} ({cli.name})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 animate-in fade-in duration-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div className="relative">
+                            <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                              Nom du contact client *
+                            </label>
+                            <div className="relative">
+                              <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <input
+                                type="text"
+                                value={newClientName}
+                                placeholder="Nom et prénom..."
+                                onChange={(e) => setNewClientName(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 text-xs bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="relative">
+                            <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                              Société / Raison sociale *
+                            </label>
+                            <div className="relative">
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <input
+                                type="text"
+                                value={newClientCompany}
+                                placeholder="Nom de l'entreprise..."
+                                onChange={(e) => setNewClientCompany(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 text-xs bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <input
+                              type="email"
+                              value={newClientEmail}
+                              placeholder="Email (ex: contact@client.bj)..."
+                              onChange={(e) => setNewClientEmail(e.target.value)}
+                              className="w-full px-3 py-2 text-xs bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="tel"
+                              value={newClientPhone}
+                              placeholder="Téléphone / WhatsApp..."
+                              onChange={(e) => setNewClientPhone(e.target.value)}
+                              className="w-full px-3 py-2 text-xs bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -736,6 +902,7 @@ export default function CreateInvoicePage() {
                     <input
                       type="text"
                       value={invoiceNumber}
+                      suppressHydrationWarning
                       onChange={(e) => setInvoiceNumber(e.target.value)}
                       className="w-full pl-10 pr-3 py-3 text-xs sm:text-sm bg-transparent border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
@@ -806,6 +973,7 @@ export default function CreateInvoicePage() {
                             <input
                               type="text"
                               value={item.description}
+                              placeholder="Ex: Prestation informatique, vente de matériel..."
                               onChange={(e) => handleUpdateItem(index, 'description', e.target.value)}
                               className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                             />
@@ -821,11 +989,16 @@ export default function CreateInvoicePage() {
                             </label>
                             <input
                               type="number"
-                              min="0.1"
-                              step="0.5"
-                              value={item.quantity}
+                              min="0"
+                              step="1"
+                              value={item.quantity === 0 ? '' : item.quantity}
+                              placeholder="1"
                               onChange={(e) =>
-                                handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 0)
+                                handleUpdateItem(
+                                  index,
+                                  'quantity',
+                                  e.target.value === '' ? 0 : parseFloat(e.target.value) || 0
+                                )
                               }
                               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-center font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                             />
@@ -856,9 +1029,15 @@ export default function CreateInvoicePage() {
                             <input
                               type="number"
                               step="1"
-                              value={item.unitPrice}
+                              min="0"
+                              value={item.unitPrice === 0 ? '' : item.unitPrice}
+                              placeholder="0"
                               onChange={(e) =>
-                                handleUpdateItem(index, 'unitPrice', parseInt(e.target.value, 10) || 0)
+                                handleUpdateItem(
+                                  index,
+                                  'unitPrice',
+                                  e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
+                                )
                               }
                               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-right font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                             />
@@ -927,9 +1106,12 @@ export default function CreateInvoicePage() {
                       <input
                         type="number"
                         step="1"
-                        value={discountAmount}
-                        onChange={(e) => setDiscountAmount(parseInt(e.target.value, 10) || 0)}
-                        placeholder="Montant FCFA"
+                        min="0"
+                        value={discountAmount === 0 ? '' : discountAmount}
+                        placeholder="0 FCFA"
+                        onChange={(e) =>
+                          setDiscountAmount(e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)
+                        }
                         className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-right font-bold text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                       />
                     </div>
@@ -1004,7 +1186,7 @@ export default function CreateInvoicePage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                      <p suppressHydrationWarning className="text-xs font-semibold text-slate-500 mt-0.5">
                         N° {invoiceNumber}
                       </p>
                     </div>
@@ -1041,13 +1223,24 @@ export default function CreateInvoicePage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                         Facturé à :
                       </span>
-                      <div className="font-bold text-slate-900 text-xs">
-                        {currentClient.company}
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        <p>{currentClient.email}</p>
-                        <p>{currentClient.city}, {currentClient.country}</p>
-                      </div>
+                      {currentClient ? (
+                        <>
+                          <div className="font-bold text-slate-900 text-xs">
+                            {currentClient.company}
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            {currentClient.name && currentClient.name !== currentClient.company && (
+                              <p>Attn : {currentClient.name}</p>
+                            )}
+                            {currentClient.email && <p>{currentClient.email}</p>}
+                            <p>{currentClient.city}, {currentClient.country}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="py-2 text-[11px] text-slate-400 italic font-medium">
+                          Aucun client sélectionné
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1093,7 +1286,9 @@ export default function CreateInvoicePage() {
                           return (
                             <tr key={idx}>
                               <td className="py-2.5 pr-2 font-medium text-slate-800">
-                                {it.description}
+                                {it.description || (
+                                  <span className="text-slate-400 italic">Ligne sans désignation</span>
+                                )}
                               </td>
                               <td className="py-2.5 px-2 text-center text-slate-600">
                                 {it.quantity}

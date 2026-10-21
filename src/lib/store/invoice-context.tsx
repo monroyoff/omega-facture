@@ -3,6 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Client, Invoice, InvoiceStatus, InvoiceItem, DashboardKPIs } from '@/lib/types';
 import { mockClients, mockInvoices } from '@/lib/mock-data';
+import {
+  fetchSupabaseData,
+  supabaseAddInvoice,
+  supabaseAddClient,
+  supabaseAddProduct,
+  supabaseAddPayment,
+} from '@/lib/supabase/services';
 
 export interface Product {
   id: string;
@@ -574,6 +581,38 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {
       console.warn('LocalStorage non accessible ou vide, utilisation des données démo.');
     }
+
+    // Synchronisation en tâche de fond avec Supabase
+    fetchSupabaseData().then((remote) => {
+      if (remote) {
+        if (remote.clients.length > 0) {
+          setClients(remote.clients);
+          try { localStorage.setItem('facturo:v1:clients', JSON.stringify(remote.clients)); } catch (e) {}
+        }
+        if (remote.products.length > 0) {
+          setProducts(remote.products);
+          try { localStorage.setItem('facturo:v1:products', JSON.stringify(remote.products)); } catch (e) {}
+        }
+        if (remote.invoices.length > 0) {
+          setInvoices((prev) => {
+            const remoteIds = new Set(remote.invoices.map((i) => i.id));
+            const localOnly = prev.filter((i) => !remoteIds.has(i.id));
+            const merged = [...remote.invoices, ...localOnly];
+            try { localStorage.setItem('facturo:v1:invoices', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          });
+        }
+        if (remote.payments.length > 0) {
+          setPayments((prev) => {
+            const remoteIds = new Set(remote.payments.map((p) => p.id));
+            const localOnly = prev.filter((p) => !remoteIds.has(p.id));
+            const merged = [...remote.payments, ...localOnly];
+            try { localStorage.setItem('facturo:v1:payments', JSON.stringify(merged)); } catch (e) {}
+            return merged;
+          });
+        }
+      }
+    });
   }, []);
 
   // Save changes to localStorage
@@ -655,6 +694,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const updated = [invoice, ...invoices];
     saveInvoices(updated);
 
+    // Persistance asynchrone dans Supabase
+    supabaseAddInvoice(invoice).catch((err) => {
+      console.warn('[InvoiceContext] Échec enregistrement facture Supabase :', err);
+    });
+
     if (invoice.status === 'draft') {
       const newNotif: AppNotification = {
         id: `notif-draft-${Date.now()}`,
@@ -681,12 +725,21 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Add client
   const addClient = (clientData: Omit<Client, 'id'>): Client => {
+    const tempId = `cli-${Date.now()}`;
     const newClient: Client = {
       ...clientData,
-      id: `cli-${Date.now()}`,
+      id: tempId,
     };
     const updated = [newClient, ...clients];
     saveClients(updated);
+
+    // Persistance dans Supabase et mise à jour avec le véritable UUID Supabase
+    supabaseAddClient(clientData).then((persisted) => {
+      if (persisted) {
+        setClients((prev) => prev.map((c) => (c.id === tempId ? persisted : c)));
+      }
+    });
+
     return newClient;
   };
 
@@ -709,12 +762,21 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Add product
   const addProduct = (prodData: Omit<Product, 'id'>): Product => {
+    const tempId = `prod-${Date.now()}`;
     const newProd: Product = {
       ...prodData,
-      id: `prod-${Date.now()}`,
+      id: tempId,
     };
     const updated = [newProd, ...products];
     saveProducts(updated);
+
+    // Persistance dans Supabase
+    supabaseAddProduct(prodData).then((persisted) => {
+      if (persisted) {
+        setProducts((prev) => prev.map((p) => (p.id === tempId ? persisted : p)));
+      }
+    });
+
     return newProd;
   };
 
@@ -726,6 +788,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     const updatedPayments = [newPay, ...payments];
     savePayments(updatedPayments);
+
+    // Persistance dans Supabase
+    supabaseAddPayment(payData).catch((err) => {
+      console.warn('[InvoiceContext] Échec enregistrement paiement Supabase :', err);
+    });
 
     // Update the invoice amountPaid and status
     const inv = invoices.find((i) => i.id === payData.invoiceId);
