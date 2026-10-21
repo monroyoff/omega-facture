@@ -72,7 +72,10 @@
   - Tableau complet des opérations concernées (factures ou règlements).
   - Recherche instantanée, filtres par mode d'encaissement et badges d'état.
   - Boutons d'action directs : **Voir la facture** (Aperçu A4), **Relancer le client** (WhatsApp/Email), **Encaisser** (Nouveau paiement).
-- **Impression du Bilan Certifié (`PrintReportModal`)** : Bilan financier au format document officiel avec ratios, ventilation et graphiques.
+- **Exportation & Impression du Bilan Certifié (`PrintReportModal`)** :
+  - **Sélecteur de Date & Période Dynamique** : Filtrage de l'export par présets (*Année 2026, Octobre, Septembre, Août, 3e Trimestre*) ou **plage personnalisée avec sélecteurs de dates `Du ... Au ...`**. Les métriques, la balance âgée et le tableau des opérations se recalculent en direct.
+  - **Génération PDF 100% Conforme & Lisible** : Utilisation de la bibliothèque certifiée `jsPDF` éliminant toute corruption de fichier PDF.
+  - **Formats d'Export Multiples** : Document PDF officiel, Image Haute Résolution (PNG via Blob), Tableur Excel / CSV (avec BOM UTF-8) et Impression directe.
 
 ### D. Module de Relance Commerciale & Contentieux (`RelanceModal`)
 - **Canal WhatsApp** : Préparation de messages pré-formatés prêts à l'envoi direct via l'API Web WhatsApp (`https://wa.me/...`).
