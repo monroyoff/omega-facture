@@ -435,6 +435,7 @@ export default function ReportsPage() {
       <PrintReportModal
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
+        onOpenSidebar={() => setSidebarOpen(true)}
         totalInvoiced={totalInvoiced}
         totalPaid={totalPaid}
         recoveryRate={recoveryRate}

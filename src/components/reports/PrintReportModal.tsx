@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   X,
   FileText,
@@ -17,6 +18,16 @@ import {
   Layers,
   CalendarDays,
   Filter,
+  Menu,
+  ChevronDown,
+  ArrowLeft,
+  LayoutDashboard,
+  Users,
+  Package,
+  ArrowLeftRight,
+  BarChart3,
+  Settings,
+  Plus,
 } from 'lucide-react';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { useInvoices } from '@/lib/store/invoice-context';
@@ -26,6 +37,7 @@ import { Invoice } from '@/lib/types';
 interface PrintReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenSidebar?: () => void;
   totalInvoiced?: number;
   totalPaid?: number;
   recoveryRate?: number;
@@ -44,10 +56,13 @@ type PeriodPreset =
 export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   isOpen,
   onClose,
+  onOpenSidebar,
   totalInvoiced: propTotalInvoiced,
   totalPaid: propTotalPaid,
   recoveryRate: propRecoveryRate,
 }) => {
+  const router = useRouter();
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<PeriodPreset>('ALL_2026');
   const [startDate, setStartDate] = useState<string>('2026-01-01');
@@ -491,34 +506,137 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         `,
       }} />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-950/70 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200 no-print">
+      <div className="fixed inset-0 lg:left-72 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-950/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200 no-print">
         <div className="relative w-full max-w-5xl bg-slate-100 dark:bg-[#0c1017] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[94vh] flex flex-col">
-          {/* Top Action Bar with 4 Export Choices */}
-          <div className="px-6 py-4 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <FileText className="w-4 h-4" />
+          {/* Top Action & Navigation Bar */}
+          <div className="px-5 py-3.5 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            {/* Top-Left: Menu Déroulant & Navigation Rapide */}
+            <div className="flex items-center gap-3">
+              {/* Menu Déroulant Principal */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNavMenuOpen(!navMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all cursor-pointer ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs active:scale-95"
+                  title="Ouvrir le menu déroulant des fonctionnalités"
+                >
+                  <Menu className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                  <span>Menu Principal</span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                      navMenuOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Floating Dropdown Panel */}
+                {navMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setNavMenuOpen(false)}
+                    />
+                    <div className="absolute left-0 top-full mt-2 w-64 bg-white dark:bg-[#111622] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+                      <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 mb-1 flex items-center justify-between">
+                        <span>Navigation OMEGA</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-brand-50 text-brand-700 font-semibold">Accès Direct</span>
+                      </div>
+
+                      <div className="space-y-0.5">
+                        {[
+                          { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
+                          { label: 'Factures & Devis', href: '/invoices', icon: FileText },
+                          { label: 'Clients & Contacts', href: '/clients', icon: Users },
+                          { label: 'Produits & Services', href: '/products', icon: Package },
+                          { label: 'Paiements & Règlements', href: '/payments', icon: ArrowLeftRight },
+                          { label: 'Rapports Financiers & KPI', href: '/reports', icon: BarChart3 },
+                          { label: 'Paramètres Organisation', href: '/settings', icon: Settings },
+                        ].map((m) => {
+                          const Icon = m.icon;
+                          return (
+                            <button
+                              key={m.label}
+                              type="button"
+                              onClick={() => {
+                                setNavMenuOpen(false);
+                                onClose();
+                                router.push(m.href);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer text-left font-medium"
+                            >
+                              <Icon className="w-4 h-4 text-slate-400" />
+                              <span>{m.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNavMenuOpen(false);
+                            onClose();
+                            router.push('/invoices/new');
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold hover:bg-brand-100 transition-colors cursor-pointer text-left"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Créer une Facture</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Bouton Menu Mobile (Ouvre le Sidebar latéral complet) */}
+              {onOpenSidebar && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenSidebar();
+                  }}
+                  className="lg:hidden flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-semibold cursor-pointer"
+                  title="Afficher la barre latérale"
+                >
+                  <Menu className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sidebar</span>
+                </button>
+              )}
+
+              {/* Bouton Retour aux Rapports */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs font-semibold cursor-pointer"
+                title="Fermer l'export et revenir à la page Rapports"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Retour aux Rapports</span>
+              </button>
+
+              <div className="hidden xl:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <FileText className="w-3.5 h-3.5" />
                 </div>
-                <h2 className="font-extrabold text-slate-900 dark:text-white text-base">
-                  Exportation du Bilan Financier & KPI
+                <h2 className="font-extrabold text-slate-900 dark:text-white text-sm">
+                  Export Bilan & KPI
                 </h2>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Sélectionnez votre période et téléchargez votre bilan certifié au format souhaité.
-              </p>
             </div>
 
+            {/* Top-Right: Boutons d'Exportation */}
             <div className="flex flex-wrap items-center gap-2">
               {/* Option 1: Imprimante */}
               <button
                 type="button"
                 onClick={handlePrintDirect}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all cursor-pointer ring-1 ring-slate-700/50"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all cursor-pointer ring-1 ring-slate-700/50"
                 title="Lancer l'impression directe"
               >
-                <Printer className="w-4 h-4 text-slate-200" />
-                <span>Imprimante</span>
+                <Printer className="w-3.5 h-3.5 text-slate-200" />
+                <span>Imprimer</span>
               </button>
 
               {/* Option 2: Format PDF */}
