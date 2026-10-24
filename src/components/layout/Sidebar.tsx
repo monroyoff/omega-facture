@@ -32,6 +32,7 @@ import {
 import { useInvoices } from '@/lib/store/invoice-context';
 import { GlobalSearchModal } from '@/components/common/GlobalSearchModal';
 import { AuthModal } from '@/components/auth/AuthModal';
+import { UserSessionModal } from '@/components/layout/UserSessionModal';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [authToast, setAuthToast] = useState<string | null>(null);
 
   const { currentUser, isAuthenticated, login, logout, invoices } = useInvoices();
@@ -360,9 +362,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Profile Card Trigger */}
             {isAuthenticated && currentUser ? (
               <div
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                onClick={() => setSessionModalOpen(true)}
                 className="flex items-center justify-between p-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group active:scale-98"
-                title="Gérer la session ou se déconnecter"
+                title="Cliquer pour afficher ma photo, mon prénom et mes informations de session"
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-100 dark:bg-brand-900/40 border border-slate-200 dark:border-slate-700 shrink-0">
@@ -373,8 +375,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   </div>
                   <div className="truncate text-left">
-                    <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-600 transition-colors">
-                      {currentUser.name}
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-600 transition-colors">
+                      {currentUser.firstName ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim() : currentUser.name}
                     </div>
                     <div className="text-[11px] text-slate-400 truncate">
                       {currentUser.email}
@@ -382,9 +384,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 </div>
                 <ChevronsUpDown
-                  className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${
-                    profileMenuOpen ? 'rotate-180 text-brand-600' : ''
-                  }`}
+                  className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-brand-600 transition-colors"
                 />
               </div>
             ) : (
@@ -469,6 +469,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <GlobalSearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
+      />
+
+      {/* User Session Modal */}
+      <UserSessionModal
+        isOpen={sessionModalOpen}
+        onClose={() => setSessionModalOpen(false)}
       />
     </>
   );

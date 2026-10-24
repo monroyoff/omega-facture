@@ -208,13 +208,13 @@ export interface UserProfile {
 }
 
 export const DEFAULT_USER: UserProfile = {
-  name: 'MONROY Business',
-  firstName: 'MONROY',
-  lastName: 'Business',
-  email: 'jobovog@gmail.com',
-  role: 'Administrateur / Gérant',
-  organization: 'MONROY Business Solutions SARL',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+  name: 'Mari-ella Manille',
+  firstName: 'Mari-ella',
+  lastName: 'Manille',
+  email: 'monmonnroyteam@gmail.com',
+  role: 'Administrateur / Gérante',
+  organization: 'MONROY AGENCY',
+  avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
   emailVerified: true,
 };
 
@@ -264,6 +264,7 @@ interface InvoiceContextType {
   }>;
   confirmEmailVerification: (tokenOrEmail: string) => boolean;
   resendVerificationEmail: (targetEmail?: string) => Promise<boolean>;
+  updateUserProfile: (updates: Partial<UserProfile>) => void;
   logout: () => void;
 }
 
@@ -815,11 +816,15 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const cleanInput = (tokenOrEmail || '').trim().toLowerCase();
-    const firstName = pending?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Membre');
-    const lastName = pending?.lastName || '';
-    const email = pending?.email || (cleanInput.includes('@') ? cleanInput : 'contact@omega-facture.com');
-    const organization = pending?.organization || 'Mon Entreprise';
+    const firstName = pending?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Mari-ella');
+    const lastName = pending?.lastName || (pending ? '' : 'Manille');
+    const email = pending?.email || (cleanInput.includes('@') ? cleanInput : 'monmonnroyteam@gmail.com');
+    const organization = pending?.organization || 'MONROY AGENCY';
     const fullName = `${firstName} ${lastName}`.trim();
+
+    const avatar = pending?.firstName
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`
+      : DEFAULT_USER.avatar;
 
     const verifiedUser: UserProfile = {
       ...DEFAULT_USER,
@@ -828,6 +833,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastName,
       email,
       organization,
+      avatar,
       role: 'Fondateur / Gérant',
       emailVerified: true,
     };
@@ -891,6 +897,19 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.warn('[Supabase Auth resend] Info :', e);
       return true;
     }
+  };
+
+  const updateUserProfile = (updates: Partial<UserProfile>) => {
+    setCurrentUser((prev) => {
+      const updated = { ...(prev || DEFAULT_USER), ...updates };
+      try {
+        localStorage.setItem(
+          'facturo:v1:auth',
+          JSON.stringify({ isAuthenticated: true, currentUser: updated })
+        );
+      } catch (e) {}
+      return updated;
+    });
   };
 
   const logout = () => {
@@ -1335,6 +1354,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         register,
         confirmEmailVerification,
         resendVerificationEmail,
+        updateUserProfile,
         logout,
       }}
     >

@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
   const [activeKind, setActiveKind] = useState<'all' | 'invoice' | 'quote'>('invoice');
   const { periodInvoices, periodKPIs, periodLabel, currentUser, pendingVerificationUser } = useInvoices();
-  const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'MONROY';
+  const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'Mari-ella';
 
   // Si une inscription est en attente de confirmation d'email, rediriger vers la page d'instructions de confirmation
   React.useEffect(() => {
