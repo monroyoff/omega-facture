@@ -746,9 +746,27 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
     } catch (e) {}
 
-    // Tentative réelle d'envoi d'email via Supabase Auth
+    // 1. Envoi via notre passerelle d'emailing de production (/api/auth/send-verification)
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const confirmUrl = `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName,
+          lastName,
+          organization,
+          token,
+          confirmUrl,
+        }),
+      }).catch((e) => console.warn('[Send Verification API catch]', e));
+    } catch (e) {}
+
+    // 2. Tentative via Supabase Auth
+    try {
       const supabase = createClient();
       await supabase.auth.signUp({
         email,
@@ -759,11 +777,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             lastName,
             organization,
           },
-          emailRedirectTo: `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`,
+          emailRedirectTo: confirmUrl,
         },
       });
     } catch (err) {
-      console.warn('[Supabase Auth signUp] Erreur ou mode hors-ligne :', err);
+      console.warn('[Supabase Auth signUp] Info / fallback :', err);
     }
 
     // L'utilisateur reste NON authentifié tant qu'il n'a pas confirmé son adresse email
@@ -832,19 +850,39 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } catch (e) {}
     }
 
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const token = pendingVerificationUser?.token || 'resend-token';
+    const confirmUrl = `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(emailToUse)}`;
+
+    // 1. Envoi via passerelle d'emailing
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      fetch('/api/auth/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailToUse,
+          firstName: pendingVerificationUser?.firstName || '',
+          lastName: pendingVerificationUser?.lastName || '',
+          organization: pendingVerificationUser?.organization || '',
+          token,
+          confirmUrl,
+        }),
+      }).catch((e) => console.warn('[Resend API catch]', e));
+    } catch (e) {}
+
+    // 2. Tentative Supabase Auth
+    try {
       const supabase = createClient();
       await supabase.auth.resend({
         type: 'signup',
         email: emailToUse,
         options: {
-          emailRedirectTo: `${origin}/confirm-email`,
+          emailRedirectTo: confirmUrl,
         },
       });
       return true;
     } catch (e) {
-      console.warn('[Supabase Auth resend] Erreur :', e);
+      console.warn('[Supabase Auth resend] Info :', e);
       return true;
     }
   };
