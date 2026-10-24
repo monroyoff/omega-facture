@@ -24,8 +24,20 @@ function VerifyEmailContent() {
   const { pendingVerificationUser, resendVerificationEmail } = useInvoices();
 
   const urlEmail = searchParams.get('email');
+  const [storedToken, setStoredToken] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('facturo:v1:pending_verification');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.token) setStoredToken(parsed.token);
+      }
+    } catch (e) {}
+  }, []);
+
   const userEmail = urlEmail || pendingVerificationUser?.email || 'votre.adresse@domaine.com';
-  const userToken = pendingVerificationUser?.token || 'active-token';
+  const userToken = storedToken || pendingVerificationUser?.token || 'active-token';
 
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
