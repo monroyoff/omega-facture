@@ -184,7 +184,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     ctx.fillRect(0, 0, 1200, 135);
 
     // Logo icon box
-    ctx.fillStyle = '#10b981';
+    ctx.fillStyle = '#2563eb';
     ctx.beginPath();
     ctx.roundRect(60, 35, 65, 65, 14);
     ctx.fill();
@@ -195,11 +195,11 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
     // Header Texts
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 30px system-ui, sans-serif';
-    ctx.fillText('OMEGA FACTURE — BILAN FINANCIER & KPI', 145, 65);
-    ctx.fillStyle = '#34d399';
-    ctx.font = '15px system-ui, sans-serif';
-    ctx.fillText('Bilan de performance, recouvrement et balance âgée des créances (UEMOA / FCFA)', 145, 95);
+    ctx.font = 'bold 26px system-ui, sans-serif';
+    ctx.fillText('MONROY Business Solutions', 145, 62);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.fillText('BILAN FINANCIER & TABLEAU DE BORD KPI — UEMOA / FCFA', 145, 90);
 
     // Org & Date row
     ctx.fillStyle = '#f8fafc';
@@ -753,125 +753,138 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
           </div>
 
           {/* Scrollable Visual Canvas Container */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 flex justify-center items-start bg-slate-200/60 dark:bg-[#070a0f] min-h-0">
+          <div className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-6 flex justify-center items-start bg-slate-200/60 dark:bg-[#070a0f] min-h-0">
             {/* A4 Sheet Preview Card */}
             <div
               ref={printRef}
               id="printable-report-card"
-              className="w-full max-w-4xl h-fit min-h-full bg-white text-slate-900 rounded-2xl shadow-paper border border-slate-200/90 p-4 sm:p-8 md:p-12 space-y-6 sm:space-y-8 select-text my-0 sm:my-2"
+              className="w-full max-w-4xl h-fit min-h-full bg-white text-slate-900 rounded-2xl shadow-paper border border-slate-200/90 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 select-text my-0 sm:my-2"
             >
-              {/* Sheet Header */}
-              <div className="flex items-start justify-between border-b border-slate-200 pb-6">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold mb-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Rapport d'Activité & KPI Financiers Certifié</span>
+              {/* Sheet Header — Logo & Nom de l'entreprise en haut à gauche */}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 border-b border-slate-200 pb-4 sm:pb-5">
+                <div className="space-y-2">
+                  {/* Logo et Nom de l'entreprise */}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-500/20 shrink-0">
+                      Ω
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-sm sm:text-base text-slate-900 block leading-tight">
+                        MONROY Business Solutions
+                      </span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Cotonou & Allada, Bénin
+                      </span>
+                    </div>
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                    BILAN FINANCIER & TABLEAU DE BORD KPI
-                  </h1>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Période : <strong className="text-slate-800">{periodLabel}</strong> • Monnaie de compte : <strong>Franc CFA (XOF)</strong>
-                  </p>
+
+                  {/* Titre & Période */}
+                  <div className="pt-1">
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                      BILAN FINANCIER & TABLEAU DE BORD KPI
+                    </h1>
+                    <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                      Période : <strong className="text-slate-800">{periodLabel}</strong> • Monnaie de compte : <strong>Franc CFA (XOF)</strong>
+                    </p>
+                  </div>
                 </div>
 
-                <div className="text-right">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white font-extrabold flex items-center justify-center text-xl ml-auto shadow-md shadow-brand-500/20">
-                    Ω
+                {/* Badge Certifié à droite */}
+                <div className="text-left sm:text-right shrink-0">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] sm:text-[11px] font-bold border border-emerald-200/70">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Rapport d'Activité & KPI Certifié</span>
                   </div>
-                  <span className="font-bold text-xs text-slate-900 block mt-2">
-                    MONROY Business Solutions
-                  </span>
-                  <span className="text-[11px] text-slate-500 block">
-                    Cotonou & Allada, Bénin
+                  <span className="text-[11px] text-slate-400 block mt-1 hidden sm:block">
+                    Édité le {new Date().toLocaleDateString('fr-FR')}
                   </span>
                 </div>
               </div>
 
-              {/* 3 Principal Metric Cards for the chosen period */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+              {/* 3 Indicateurs Financiers Principaux — Typographie et Spacing réduits et harmonisés */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5">
+                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                     Chiffre d’Affaires Émis
                   </span>
-                  <div className="text-2xl font-black text-slate-900 mt-2">
+                  <div className="text-lg sm:text-xl font-black text-slate-900 mt-1">
                     {formatFCFA(periodInvoiced)}
                   </div>
-                  <span className="text-xs text-emerald-700 font-semibold block mt-1">
+                  <span className="text-[11px] text-emerald-700 font-semibold block mt-0.5">
                     {filteredInvoices.length} facture(s) sur la période
                   </span>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200">
-                  <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
+                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50/60 border border-emerald-200">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
                     Total Encaissé Réel
                   </span>
-                  <div className="text-2xl font-black text-emerald-700 mt-2">
+                  <div className="text-lg sm:text-xl font-black text-emerald-700 mt-1">
                     {formatFCFA(periodPaid)}
                   </div>
-                  <span className="text-xs text-emerald-800 font-semibold block mt-1">
+                  <span className="text-[11px] text-emerald-800 font-semibold block mt-0.5">
                     Taux de recouvrement : {periodRecoveryRate}%
                   </span>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-rose-50/60 border border-rose-200">
-                  <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
+                <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-rose-50/60 border border-rose-200">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-rose-800 uppercase tracking-wider block">
                     Créances Restantes
                   </span>
-                  <div className="text-2xl font-black text-rose-700 mt-2">
+                  <div className="text-lg sm:text-xl font-black text-rose-700 mt-1">
                     {formatFCFA(periodRemaining)}
                   </div>
-                  <span className="text-xs text-slate-600 font-semibold block mt-1">
+                  <span className="text-[11px] text-slate-600 font-semibold block mt-0.5">
                     Solde à recouvrer
                   </span>
                 </div>
               </div>
 
-              {/* Balance Âgée */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-500" />
+              {/* Balance Âgée — Spacing compact et responsive */}
+              <div className="space-y-2.5 pt-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     <span>Balance Âgée des Créances sur la Période</span>
                   </h3>
-                  <span className="text-xs text-slate-500">
-                    Total créances : <strong>{formatFCFA(periodRemaining)}</strong>
+                  <span className="text-[11px] sm:text-xs text-slate-500">
+                    Total créances : <strong className="text-slate-800">{formatFCFA(periodRemaining)}</strong>
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-emerald-50/40 border border-emerald-200 text-xs">
-                    <span className="font-bold text-emerald-900 block">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50/40 border border-emerald-200 text-xs">
+                    <span className="font-bold text-[10px] sm:text-[11px] text-emerald-900 block">
                       0 à 30 jours (Créances Saines)
                     </span>
-                    <span className="text-lg font-black text-slate-900 block mt-1">
+                    <span className="text-base sm:text-lg font-black text-slate-900 block mt-0.5">
                       {formatFCFA(Math.round(periodRemaining * 0.55))}
                     </span>
-                    <span className="text-[10px] text-emerald-700 font-medium">
+                    <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
                       Échéances courantes
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200 text-xs">
-                    <span className="font-bold text-amber-900 block">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/40 border border-amber-200 text-xs">
+                    <span className="font-bold text-[10px] sm:text-[11px] text-amber-900 block">
                       31 à 60 jours (À Surveiller)
                     </span>
-                    <span className="text-lg font-black text-slate-900 block mt-1">
+                    <span className="text-base sm:text-lg font-black text-slate-900 block mt-0.5">
                       {formatFCFA(Math.round(periodRemaining * 0.32))}
                     </span>
-                    <span className="text-[10px] text-amber-700 font-medium">
+                    <span className="text-[10px] text-amber-700 font-medium block mt-0.5">
                       Relance amiable requise
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-rose-50/40 border border-rose-200 text-xs">
-                    <span className="font-bold text-rose-900 block">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-rose-50/40 border border-rose-200 text-xs">
+                    <span className="font-bold text-[10px] sm:text-[11px] text-rose-900 block">
                       + de 60 jours (Contentieux)
                     </span>
-                    <span className="text-lg font-black text-rose-600 block mt-1">
+                    <span className="text-base sm:text-lg font-black text-rose-600 block mt-0.5">
                       {formatFCFA(Math.max(0, periodRemaining - Math.round(periodRemaining * 0.87)))}
                     </span>
-                    <span className="text-[10px] text-rose-700 font-medium">
+                    <span className="text-[10px] text-rose-700 font-medium block mt-0.5">
                       Mise en demeure en cours
                     </span>
                   </div>
@@ -879,45 +892,45 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               </div>
 
               {/* Invoices detail Table for the selected period */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2.5 pt-1">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-brand-600" />
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-brand-600 shrink-0" />
                     <span>Détail des Factures de la Période ({filteredInvoices.length})</span>
                   </h3>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-[11px] sm:text-xs text-slate-500">
                     {filteredInvoices.length > 8 ? `8 premières sur ${filteredInvoices.length}` : 'Toutes les factures'}
                   </span>
                 </div>
 
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left text-xs min-w-[540px]">
+                  <table className="w-full text-left text-xs min-w-[500px]">
                     <thead>
                       <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                        <th className="py-2.5">N° Facture</th>
-                        <th className="py-2.5">Client</th>
-                        <th className="py-2.5">Date Émission</th>
-                        <th className="py-2.5 text-right">Montant TTC</th>
-                        <th className="py-2.5 text-right">Encaissé</th>
-                        <th className="py-2.5 text-right">Statut</th>
+                        <th className="py-2">N° Facture</th>
+                        <th className="py-2">Client</th>
+                        <th className="py-2">Date Émission</th>
+                        <th className="py-2 text-right">Montant TTC</th>
+                        <th className="py-2 text-right">Encaissé</th>
+                        <th className="py-2 text-right">Statut</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-[11px]">
                       {filteredInvoices.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="py-6 text-center text-slate-400 italic">
+                          <td colSpan={6} className="py-5 text-center text-slate-400 italic">
                             Aucune facture enregistrée pour cette période.
                           </td>
                         </tr>
                       ) : (
                         filteredInvoices.slice(0, 8).map((inv) => (
                           <tr key={inv.id}>
-                            <td className="py-2.5 font-bold text-slate-900">{inv.number}</td>
-                            <td className="py-2.5 font-medium text-slate-700">{inv.client?.name || 'Client'}</td>
-                            <td className="py-2.5 text-slate-500">{formatDateFR(inv.issueDate)}</td>
-                            <td className="py-2.5 text-right font-bold text-slate-900">{formatFCFA(inv.total)}</td>
-                            <td className="py-2.5 text-right font-bold text-emerald-600">{formatFCFA(inv.amountPaid)}</td>
-                            <td className="py-2.5 text-right font-semibold">
+                            <td className="py-2 font-bold text-slate-900">{inv.number}</td>
+                            <td className="py-2 font-medium text-slate-700">{inv.client?.name || 'Client'}</td>
+                            <td className="py-2 text-slate-500">{formatDateFR(inv.issueDate)}</td>
+                            <td className="py-2 text-right font-bold text-slate-900">{formatFCFA(inv.total)}</td>
+                            <td className="py-2 text-right font-bold text-emerald-600">{formatFCFA(inv.amountPaid)}</td>
+                            <td className="py-2 text-right font-semibold">
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] ${
                                   inv.status === 'paid'
@@ -939,7 +952,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               </div>
 
               {/* Certification & Signature Footer */}
-              <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-end justify-between gap-6 text-[10px] text-slate-500">
+              <div className="pt-4 sm:pt-5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-[10px] text-slate-500">
                 <div className="max-w-md space-y-1">
                   <strong className="block text-slate-800 text-xs">
                     Certification & Authenticité OHADA / UEMOA
