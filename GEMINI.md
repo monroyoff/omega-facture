@@ -142,6 +142,7 @@
   3. **Écran d'Attente & Instructions (`/verify-email`)** : L'utilisateur est immédiatement orienté vers une interface dédiée lui demandant d'ouvrir sa boîte mail et de cliquer sur le lien pour valider son compte. Raccourcis directs vers les messageries (*Ouvrir Gmail*, *Ouvrir Outlook*), bouton de renvoi du lien avec compteur anti-spam (30s) et lien de confirmation directe pour la prévisualisation.
   4. **Validation du Lien & Activation (`/confirm-email` et `/auth/confirm`)** : Lors du clic sur le lien dans l'email, la route de confirmation valide le jeton de sécurité, marque le profil comme vérifié (`emailVerified: true`), active la session utilisateur et affiche un écran de félicitations animé avec compte à rebours avant redirection automatique vers le tableau de bord.
   5. **Protection d'Accès au Dashboard** : Tant que l'adresse email n'a pas été confirmée, l'accès au tableau de bord (`/` et `/dashboard`) est strictement bloqué et redirigé vers l'écran de vérification d'email.
+  6. **Passerelle d'Envoi Haute Délivrabilité (`/api/auth/send-verification`)** : Intégration du moteur d'envoi transactionnel **Resend** avec template HTML institutionnel OMEGA FACTURE certifié, assurant la distribution directe des liens d'activation en boîte principale sans être intercepté par les filtres antispam de Gmail ou Outlook.
 
 ---
 
