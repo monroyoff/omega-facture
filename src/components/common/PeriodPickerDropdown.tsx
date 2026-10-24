@@ -178,63 +178,71 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div
-          className={`absolute ${
-            align === 'right' ? 'right-0' : 'left-0'
-          } mt-2 w-[calc(100vw-24px)] sm:w-[380px] max-w-[390px] bg-white dark:bg-[#111622] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150`}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <span className="p-1 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600">
-                <Clock className="w-3.5 h-3.5" />
-              </span>
-              <div>
-                <span className="text-xs font-bold text-slate-900 dark:text-white block">
-                  Filtrage Temporel
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  Sélectionnez des jours, une plage ou une période
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-600 active:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 active:bg-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 transition-all active:scale-95 cursor-pointer touch-manipulation"
-              aria-label="Fermer"
-            >
-              <X className="w-4 h-4 pointer-events-none" />
-            </button>
-          </div>
+        <>
+          {/* Mobile backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-40 sm:hidden animate-in fade-in duration-150"
+            onClick={() => setIsOpen(false)}
+          />
 
-          {/* Period Mode Tabs */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/70 rounded-2xl mb-3 text-[11px] font-semibold overflow-x-auto no-scrollbar">
-            {[
-              { id: 'month', label: 'Mois' },
-              { id: 'range', label: 'Plage (Début/Fin)', badge: 'Nouveau' },
-              { id: 'day', label: 'Jour précis' },
-              { id: 'quarter', label: 'Trimestre' },
-              { id: 'semester', label: 'Semestre' },
-              { id: 'year', label: 'Année' },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 py-1.5 px-2 text-center rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-1 ${
-                    isActive
-                      ? 'bg-white dark:bg-[#111622] text-brand-600 dark:text-brand-400 shadow-xs font-bold'
-                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Dropdown Popup */}
+          <div
+            className={`fixed left-3 right-3 top-20 z-50 mx-auto max-w-[390px] sm:absolute sm:inset-auto sm:top-full sm:mt-2 sm:w-[385px] sm:max-w-[400px] ${
+              align === 'right' ? 'sm:right-0 sm:left-auto' : 'sm:left-0 sm:right-auto'
+            } bg-white dark:bg-[#111622] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 animate-in fade-in zoom-in-95 duration-150`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="p-1 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600">
+                  <Clock className="w-3.5 h-3.5" />
+                </span>
+                <div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                    Filtrage Temporel
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Sélectionnez des jours, une plage ou une période
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-600 active:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 active:bg-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 transition-all active:scale-95 cursor-pointer touch-manipulation"
+                aria-label="Fermer"
+              >
+                <X className="w-4 h-4 pointer-events-none" />
+              </button>
+            </div>
+
+            {/* Period Mode Tabs */}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900/70 rounded-2xl mb-3 text-[11px] font-semibold overflow-x-auto no-scrollbar">
+              {[
+                { id: 'month', label: 'Mois' },
+                { id: 'range', label: 'Plage' },
+                { id: 'day', label: 'Jour' },
+                { id: 'quarter', label: 'Trimestre' },
+                { id: 'semester', label: 'Semestre' },
+                { id: 'year', label: 'Année' },
+              ].map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex-1 py-1.5 px-2 text-center rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-1 ${
+                      isActive
+                        ? 'bg-white dark:bg-[#111622] text-brand-600 dark:text-brand-400 shadow-xs font-bold'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
           {/* Tab Content */}
           <div className="max-h-[460px] overflow-y-auto px-0.5 space-y-2">
@@ -571,7 +579,8 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
             )}
           </div>
         </div>
-      )}
-    </div>
-  );
+      </>
+    )}
+  </div>
+);
 };

@@ -194,7 +194,7 @@ export default function PaymentsPage() {
 
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Dedicated Calendar dropdown for Payments */}
-              <PeriodPickerDropdown buttonVariant="card" />
+              <PeriodPickerDropdown buttonVariant="card" align="right" />
 
               {/* Export dropdown menu */}
               <div className="relative" ref={exportMenuRef}>
@@ -210,7 +210,7 @@ export default function PaymentsPage() {
                 </button>
 
                 {exportMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#111622] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-32px)] bg-white dark:bg-[#111622] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">
                       Formats d'export disponibles
                     </div>
