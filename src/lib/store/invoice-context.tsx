@@ -18,6 +18,7 @@ export interface PendingVerificationUser {
   lastName: string;
   organization: string;
   token: string;
+  code?: string;
   sentAt: string;
 }
 
@@ -731,6 +732,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const email = userData.email.trim();
     const organization = userData.organization.trim();
     const token = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
 
     const pending: PendingVerificationUser = {
       firstName,
@@ -738,6 +740,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       email,
       organization,
       token,
+      code,
       sentAt: new Date().toISOString(),
     };
 
@@ -749,6 +752,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // 1. Envoi via notre passerelle d'emailing de production (/api/auth/send-verification)
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const confirmUrl = `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+    const networkUrl = `http://192.168.100.25:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
 
     try {
       fetch('/api/auth/send-verification', {
@@ -760,7 +764,9 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           lastName,
           organization,
           token,
+          code,
           confirmUrl,
+          networkUrl,
         }),
       }).catch((e) => console.warn('[Send Verification API catch]', e));
     } catch (e) {}

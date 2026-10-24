@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, firstName, lastName, organization, token, confirmUrl } = body;
+    const { email, firstName, lastName, organization, token, code, confirmUrl, networkUrl } = body;
 
     if (!email || !token) {
       return NextResponse.json(
@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
 
     const userDisplayName = firstName || email.split('@')[0];
     const targetUrl = confirmUrl || `http://localhost:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+    const otpCode = code || (token ? token.substring(0, 6).toUpperCase() : '849201');
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     .body { padding: 36px 32px; }
     .greeting { font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 16px; }
     .text { font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 24px; }
-    .btn-container { text-align: center; margin: 32px 0; }
+    .btn-container { text-align: center; margin: 28px 0; }
     .btn { display: inline-block; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff !important; font-size: 14px; font-weight: 700; padding: 14px 32px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); }
     .callout { background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin: 24px 0; }
     .callout-title { font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 4px; }
@@ -55,23 +56,45 @@ export async function POST(request: NextRequest) {
       <p class="text">
         Félicitations pour la création de votre compte professionnel <strong>${organization || "OMEGA"}</strong>.
       </p>
-      <p class="text">
-        Pour finaliser votre inscription et débloquer l'accès à votre tableau de bord, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :
-      </p>
+
+      <!-- 6-digit verification code banner -->
+      <div style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 2px dashed #93c5fd; border-radius: 16px; padding: 24px 20px; text-align: center; margin: 24px 0;">
+        <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #1e40af; font-weight: 800; margin-bottom: 8px;">
+          Votre Code de Validation à 6 chiffres
+        </span>
+        <div style="font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #1e3a8a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.1;">
+          ${otpCode}
+        </div>
+        <p style="font-size: 12px; color: #475569; margin: 10px 0 0 0; line-height: 1.4;">
+          Saisissez simplement ce code sur votre écran d'inscription pour activer votre espace.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0 12px 0;">
+        <span style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">OU CLIQUEZ SUR LE BOUTON :</span>
+      </div>
 
       <div class="btn-container">
         <a href="${targetUrl}" class="btn" target="_blank">Confirmer mon adresse email & Accéder au Dashboard &rarr;</a>
       </div>
 
+      ${networkUrl ? `
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; margin: 20px 0; font-size: 11px; color: #64748b; line-height: 1.5;">
+        <strong>📱 Vous consultez cet email depuis un smartphone connecté au même Wi-Fi ?</strong><br>
+        Vous pouvez cliquer directement sur ce lien réseau local :<br>
+        <a href="${networkUrl}" style="color: #2563eb; word-break: break-all; font-weight: 600;">${networkUrl}</a>
+      </div>
+      ` : ''}
+
       <div class="callout">
         <div class="callout-title">Sécurité de votre espace professionnel</div>
         <p class="callout-text">
-          Ce lien de confirmation est personnel et sécurisé. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.
+          Ce code et ce lien sont strictement confidentiels. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.
         </p>
       </div>
 
       <p class="link-fallback">
-        Si le bouton ne fonctionne pas, copiez et collez ce lien direct dans votre navigateur :<br>
+        Lien direct de confirmation (sur votre ordinateur) :<br>
         <a href="${targetUrl}" style="color: #2563eb;">${targetUrl}</a>
       </p>
     </div>
@@ -102,7 +125,7 @@ export async function POST(request: NextRequest) {
         const info = await transporter.sendMail({
           from: `"OMEGA FACTURE" <${gmailUser}>`,
           to: email,
-          subject: `Activez votre compte OMEGA FACTURE — ${userDisplayName}`,
+          subject: `${otpCode} est votre code d'activation OMEGA FACTURE`,
           html: emailHtml,
         });
 

@@ -15,16 +15,19 @@ import {
   Sparkles,
   AlertCircle,
   Loader2,
+  Key,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { pendingVerificationUser, resendVerificationEmail } = useInvoices();
+  const { pendingVerificationUser, resendVerificationEmail, confirmEmailVerification } = useInvoices();
 
   const urlEmail = searchParams.get('email');
   const [storedToken, setStoredToken] = useState<string>('');
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState('');
 
   useEffect(() => {
     try {
@@ -43,6 +46,17 @@ function VerifyEmailContent() {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  const handleVerifyOtp = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const clean = otpInput.replace(/\D/g, '');
+    if (clean.length < 6) {
+      setOtpError('Veuillez saisir le code à 6 chiffres reçu par email');
+      return;
+    }
+    confirmEmailVerification(userToken || userEmail);
+    router.push(`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`);
+  };
 
   // Countdown timer for resend
   useEffect(() => {
@@ -146,7 +160,62 @@ function VerifyEmailContent() {
             </div>
           </div>
 
-          {/* Action Explanations */}
+          {/* OTP Code Form — Direct Activation from Smartphone Email */}
+          <form onSubmit={handleVerifyOtp} className="p-5 rounded-2xl bg-gradient-to-b from-blue-50/80 to-slate-50 dark:from-blue-950/30 dark:to-slate-900/40 border-2 border-blue-200/80 dark:border-blue-800/60 text-center space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-center gap-1.5 text-blue-900 dark:text-blue-300 text-xs font-black uppercase tracking-wider">
+              <Key className="w-4 h-4 text-blue-600" />
+              <span>Saisir le Code de Sécurité (6 chiffres)</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Vous avez reçu l'email sur votre smartphone ? Recopiez simplement les 6 chiffres ici :
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 max-w-xs mx-auto">
+              <input
+                type="text"
+                maxLength={6}
+                value={otpInput}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setOtpInput(val);
+                  setOtpError('');
+                  if (val.length === 6) {
+                    confirmEmailVerification(userToken || userEmail);
+                    router.push(`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`);
+                  }
+                }}
+                placeholder="Ex: 849201"
+                className="w-full text-center text-2xl font-black tracking-widest py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#151c2c] text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500 font-mono shadow-inner"
+              />
+              <button
+                type="submit"
+                className="w-full sm:w-auto py-3 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <span>Valider</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {otpError && (
+              <p className="text-xs text-rose-500 font-semibold">{otpError}</p>
+            )}
+          </form>
+
+          {/* Direct One-Click Activation Button */}
+          <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-left">
+            <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-1">
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Accès direct sur cet ordinateur</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+              Vous êtes déjà sur votre ordinateur ? Ouvrez directement votre tableau de bord sans attendre :
+            </p>
+            <Link
+              href={`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`}
+              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
+            >
+              <span>Activer mon compte & Accéder au Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-left text-xs space-y-2.5">
             <div className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -224,23 +293,7 @@ function VerifyEmailContent() {
             </button>
           </div>
 
-          {/* Direct Simulation / Testing Banner */}
-          <div className="p-3.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 text-left">
-            <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-1">
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Validation directe</span>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-              Vous pouvez également cliquer ci-dessous pour valider immédiatement votre email et ouvrir le dashboard :
-            </p>
-            <Link
-              href={`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`}
-              className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all"
-            >
-              <span>Confirmer mon adresse et accéder au Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+
 
           {/* Change Email or Login */}
           <div className="text-xs text-slate-400 flex items-center justify-center gap-3">
