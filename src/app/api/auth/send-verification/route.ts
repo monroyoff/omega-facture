@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,22 +14,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.RESEND_API_KEY?.trim();
-    const fromAddress = process.env.EMAIL_FROM || 'OMEGA FACTURE <onboarding@resend.dev>';
     const userDisplayName = firstName || email.split('@')[0];
     const targetUrl = confirmUrl || `http://localhost:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
-
-    if (!apiKey) {
-      console.warn('[Email Verification] Clé RESEND_API_KEY non configurée dans .env.local');
-      return NextResponse.json({
-        success: false,
-        requiresApiKey: true,
-        confirmUrl: targetUrl,
-        message: 'Clé API Resend en attente de configuration',
-      });
-    }
-
-    const resend = new Resend(apiKey);
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -98,27 +85,77 @@ export async function POST(request: NextRequest) {
 </html>
 `;
 
-    const { data, error } = await resend.emails.send({
-      from: fromAddress,
-      to: [email],
-      subject: `Activez votre compte OMEGA FACTURE — ${userDisplayName}`,
-      html: emailHtml,
-    });
+    // 1. PRIORITÉ : SMTP Gmail si configuré (GMAIL_USER et GMAIL_APP_PASSWORD)
+    const gmailUser = process.env.GMAIL_USER?.trim();
+    const gmailPass = process.env.GMAIL_APP_PASSWORD?.trim().replace(/\s+/g, '');
 
-    if (error) {
-      console.warn('[Resend Info] Avertissement transmission :', error);
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-        confirmUrl: targetUrl,
-        requiresDomainVerification: error.message.includes('domain'),
-      }, { status: 200 });
+    if (gmailUser && gmailPass) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: gmailUser,
+            pass: gmailPass,
+          },
+        });
+
+        const info = await transporter.sendMail({
+          from: `"OMEGA FACTURE" <${gmailUser}>`,
+          to: email,
+          subject: `Activez votre compte OMEGA FACTURE — ${userDisplayName}`,
+          html: emailHtml,
+        });
+
+        console.log('[Gmail SMTP] Email envoyé avec succès :', info.messageId, 'vers', email);
+
+        return NextResponse.json({
+          success: true,
+          provider: 'gmail-smtp',
+          messageId: info.messageId,
+          confirmUrl: targetUrl,
+        });
+      } catch (smtpErr: any) {
+        console.error('[Gmail SMTP] Erreur envoi :', smtpErr?.message);
+        // Fallback vers Resend si échec
+      }
     }
 
+    // 2. FALLBACK : Resend API
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    const fromAddress = process.env.EMAIL_FROM || 'OMEGA FACTURE <onboarding@resend.dev>';
+
+    if (apiKey) {
+      const resend = new Resend(apiKey);
+      const { data, error } = await resend.emails.send({
+        from: fromAddress,
+        to: [email],
+        subject: `Activez votre compte OMEGA FACTURE — ${userDisplayName}`,
+        html: emailHtml,
+      });
+
+      if (error) {
+        console.warn('[Resend Info] Avertissement transmission :', error);
+        return NextResponse.json({
+          success: false,
+          error: error.message,
+          confirmUrl: targetUrl,
+          requiresDomainVerification: error.message.includes('domain'),
+        }, { status: 200 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        provider: 'resend',
+        messageId: data?.id,
+        confirmUrl: targetUrl,
+      });
+    }
+
+    // 3. Fallback sans clé
     return NextResponse.json({
-      success: true,
-      messageId: data?.id,
+      success: false,
       confirmUrl: targetUrl,
+      message: 'Aucun serveur email configuré',
     });
   } catch (err: any) {
     console.error('[Send Verification API] Erreur :', err);
