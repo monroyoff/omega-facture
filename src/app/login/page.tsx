@@ -97,8 +97,8 @@ export default function LoginPage() {
             Ω
           </div>
           <div className="text-left">
-            <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight uppercase block">
-              OMEGA <span className="text-brand-600 dark:text-brand-400">FACTURE</span>
+            <span className="text-lg font-black text-brand-600 dark:text-brand-400 tracking-tight uppercase block">
+              OMEGA FACTURE
             </span>
             <span className="text-[10px] text-slate-400 font-medium block -mt-1">
               SaaS de Facturation & Devis UEMOA

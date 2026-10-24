@@ -152,8 +152,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Ω
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-slate-900 dark:text-white tracking-tight text-sm uppercase">
-                  OMEGA <span className="text-brand-600 dark:text-brand-400">FACTURE</span>
+                <span className="font-black text-brand-600 dark:text-brand-400 tracking-tight text-sm uppercase">
+                  OMEGA FACTURE
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium">
                   Zone UEMOA • FCFA

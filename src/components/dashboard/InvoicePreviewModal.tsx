@@ -288,7 +288,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Ω
                 </div>
                 <div className="text-right hidden sm:block">
-                  <div className="font-extrabold text-slate-900 text-sm tracking-tight">
+                  <div className="font-extrabold text-brand-600 dark:text-brand-400 text-sm tracking-tight">
                     OMEGA FACTURE
                   </div>
                   <div className="text-[11px] text-slate-400">

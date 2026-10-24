@@ -543,7 +543,7 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
                   <div className="w-8 h-8 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-600/20">
                     Ω
                   </div>
-                  <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  <span className="text-xl font-black text-brand-600 dark:text-brand-400 tracking-tight">
                     OMEGA FACTURE
                   </span>
                 </div>

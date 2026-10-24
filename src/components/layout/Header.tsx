@@ -105,8 +105,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
             <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-brand-600/20 shrink-0">
               Ω
             </div>
-            <span className="font-black text-xs text-slate-900 dark:text-white hidden min-[360px]:inline sm:hidden tracking-tight">
-              OMEGA <span className="text-brand-600 dark:text-brand-400">FACTURE</span>
+            <span className="font-black text-xs text-brand-600 dark:text-brand-400 hidden min-[360px]:inline sm:hidden tracking-tight">
+              OMEGA FACTURE
             </span>
           </Link>
 
