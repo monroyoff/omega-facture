@@ -36,10 +36,8 @@
 
 ### A. Dashboard Principal (`/` et `/dashboard`)
 - **Cartes KPI en temps réel** : Chiffre d'affaires facturé, Total encaissé, Montant en attente de règlement, Créances en retard, avec badges de variation en pourcentage.
-- **Barre d'Action Responsive & Mobile Native** : Bouton d'action direct `+ Créer une Facture` accessible et optimisé pour le tactile mobile (< 640px) ainsi que sur desktop, complété du raccourci direct `+ Nouveau Devis`. Menu de création rapide universel `+ Créer` également présent dans le Header (`Header.tsx`) sur tous les écrans.
-- **Sélecteur Temporel Universel (`PeriodPickerDropdown`)** : Filtrage de toutes les métriques par Mois (ex: *Octobre 2026*), Trimestre (*Q3, Q4*), Semestre (*S1, S2*), Année complète (*2026*) ou Jour précis.
-- **Graphique d'activité (`RevenueChart`)** : Visualisation mensuelle du chiffre d'affaires et des encaissements.
-- **Tableau Multi-Documents Récent (`RecentInvoicesTable`)** : Onglets de filtrage par type de document (*Tous, 📄 Factures, 📝 Devis*) et par statut (*Toutes, Payées, Envoyées, Brouillons, En retard*), badges visuels distinctifs (Violet pour Devis, Indigo pour Facture), recherche textuelle, tri et pagination.
+- **Barre d'Action Responsive & Mobile Native** : Bouton d'action direct `+ Créer une Facture` accessible et optimisé pour le tactile mobile (< 640px) ainsi que sur desktop, complété du raccourci direct `+ Nouveau Devis`. (Bouton d'en-tête supprimé au profit de l'action bar principale pour épurer la barre de navigation sur web et mobile).
+- **Cartes Tactiles & Tableau Multi-Documents Récent (`RecentInvoicesTable`)** : Onglets de filtrage par type de document (*Tous, 📄 Factures, 📝 Devis*) et par statut (*Toutes, Payées, Envoyées, Brouillons, En retard*) avec disposition fluide `flex-wrap` sans débordement horizontal sur smartphone. Cartes mobiles restructurées avec affichage clair de l'échéance et barre d'actions compacte anti-débordement. Badges visuels distinctifs (Violet pour Devis, Indigo pour Facture), recherche textuelle, tri et pagination dynamique.
 - **Aperçu Instantané (`InvoicePreviewModal`)** : Modale d'aperçu d'un document complet adaptée selon sa nature (Facture, Devis) avec actions d'impression, relance WhatsApp personnalisée et partage.
 
 ### B. Création & Édition Multi-Documents — Factures & Devis (`/invoices/new` et `/invoices/[id]/edit`)
