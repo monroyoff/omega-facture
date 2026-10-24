@@ -36,12 +36,21 @@
 
 ### A. Dashboard Principal (`/` et `/dashboard`)
 - **Cartes KPI en temps réel** : Chiffre d'affaires facturé, Total encaissé, Montant en attente de règlement, Créances en retard, avec badges de variation en pourcentage.
+- **Barre d'Action Responsive & Mobile Native** : Bouton d'action direct `+ Créer une Facture` accessible et optimisé pour le tactile mobile (< 640px) ainsi que sur desktop, complété de raccourcis directs `+ Devis` et `+ Proforma`. Menu de création rapide universel `+ Créer` également présent dans le Header (`Header.tsx`) sur tous les écrans.
 - **Sélecteur Temporel Universel (`PeriodPickerDropdown`)** : Filtrage de toutes les métriques par Mois (ex: *Octobre 2026*), Trimestre (*Q3, Q4*), Semestre (*S1, S2*), Année complète (*2026*) ou Jour précis.
 - **Graphique d'activité (`RevenueChart`)** : Visualisation mensuelle du chiffre d'affaires et des encaissements.
-- **Tableau des Factures Récentes (`RecentInvoicesTable`)** : Onglets de filtres rapides (*Toutes, Payées, Envoyées, Brouillons, En retard*), recherche textuelle, tri et pagination.
-- **Aperçu Instantané (`InvoicePreviewModal`)** : Modale d'aperçu d'un document complet avec actions d'impression, relance et partage.
+- **Tableau Multi-Documents Récent (`RecentInvoicesTable`)** : Onglets de filtrage par type de document (*Tous, 📄 Factures, 📝 Devis, 📑 Proformas*) et par statut (*Toutes, Payées, Envoyées, Brouillons, En retard*), badges visuels distinctifs (Violet pour Devis, Ciel pour Proforma, Indigo pour Facture), recherche textuelle, tri et pagination.
+- **Aperçu Instantané (`InvoicePreviewModal`)** : Modale d'aperçu d'un document complet adaptée selon sa nature (Facture, Devis, Proforma) avec actions d'impression, relance WhatsApp personnalisée et partage.
 
-### B. Création & Édition de Factures (`/invoices/new` et `/invoices/[id]/edit`)
+### B. Création & Édition Multi-Documents — Factures, Devis & Proformas (`/invoices/new` et `/invoices/[id]/edit`)
+- **Prise en charge Native des Devis & Factures Proforma** :
+  - **Sélecteur Segmenté Responsive** : Bascule en 1 clic entre `📄 Facture`, `📝 Devis Estimatif` et `📑 Facture Proforma` en haut du formulaire avec synchronisation d'URL (`?kind=invoice|quote|proforma`).
+  - **Numérotation Séquentielle Déterminée par la Nature** : `FAC-YYYY-XXXX` pour les factures, `DEV-YYYY-XXXX` pour les devis estimatifs, `PRO-YYYY-XXXX` pour les factures proforma.
+  - **Vocabulaire & Mentions Fiscales / Juridiques UEMOA Adaptés** :
+    - *Devis* : « Devis N° », « Devis établi pour : », « Validité de l'offre (30 jours) », mention de signature « Bon pour accord et commande avec mention manuscrite 'Lu et approuvé' ».
+    - *Proforma* : « Facture Proforma N° », « Document prévisionnel émis pour ouverture de crédit documentaire, virement bancaire ou formalités d'importation/douanières UEMOA. Ne constitue pas une facture définitive. ».
+    - *Facture* : « Facture N° », « Facturé à : », « Date d'échéance », mentions légales et pénalités de retard.
+  - **Partage & Relance WhatsApp Contextuels** : Le message pré-formaté WhatsApp adapte automatiquement son objet et sa formule de politesse selon qu'il s'agisse d'un devis, d'une proforma ou d'une facture.
 - **Formulaire Vierge à l'Ouverture** :
   - **Articles / Lignes** : Démarre avec une seule ligne vide sans aucun montant pré-rempli (0 FCFA).
   - **Placeholders discrets** pour la description et les prix.
@@ -53,11 +62,13 @@
   - **Mode `+ Nouveau client`** : Champs de saisie directe (*Nom du contact, Entreprise, Email, Téléphone*) tous vierges par défaut. Sauvegarde automatique du client dans le carnet d'adresses à l'émission.
   - **Modale d'ajout complet (`NewClientModal`)** : Disponible en raccourci pour renseigner l'IFU, la ville et l'avatar.
 - **Types de facturation avancés** :
-  1. **Standard** : Facture classique à échéance unique.
+  1. **Standard** : Document classique à échéance unique.
   2. **Facture d'Acompte / Échelonnée** : Échéancier paramétrable (presets *30%-70%*, *40%-30%-30%*, *50%-50%*, *4x25%* ou sur-mesure) avec dates d'exigibilité par tranche.
   3. **Facture Récurrente / Abonnement** : Périodicité mensuelle, trimestrielle ou annuelle avec calcul automatique de la date de renouvellement.
-- **Aperçu A4 Live réactif** : Document imprimable visualisé en temps réel sur la colonne de droite, synchronisé à chaque frappe.
-- **Fiabilité SSR** : Numérotation séquentielle déterministe (`FAC-YYYY-XXXX`) avec calcul client-side pour éliminer toute erreur d'hydratation Next.js.
+- **Aperçu A4 Live Réactif & Barre d'Action Mobile** :
+  - Document imprimable visualisé en temps réel sur la colonne de droite sur écran large.
+  - Barre d'action d'enregistrement direct intégrée en bas du formulaire mobile pour permettre la validation rapide sans défilement de canvas.
+- **Fiabilité SSR** : Numérotation séquentielle déterministe avec calcul client-side pour éliminer toute erreur d'hydratation Next.js.
 
 ### C. Rapports financiers & KPI & Drilldown Interactif (`/reports`)
 - **Titre officiel** : « Rapports financiers & KPI » (intégré dans la barre latérale, le header et les modales).
