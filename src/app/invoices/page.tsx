@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { RecentInvoicesTable } from '@/components/dashboard/RecentInvoicesTable';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
+import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { Plus, Download, FileSpreadsheet, FileCheck2, FileText } from 'lucide-react';
@@ -13,6 +14,7 @@ import { Plus, Download, FileSpreadsheet, FileCheck2, FileText } from 'lucide-re
 export default function InvoicesListPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [createModalKind, setCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const { invoices, periodInvoices } = useInvoices();
 
   const handleExportCSV = () => {
@@ -47,7 +49,10 @@ export default function InvoicesListPage() {
       />
 
       <div className="lg:pl-72 flex flex-col flex-1">
-        <Header onOpenSidebar={() => setSidebarOpen(true)} />
+        <Header
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onNewInvoice={(kind) => setCreateModalKind(kind || 'invoice')}
+        />
 
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto min-w-0">
           {/* Header Action Row */}
@@ -72,22 +77,24 @@ export default function InvoicesListPage() {
                 <span className="sm:hidden">CSV</span>
               </button>
 
-              <Link
-                href="/invoices/new?kind=invoice"
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 transition-all"
+              <button
+                type="button"
+                onClick={() => setCreateModalKind('invoice')}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ Facture</span>
-              </Link>
+              </button>
 
-              <Link
-                href="/invoices/new?kind=quote"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-semibold active:scale-95 transition-all"
+              <button
+                type="button"
+                onClick={() => setCreateModalKind('quote')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
                 title="Créer un devis estimatif"
               >
                 <FileCheck2 className="w-3.5 h-3.5" />
                 <span>+ Devis</span>
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -98,6 +105,13 @@ export default function InvoicesListPage() {
           />
         </main>
       </div>
+
+      {/* Creation Modal for Invoice & Quote with click-outside on background to exit */}
+      <CreateInvoiceModal
+        isOpen={!!createModalKind}
+        initialKind={createModalKind || 'invoice'}
+        onClose={() => setCreateModalKind(null)}
+      />
 
       <InvoicePreviewModal
         invoice={selectedInvoice}

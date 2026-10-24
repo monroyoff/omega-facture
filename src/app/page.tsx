@@ -9,6 +9,7 @@ import { StatCards } from '@/components/dashboard/StatCards';
 import { RevenueOverview } from '@/components/dashboard/RevenueChart';
 import { RecentInvoicesTable, DashboardTableTab } from '@/components/dashboard/RecentInvoicesTable';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
+import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
@@ -19,10 +20,24 @@ export default function DashboardPage() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [createModalKind, setCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
   const [activeKind, setActiveKind] = useState<'all' | 'invoice' | 'quote'>('invoice');
   const { periodInvoices, periodKPIs, periodLabel, currentUser } = useInvoices();
   const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'MONROY';
+
+  // Synchroniser avec un paramètre d'URL éventuel (?create=invoice ou ?create=quote)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const create = params.get('create');
+      if (create === 'quote' || create === 'devis') {
+        setCreateModalKind('quote');
+      } else if (create === 'invoice' || create === 'facture') {
+        setCreateModalKind('invoice');
+      }
+    }
+  }, []);
 
   const scrollToInvoices = () => {
     const el = document.getElementById('invoices-section');
@@ -69,7 +84,10 @@ export default function DashboardPage() {
       {/* Main Content Area */}
       <div className="lg:pl-72 flex flex-col flex-1 min-w-0 w-full overflow-x-hidden">
         {/* Top Header */}
-        <Header onOpenSidebar={() => setSidebarOpen(true)} />
+        <Header
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onNewInvoice={(kind) => setCreateModalKind(kind || 'invoice')}
+        />
 
         {/* Dashboard Main Body */}
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto min-w-0">
@@ -110,23 +128,25 @@ export default function DashboardPage() {
 
             {/* Action buttons (Web & Mobile responsive) */}
             <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto pt-2 sm:pt-0">
-              <Link
-                href="/invoices/new?kind=invoice"
-                className="px-4 sm:px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 group whitespace-nowrap shrink-0"
+              <button
+                type="button"
+                onClick={() => setCreateModalKind('invoice')}
+                className="px-4 sm:px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 group whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-brand-600" />
                 <span>Créer une Facture</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform hidden sm:inline" />
-              </Link>
+              </button>
               
-              <Link
-                href="/invoices/new?kind=quote"
-                className="px-3.5 sm:px-4 py-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-2xs backdrop-blur-sm flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+              <button
+                type="button"
+                onClick={() => setCreateModalKind('quote')}
+                className="px-3.5 sm:px-4 py-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-2xs backdrop-blur-sm flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                 title="Créer un nouveau devis estimatif"
               >
                 <FileCheck2 className="w-4 h-4 text-purple-200" />
                 <span>+ Nouveau Devis</span>
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -192,6 +212,20 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Creation Modal for Invoice & Quote with click-outside on dashboard to exit */}
+      <CreateInvoiceModal
+        isOpen={!!createModalKind}
+        initialKind={createModalKind || 'invoice'}
+        onClose={() => {
+          setCreateModalKind(null);
+          if (typeof window !== 'undefined' && window.location.search.includes('create=')) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('create');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+          }
+        }}
+      />
 
       {/* Live A4 Invoice Preview Modal */}
       <InvoicePreviewModal

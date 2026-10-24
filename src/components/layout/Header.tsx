@@ -26,12 +26,13 @@ import { useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA } from '@/lib/money/format';
 import { NewPaymentModal } from '@/components/payments/NewPaymentModal';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
+import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
 import { Invoice } from '@/lib/types';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 
 interface HeaderProps {
   onOpenSidebar: () => void;
-  onNewInvoice?: () => void;
+  onNewInvoice?: (kind?: 'invoice' | 'quote') => void;
   hidePeriodPicker?: boolean;
 }
 
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const [headerCreateModalKind, setHeaderCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
 
@@ -429,10 +431,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                   </div>
 
                   <div className="space-y-1">
-                    <Link
-                      href="/invoices/new?kind=invoice"
-                      onClick={() => setCreateMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:text-brand-600 dark:hover:text-brand-400 font-semibold transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateMenuOpen(false);
+                        if (onNewInvoice) {
+                          onNewInvoice('invoice');
+                        } else {
+                          setHeaderCreateModalKind('invoice');
+                        }
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:text-brand-600 dark:hover:text-brand-400 font-semibold transition-colors text-left cursor-pointer"
                     >
                       <div className="w-7 h-7 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 flex items-center justify-center shrink-0">
                         <FileText className="w-4 h-4" />
@@ -441,12 +450,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                         <div className="text-xs font-bold">Facture</div>
                         <div className="text-[10px] text-slate-400 font-normal">Facture standard ou échelonnée</div>
                       </div>
-                    </Link>
+                    </button>
 
-                    <Link
-                      href="/invoices/new?kind=quote"
-                      onClick={() => setCreateMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400 font-semibold transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateMenuOpen(false);
+                        if (onNewInvoice) {
+                          onNewInvoice('quote');
+                        } else {
+                          setHeaderCreateModalKind('quote');
+                        }
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400 font-semibold transition-colors text-left cursor-pointer"
                     >
                       <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center shrink-0">
                         <FileCheck2 className="w-4 h-4" />
@@ -455,7 +471,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                         <div className="text-xs font-bold">Devis Estimatif</div>
                         <div className="text-[10px] text-slate-400 font-normal">Proposition commerciale chiffrée</div>
                       </div>
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </>
@@ -478,6 +494,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
       </header>
 
       {/* Global Quick Action Modals reachable from the Header */}
+      <CreateInvoiceModal
+        isOpen={!!headerCreateModalKind}
+        initialKind={headerCreateModalKind || 'invoice'}
+        onClose={() => setHeaderCreateModalKind(null)}
+      />
+
       <NewPaymentModal
         isOpen={!!paymentInvoiceId}
         onClose={() => setPaymentInvoiceId(null)}
