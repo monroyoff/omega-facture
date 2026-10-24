@@ -4,16 +4,18 @@ import React, { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Settings, Building, ShieldCheck, CreditCard, Save, Check } from 'lucide-react';
+import { useInvoices } from '@/lib/store/invoice-context';
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { currentUser, updateUserProfile } = useInvoices();
 
   // Settings form states
-  const [companyName, setCompanyName] = useState('MONROY Business Solutions');
+  const [companyName, setCompanyName] = useState(currentUser?.organization || 'MONROY Business Solutions');
   const [ifu, setIfu] = useState('0202110485960');
   const [rccm, setRccm] = useState('RB/COT/21 B 1042');
-  const [email, setEmail] = useState('jobovog@gmail.com');
+  const [email, setEmail] = useState(currentUser?.email || 'monmonnroyteam@gmail.com');
   const [phone, setPhone] = useState('+229 01 95 44 44 30');
   const [address, setAddress] = useState('Allada, République du Bénin');
   const [defaultVat, setDefaultVat] = useState(18);
@@ -21,8 +23,19 @@ export default function SettingsPage() {
   const [paymentTerms, setPaymentTerms] = useState(15);
   const [momoNumber, setMomoNumber] = useState('+229 01 95 44 44 30');
 
+  React.useEffect(() => {
+    if (currentUser) {
+      if (currentUser.organization) setCompanyName(currentUser.organization);
+      if (currentUser.email) setEmail(currentUser.email);
+    }
+  }, [currentUser]);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    updateUserProfile({
+      organization: companyName,
+      email: email,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

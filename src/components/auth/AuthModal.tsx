@@ -43,10 +43,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('jobovog@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  // Pré-remplissage avec l'email réel s'il est enregistré
+  React.useEffect(() => {
+    if (isOpen) {
+      try {
+        const last =
+          localStorage.getItem('facturo:v1:last_email') ||
+          localStorage.getItem('facturo:v1:last_registered_email');
+        if (last && !loginEmail) {
+          setLoginEmail(last);
+        }
+      } catch (e) {}
+    }
+  }, [isOpen]);
 
   // Register form state
   const [regFirstName, setRegFirstName] = useState('');
@@ -88,29 +102,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const passwordsMismatch = regConfirmPassword.length > 0 && regPassword !== regConfirmPassword;
 
   // Handle Login
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
-    if (!loginEmail.trim() || !loginPassword.trim()) {
+    const cleanEmail = loginEmail.trim();
+    const cleanPassword = loginPassword.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setLoginError('Veuillez renseigner votre email et mot de passe.');
       return;
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const res = await login(cleanEmail, cleanPassword);
+      if (res.success) {
+        const firstName = res.user?.firstName || res.user?.name?.split(' ')[0] || 'Cher Partenaire';
+        onSuccess?.(`Ravi de vous revoir, ${firstName} ! Connexion réussie.`);
+        onClose();
+      } else {
+        setLoginError(res.error || 'Identifiants incorrects ou compte introuvable.');
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Erreur lors de la tentative de connexion.');
+    } finally {
       setIsSubmitting(false);
-      // Auto-extract a pleasant display name if using custom email
-      const namePart = loginEmail.split('@')[0];
-      const capitalized = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-      const isDemo = loginEmail === 'jobovog@gmail.com';
-      const displayName = isDemo ? 'MONROY Business' : capitalized;
-      const firstName = isDemo ? 'MONROY' : capitalized;
-
-      login(loginEmail, displayName, { firstName, organization: isDemo ? 'MONROY Business Solutions' : `${capitalized} Entreprise` });
-      onSuccess?.(`Ravi de vous revoir, ${firstName} ! Connexion réussie.`);
-      onClose();
-    }, 400);
+    }
   };
 
   // Handle Register
@@ -270,7 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="jobovog@gmail.com"
+                    placeholder="ex: contact@entreprise.bj"
                     className="w-full pl-10 pr-3.5 py-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                   />
                 </div>

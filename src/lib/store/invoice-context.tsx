@@ -218,6 +218,70 @@ export const DEFAULT_USER: UserProfile = {
   emailVerified: true,
 };
 
+export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
+  'monmonnroyteam@gmail.com': {
+    name: 'Mari-ella Manille',
+    firstName: 'Mari-ella',
+    lastName: 'Manille',
+    email: 'monmonnroyteam@gmail.com',
+    role: 'Administrateur / Gérante',
+    organization: 'MONROY AGENCY',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
+    emailVerified: true,
+  },
+  'laradamourr@gmail.com': {
+    name: 'TFTGCFXF JHJHGU',
+    firstName: 'TFTGCFXF',
+    lastName: 'JHJHGU',
+    email: 'laradamourr@gmail.com',
+    role: 'Administrateur / Gérant',
+    organization: 'KJKHGGJ',
+    avatar: 'https://ui-avatars.com/api/?name=TFTGCFXF+JHJHGU&background=2563eb&color=fff&size=160&bold=true',
+    emailVerified: true,
+  },
+  'omegafacture@gmail.com': {
+    name: 'OMEGA FACTURE',
+    firstName: 'OMEGA',
+    lastName: 'FACTURE',
+    email: 'omegafacture@gmail.com',
+    role: 'Administrateur Principal',
+    organization: 'OMEGA FACTURE Inc.',
+    avatar: 'https://ui-avatars.com/api/?name=OMEGA+FACTURE&background=2563eb&color=fff&size=160&bold=true',
+    emailVerified: true,
+  },
+  'jobovog@gmail.com': {
+    name: 'MONROY Business',
+    firstName: 'MONROY',
+    lastName: 'Business',
+    email: 'jobovog@gmail.com',
+    role: 'Directeur Général',
+    organization: 'MONROY Business Solutions',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
+    emailVerified: true,
+  },
+};
+
+export const getUserRegistry = (): Record<string, UserProfile> => {
+  if (typeof window === 'undefined') return { ...KNOWN_USERS_SEED };
+  try {
+    const raw = localStorage.getItem('facturo:v1:users_registry');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return { ...KNOWN_USERS_SEED, ...parsed };
+  } catch (e) {
+    return { ...KNOWN_USERS_SEED };
+  }
+};
+
+export const saveUserToRegistry = (user: UserProfile) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const registry = getUserRegistry();
+    const key = user.email.toLowerCase().trim();
+    registry[key] = { ...registry[key], ...user };
+    localStorage.setItem('facturo:v1:users_registry', JSON.stringify(registry));
+  } catch (e) {}
+};
+
 interface InvoiceContextType {
   invoices: Invoice[];
   clients: Client[];
@@ -248,7 +312,11 @@ interface InvoiceContextType {
   currentUser: UserProfile | null;
   isAuthenticated: boolean;
   pendingVerificationUser: PendingVerificationUser | null;
-  login: (email?: string, name?: string, extra?: { firstName?: string; lastName?: string; organization?: string }) => void;
+  login: (
+    email?: string,
+    passwordOrName?: string,
+    extra?: { firstName?: string; lastName?: string; organization?: string; avatar?: string }
+  ) => Promise<{ success: boolean; user: UserProfile; error?: string }>;
   register: (userData: {
     firstName: string;
     lastName: string;
@@ -699,26 +767,122 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {}
   };
 
-  const login = (
-    email = 'jobovog@gmail.com',
-    name = 'MONROY Business',
-    extra?: { firstName?: string; lastName?: string; organization?: string }
-  ) => {
-    const firstName = extra?.firstName || name.split(' ')[0] || 'MONROY';
-    const lastName = extra?.lastName || (name.split(' ').slice(1).join(' ') || '');
-    const user: UserProfile = {
+  const login = async (
+    emailOrCredentials?: string,
+    passwordOrName?: string,
+    extra?: { firstName?: string; lastName?: string; organization?: string; avatar?: string }
+  ): Promise<{ success: boolean; user: UserProfile; error?: string }> => {
+    const cleanEmail = (emailOrCredentials || '').trim().toLowerCase();
+    const password = passwordOrName || '';
+
+    // 1. Look up user in persistent registry
+    const registry = getUserRegistry();
+    let matchedUser: Partial<UserProfile> | undefined = cleanEmail ? registry[cleanEmail] : undefined;
+
+    // 2. Query Supabase Auth for real user credentials and metadata if online
+    if (cleanEmail && password && !password.includes(' ') && password.length >= 6) {
+      try {
+        const supabase = createClient();
+        const { data: authData } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: password,
+        });
+
+        if (authData?.user) {
+          const meta = (authData.user.user_metadata || {}) as Record<string, any>;
+          const sbFirstName = meta.firstName || meta.first_name;
+          const sbLastName = meta.lastName || meta.last_name;
+          const sbOrg = meta.organization;
+
+          if (sbFirstName || sbOrg) {
+            const fullName = `${sbFirstName || ''} ${sbLastName || ''}`.trim() || sbFirstName || cleanEmail.split('@')[0];
+            matchedUser = {
+              ...DEFAULT_USER,
+              ...(matchedUser || {}),
+              email: authData.user.email || cleanEmail,
+              firstName: sbFirstName || matchedUser?.firstName || 'Utilisateur',
+              lastName: sbLastName || matchedUser?.lastName || '',
+              name: fullName,
+              organization: sbOrg || matchedUser?.organization || 'Mon Entreprise',
+              avatar: matchedUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
+              emailVerified: true,
+            };
+            saveUserToRegistry(matchedUser as UserProfile);
+          }
+        }
+      } catch (e) {
+        console.warn('[login] Supabase auth attempt:', e);
+      }
+    }
+
+    // 3. Fallback to pending verification user if matching
+    if (!matchedUser && pendingVerificationUser && pendingVerificationUser.email.toLowerCase() === cleanEmail) {
+      const fullName = `${pendingVerificationUser.firstName} ${pendingVerificationUser.lastName}`.trim();
+      matchedUser = {
+        ...DEFAULT_USER,
+        email: cleanEmail,
+        firstName: pendingVerificationUser.firstName,
+        lastName: pendingVerificationUser.lastName,
+        name: fullName,
+        organization: pendingVerificationUser.organization,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
+        emailVerified: true,
+      };
+    }
+
+    // 4. Fallback if extra properties were passed explicitly (e.g. from 1-click demo button or tests)
+    if (extra?.firstName || extra?.organization) {
+      const fn = extra.firstName || matchedUser?.firstName || 'MONROY';
+      const ln = extra.lastName || matchedUser?.lastName || '';
+      const org = extra.organization || matchedUser?.organization || 'MONROY Business Solutions';
+      matchedUser = {
+        ...DEFAULT_USER,
+        ...(matchedUser || {}),
+        email: cleanEmail || DEFAULT_USER.email,
+        firstName: fn,
+        lastName: ln,
+        name: `${fn} ${ln}`.trim() || fn,
+        organization: org,
+        avatar: extra?.avatar || matchedUser?.avatar || DEFAULT_USER.avatar,
+        emailVerified: true,
+      };
+    }
+
+    // 5. Final fallback if completely unknown new email
+    if (!matchedUser) {
+      const emailHandle = cleanEmail.split('@')[0] || 'Utilisateur';
+      const capitalized = emailHandle.charAt(0).toUpperCase() + emailHandle.slice(1);
+      matchedUser = {
+        ...DEFAULT_USER,
+        email: cleanEmail || DEFAULT_USER.email,
+        firstName: capitalized,
+        lastName: '',
+        name: capitalized,
+        organization: 'Entreprise Professionnelle',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(capitalized)}&background=2563eb&color=fff&size=160&bold=true`,
+        emailVerified: true,
+      };
+    }
+
+    const finalUser: UserProfile = {
       ...DEFAULT_USER,
-      name: name || `${firstName} ${lastName}`.trim(),
-      firstName,
-      lastName,
-      email,
-      organization: extra?.organization || DEFAULT_USER.organization,
+      ...matchedUser,
+      email: cleanEmail || matchedUser.email || DEFAULT_USER.email,
+      emailVerified: true,
     };
-    setCurrentUser(user);
+
+    setCurrentUser(finalUser);
     setIsAuthenticated(true);
+    saveUserToRegistry(finalUser);
+
     try {
-      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: user }));
+      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: finalUser }));
+      if (cleanEmail) {
+        localStorage.setItem('facturo:v1:last_email', cleanEmail);
+      }
     } catch (e) {}
+
+    return { success: true, user: finalUser };
   };
 
   const register = async (userData: {
@@ -734,6 +898,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const organization = userData.organization.trim();
     const token = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const fullName = `${firstName} ${lastName}`.trim();
 
     const pending: PendingVerificationUser = {
       firstName,
@@ -748,6 +913,24 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setPendingVerificationUser(pending);
     try {
       localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
+    } catch (e) {}
+
+    // Enregistrer le profil réel dès l'inscription dans le registre persistant
+    const userProfile: UserProfile = {
+      ...DEFAULT_USER,
+      name: fullName,
+      firstName,
+      lastName,
+      email,
+      organization,
+      role: 'Administrateur / Gérant',
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`,
+      emailVerified: false,
+    };
+    saveUserToRegistry(userProfile);
+    try {
+      localStorage.setItem('facturo:v1:last_registered_email', email);
+      localStorage.setItem('facturo:v1:last_email', email);
     } catch (e) {}
 
     // 1. Envoi via notre passerelle d'emailing de production (/api/auth/send-verification)
@@ -816,34 +999,40 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const cleanInput = (tokenOrEmail || '').trim().toLowerCase();
-    const firstName = pending?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Mari-ella');
-    const lastName = pending?.lastName || (pending ? '' : 'Manille');
-    const email = pending?.email || (cleanInput.includes('@') ? cleanInput : 'monmonnroyteam@gmail.com');
-    const organization = pending?.organization || 'MONROY AGENCY';
+    const registry = getUserRegistry();
+    const existing = registry[cleanInput] || (pending?.email ? registry[pending.email.toLowerCase()] : undefined);
+
+    const firstName = pending?.firstName || existing?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Mari-ella');
+    const lastName = pending?.lastName || existing?.lastName || (pending ? '' : 'Manille');
+    const email = pending?.email || existing?.email || (cleanInput.includes('@') ? cleanInput : 'monmonnroyteam@gmail.com');
+    const organization = pending?.organization || existing?.organization || 'MONROY AGENCY';
     const fullName = `${firstName} ${lastName}`.trim();
 
-    const avatar = pending?.firstName
+    const avatar = existing?.avatar || (pending?.firstName
       ? `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`
-      : DEFAULT_USER.avatar;
+      : DEFAULT_USER.avatar);
 
     const verifiedUser: UserProfile = {
       ...DEFAULT_USER,
+      ...(existing || {}),
       name: fullName,
       firstName,
       lastName,
       email,
       organization,
       avatar,
-      role: 'Fondateur / Gérant',
+      role: existing?.role || 'Fondateur / Gérant',
       emailVerified: true,
     };
 
+    saveUserToRegistry(verifiedUser);
     setCurrentUser(verifiedUser);
     setIsAuthenticated(true);
     setPendingVerificationUser(null);
 
     try {
       localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: verifiedUser }));
+      localStorage.setItem('facturo:v1:last_email', email);
       localStorage.removeItem('facturo:v1:pending_verification');
     } catch (e) {}
 
@@ -907,6 +1096,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           'facturo:v1:auth',
           JSON.stringify({ isAuthenticated: true, currentUser: updated })
         );
+        saveUserToRegistry(updated);
       } catch (e) {}
       return updated;
     });

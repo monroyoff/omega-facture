@@ -24,41 +24,54 @@ export default function LoginPage() {
   const { login } = useInvoices();
 
   const [mode, setMode] = useState<'login' | 'forgot-password'>('login');
-  const [email, setEmail] = useState('jobovog@gmail.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Pré-remplissage avec l'email réel de l'utilisateur s'il s'est récemment inscrit ou connecté
+  React.useEffect(() => {
+    try {
+      const last =
+        localStorage.getItem('facturo:v1:last_email') ||
+        localStorage.getItem('facturo:v1:last_registered_email');
+      if (last) {
+        setEmail(last);
+      }
+    } catch (e) {}
+  }, []);
 
   // Forgot password state
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setError('Veuillez renseigner votre email et mot de passe.');
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await login(cleanEmail, cleanPassword);
+      if (res.success) {
+        router.push('/');
+      } else {
+        setError(res.error || 'Identifiants incorrects ou compte introuvable.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Erreur lors de la connexion.');
+    } finally {
       setLoading(false);
-      const namePart = email.split('@')[0];
-      const capitalized = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-      const isDemo = email === 'jobovog@gmail.com';
-      const displayName = isDemo ? 'MONROY Business' : capitalized;
-      const firstName = isDemo ? 'MONROY' : capitalized;
-
-      login(email, displayName, {
-        firstName,
-        organization: isDemo ? 'MONROY Business Solutions' : `${capitalized} Entreprise`,
-      });
-      router.push('/');
-    }, 400);
+    }
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {

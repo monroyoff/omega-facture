@@ -44,7 +44,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   onClose,
 }) => {
   const router = useRouter();
-  const { deleteInvoice, convertQuoteToInvoice } = useInvoices();
+  const { deleteInvoice, convertQuoteToInvoice, currentUser } = useInvoices();
   const [isRelanceOpen, setIsRelanceOpen] = useState(false);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -306,12 +306,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Émis par :
                 </span>
                 <div className="font-bold text-slate-900 text-sm">
-                  MONROY Business Solutions
+                  {currentUser?.organization || 'MONROY Business Solutions'}
                 </div>
                 <div className="text-slate-600 mt-1 space-y-0.5 leading-relaxed">
                   <p>Allada & Cotonou, République du Bénin</p>
                   <p>IFU : 0202110485960 — RCCM : RB/COT/21 B 1042</p>
-                  <p>Email : jobovog@gmail.com</p>
+                  <p>Email : {currentUser?.email || 'monmonnroyteam@gmail.com'}</p>
                   <p>Tél : +229 01 95 44 44 30</p>
                 </div>
               </div>

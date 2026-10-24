@@ -65,22 +65,29 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   initialKind = 'invoice',
   onSuccess,
 }) => {
-  const { invoices, clients, products, addInvoice, addClient } = useInvoices();
+  const { invoices, clients, products, addInvoice, addClient, currentUser } = useInvoices();
 
   const [showPreview, setShowPreview] = useState(true);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [documentKind, setDocumentKind] = useState<DocumentKind>(initialKind);
   const [invoiceType, setInvoiceType] = useState<'standard' | 'split' | 'recurring'>('standard');
 
-  // Sync document kind when initialKind or modal opens
+  // Form states
+  const [sellerName, setSellerName] = useState(currentUser?.organization || 'MONROY Business Solutions');
+  const [sellerEmail, setSellerEmail] = useState(currentUser?.email || 'contact@monroy-agency.bj');
+  const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
+
+  // Sync document kind and current user profile when modal opens
   useEffect(() => {
     if (isOpen) {
       setDocumentKind(initialKind);
       if (initialKind === 'quote') {
         setInvoiceType('standard');
       }
+      if (currentUser?.organization) setSellerName(currentUser.organization);
+      if (currentUser?.email) setSellerEmail(currentUser.email);
     }
-  }, [isOpen, initialKind]);
+  }, [isOpen, initialKind, currentUser]);
 
   // Close on Escape key press
   useEffect(() => {
@@ -109,11 +116,6 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<'monthly' | 'quarterly' | 'semiannual' | 'yearly'>('monthly');
   const [recurrenceDuration, setRecurrenceDuration] = useState<number>(12);
   const [autoSend, setAutoSend] = useState(true);
-
-  // Form states
-  const [sellerName, setSellerName] = useState('MONROY Business Solutions');
-  const [sellerEmail, setSellerEmail] = useState('jobovog@gmail.com');
-  const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
 
   // Client mode: 'existing' | 'new' (both completely empty on start!)
   const [clientMode, setClientMode] = useState<'existing' | 'new'>('existing');

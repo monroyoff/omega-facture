@@ -35,7 +35,7 @@ export default function EditInvoicePage() {
   const params = useParams();
   const invoiceId = params?.id as string;
 
-  const { getInvoice, updateInvoice, deleteInvoice, convertQuoteToInvoice, clients } = useInvoices();
+  const { getInvoice, updateInvoice, deleteInvoice, convertQuoteToInvoice, clients, currentUser } = useInvoices();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
@@ -46,8 +46,8 @@ export default function EditInvoicePage() {
   const [docStatus, setDocStatus] = useState<import('@/lib/types').InvoiceStatus>('draft');
 
   // Form states
-  const [sellerName, setSellerName] = useState('MONROY Business Solutions');
-  const [sellerEmail, setSellerEmail] = useState('jobovog@gmail.com');
+  const [sellerName, setSellerName] = useState(currentUser?.organization || 'MONROY Business Solutions');
+  const [sellerEmail, setSellerEmail] = useState(currentUser?.email || 'monmonnroyteam@gmail.com');
   const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
 
   const [selectedClientId, setSelectedClientId] = useState('');
