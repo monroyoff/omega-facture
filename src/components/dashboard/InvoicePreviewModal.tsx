@@ -186,10 +186,11 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 <span className="hidden sm:inline">Relancer</span>
               </button>
             )}
-            {invoice.status === 'draft' && (
+            {(invoice.status === 'draft' || docKind === 'quote') && (
               <Link
                 href={`/invoices/${invoice.id}/edit`}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-bold shadow-sm transition-all"
+                title={docKind === 'quote' ? 'Modifier le devis' : 'Modifier le brouillon'}
               >
                 <Pencil className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Modifier</span>

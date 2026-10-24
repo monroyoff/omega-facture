@@ -78,6 +78,7 @@ export default function CreateInvoicePage() {
       const k = params.get('kind') || params.get('type');
       if (k === 'quote' || k === 'devis') {
         setDocumentKind('quote');
+        setInvoiceType('standard');
       } else if (k === 'invoice' || k === 'facture') {
         setDocumentKind('invoice');
       }
@@ -86,6 +87,9 @@ export default function CreateInvoicePage() {
 
   const handleDocumentKindChange = (kind: DocumentKind) => {
     setDocumentKind(kind);
+    if (kind === 'quote') {
+      setInvoiceType('standard');
+    }
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('kind', kind);
@@ -342,10 +346,10 @@ export default function CreateInvoicePage() {
       vatAmount: totals.vatAmount,
       total: totals.totalTTC,
       amountPaid: 0,
-      type: invoiceType,
-      splitSchedule: invoiceType === 'split' ? splitSchedule : undefined,
+      type: documentKind === 'quote' ? 'standard' : invoiceType,
+      splitSchedule: documentKind === 'quote' ? undefined : (invoiceType === 'split' ? splitSchedule : undefined),
       recurrence:
-        invoiceType === 'recurring'
+        documentKind !== 'quote' && invoiceType === 'recurring'
           ? {
               frequency: recurrenceFrequency,
               intervalMonths:
@@ -426,10 +430,10 @@ export default function CreateInvoicePage() {
       vatAmount: totals.vatAmount,
       total: totals.totalTTC,
       amountPaid: 0,
-      type: invoiceType,
-      splitSchedule: invoiceType === 'split' ? splitSchedule : undefined,
+      type: documentKind === 'quote' ? 'standard' : invoiceType,
+      splitSchedule: documentKind === 'quote' ? undefined : (invoiceType === 'split' ? splitSchedule : undefined),
       recurrence:
-        invoiceType === 'recurring'
+        documentKind !== 'quote' && invoiceType === 'recurring'
           ? {
               frequency: recurrenceFrequency,
               intervalMonths:
@@ -587,42 +591,49 @@ export default function CreateInvoicePage() {
                 </div>
               </div>
 
-              {/* Segmented Control (Standard, Split, Recurring) */}
-              <div className="bg-slate-200/70 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center max-w-md">
-                <button
-                  type="button"
-                  onClick={() => setInvoiceType('standard')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
-                    invoiceType === 'standard'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Standard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInvoiceType('split')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
-                    invoiceType === 'split'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Acompte / Échelonné
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInvoiceType('recurring')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
-                    invoiceType === 'recurring'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Récurrente
-                </button>
-              </div>
+              {/* Segmented Control (Standard, Split, Recurring) - Uniquement actif pour les Factures */}
+              {documentKind === 'invoice' ? (
+                <div className="bg-slate-200/70 dark:bg-slate-800/80 p-1 rounded-2xl flex items-center max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => setInvoiceType('standard')}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+                      invoiceType === 'standard'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    Standard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInvoiceType('split')}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+                      invoiceType === 'split'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    Acompte / Échelonné
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInvoiceType('recurring')}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+                      invoiceType === 'recurring'
+                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    Récurrente
+                  </button>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 text-purple-700 dark:text-purple-300 text-xs font-semibold shadow-2xs">
+                  <FileCheck2 className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <span>Devis Estimatif (Options d'acompte & récurrence désactivées pour les devis)</span>
+                </div>
+              )}
 
               {/* SPLIT / ACOMPTE SETTINGS PANEL */}
               {invoiceType === 'split' && (

@@ -41,6 +41,7 @@ export default function EditInvoicePage() {
   const [showPreview, setShowPreview] = useState(true);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [documentKind, setDocumentKind] = useState<DocumentKind>('invoice');
+  const [docStatus, setDocStatus] = useState<import('@/lib/types').InvoiceStatus>('draft');
 
   // Form states
   const [sellerName, setSellerName] = useState('MONROY Business Solutions');
@@ -69,6 +70,7 @@ export default function EditInvoicePage() {
       } else {
         setDocumentKind('invoice');
       }
+      setDocStatus(inv.status);
       setSelectedClientId(inv.clientId || inv.client.id);
       setIssueDate(inv.issueDate);
       setDueDate(inv.dueDate);
@@ -147,9 +149,9 @@ export default function EditInvoicePage() {
         vatRate: it.vatRate,
         total: Math.round(it.quantity * it.unitPrice * (1 - (it.discountPct || 0) / 100)),
       })),
-      status: 'draft',
+      status: documentKind === 'quote' ? (docStatus === 'draft' ? 'draft' : 'sent') : 'draft',
     });
-    const label = documentKind === 'quote' ? 'Brouillon devis' : 'Brouillon facture';
+    const label = documentKind === 'quote' ? 'Devis' : 'Brouillon facture';
     alert(`${label} ${invoiceNumber} mis à jour avec succès !`);
     router.push('/invoices');
   };
@@ -180,7 +182,7 @@ export default function EditInvoicePage() {
       status: 'sent',
     });
     const label = documentKind === 'quote' ? 'Devis' : 'Facture';
-    alert(`${label} ${invoiceNumber} émis et passé en statut 'Envoyée' !`);
+    alert(`${label} ${invoiceNumber} validé et enregistré avec succès !`);
     router.push('/invoices');
   };
 
@@ -196,7 +198,9 @@ export default function EditInvoicePage() {
             <Link href="/invoices" className="text-slate-400 hover:text-slate-600 font-medium">Factures</Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Modifier le Brouillon ({invoiceNumber})
+              {documentKind === 'quote'
+                ? `Modifier le Devis (${invoiceNumber})`
+                : `Modifier le Brouillon (${invoiceNumber})`}
             </span>
           </div>
 
@@ -233,16 +237,28 @@ export default function EditInvoicePage() {
         </header>
 
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto min-w-0">
-          {/* Alert: Editing Draft */}
+          {/* Alert: Editing Draft or Issued Quote */}
           <div className="mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex items-center justify-between">
             <div className="flex items-center gap-3 text-xs sm:text-sm text-amber-800 dark:text-amber-200">
               <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
               <span>
-                Vous modifiez actuellement le <strong>brouillon {invoiceNumber}</strong>. Les modifications ne figeront le document que lors de son émission finale.
+                {documentKind === 'quote' ? (
+                  docStatus === 'sent' ? (
+                    <>Vous modifiez actuellement le <strong>Devis émis {invoiceNumber}</strong>. Vos ajustements seront appliqués directement.</>
+                  ) : (
+                    <>Vous modifiez actuellement le <strong>brouillon de devis {invoiceNumber}</strong>.</>
+                  )
+                ) : (
+                  <>Vous modifiez actuellement le <strong>brouillon {invoiceNumber}</strong>. Les modifications ne figeront le document que lors de son émission finale.</>
+                )}
               </span>
             </div>
-            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-              Brouillon
+            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+              documentKind === 'quote' && docStatus === 'sent'
+                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200'
+                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}>
+              {documentKind === 'quote' ? (docStatus === 'sent' ? 'Devis Émis' : 'Brouillon') : 'Brouillon'}
             </span>
           </div>
 
@@ -252,7 +268,7 @@ export default function EditInvoicePage() {
               <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-card space-y-5">
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                   <User className="w-4 h-4 text-brand-600" />
-                  Informations de la Facture
+                  {documentKind === 'quote' ? 'Informations du Devis' : 'Informations de la Facture'}
                 </h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -322,7 +338,7 @@ export default function EditInvoicePage() {
 
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    Numéro de Facture
+                    Numéro de {documentKind === 'quote' ? 'Devis' : 'Facture'}
                   </label>
                   <input
                     type="text"
@@ -456,6 +472,26 @@ export default function EditInvoicePage() {
                   )}
                 </div>
               </div>
+
+              {/* Mobile Action Bar: Save & Finalize */}
+              <div className="flex sm:hidden items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-2xs active:scale-95 transition-all"
+                >
+                  <Save className="w-3.5 h-3.5 text-slate-500" />
+                  <span>{documentKind === 'quote' ? 'Enregistrer' : 'Sauvegarder'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFinalizeAndSend}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md active:scale-95 transition-all"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{documentKind === 'quote' ? 'Mettre à jour' : 'Émettre'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Right Preview */}
@@ -469,17 +505,17 @@ export default function EditInvoicePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleSaveDraft}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 transition-colors shadow-2xs"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      <span>Sauvegarder</span>
+                      <span>{documentKind === 'quote' ? 'Enregistrer' : 'Sauvegarder'}</span>
                     </button>
                     <button
                       onClick={handleFinalizeAndSend}
                       className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md transition-all"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>Émettre la facture</span>
+                      <span>{documentKind === 'quote' ? 'Mettre à jour le Devis' : 'Émettre la facture'}</span>
                     </button>
                   </div>
                 </div>
@@ -488,8 +524,12 @@ export default function EditInvoicePage() {
                 <div className="bg-white text-slate-900 rounded-2xl p-6 sm:p-10 shadow-paper border border-slate-200/90 text-xs select-text">
                   <div className="flex items-start justify-between border-b border-slate-100 pb-6 mb-6">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 block mb-1">
-                        Brouillon en cours de modification
+                      <span className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${
+                        documentKind === 'quote' ? 'text-purple-600' : 'text-amber-600'
+                      }`}>
+                        {documentKind === 'quote'
+                          ? (docStatus === 'sent' ? 'Devis émis en cours de modification' : 'Brouillon de devis en modification')
+                          : 'Brouillon en cours de modification'}
                       </span>
                       <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                         {documentKind === 'quote' ? 'DEVIS ESTIMATIF' : 'FACTURE'}

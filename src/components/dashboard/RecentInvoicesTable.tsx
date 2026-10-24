@@ -462,10 +462,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                           <span>Relancer</span>
                         </button>
                       )}
-                      {inv.status === 'draft' && (
+                      {(inv.status === 'draft' || inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
                         <Link
                           href={`/invoices/${inv.id}/edit`}
                           className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold"
+                          title={inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'Modifier le devis' : 'Modifier le brouillon'}
                         >
                           <Pencil className="w-3 h-3" />
                           <span>Modifier</span>
@@ -680,11 +681,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                       {/* Actions Menu */}
                       <td className="py-3.5 pr-5 pl-2 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
-                          {inv.status === 'draft' && (
+                          {(inv.status === 'draft' || inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
                             <Link
                               href={`/invoices/${inv.id}/edit`}
                               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold hover:bg-amber-100 transition-colors shadow-2xs mr-1"
-                              title="Modifier le brouillon"
+                              title={inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'Modifier le devis' : 'Modifier le brouillon'}
                             >
                               <Pencil className="w-3 h-3" />
                               <span>Modifier</span>

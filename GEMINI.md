@@ -60,10 +60,14 @@
   - **Mode `Client existant`** : Menu déroulant débutant sur une option neutre `-- Sélectionner un client enregistré --` (aucun client pré-sélectionné).
   - **Mode `+ Nouveau client`** : Champs de saisie directe (*Nom du contact, Entreprise, Email, Téléphone*) tous vierges par défaut. Sauvegarde automatique du client dans le carnet d'adresses à l'émission.
   - **Modale d'ajout complet (`NewClientModal`)** : Disponible en raccourci pour renseigner l'IFU, la ville et l'avatar.
-- **Types de facturation avancés** :
-  1. **Standard** : Document classique à échéance unique.
+- **Types de facturation avancés (Réservés aux Factures)** :
+  1. **Standard** : Facture ou Devis à échéance unique (mode unique imposé pour les devis estimatifs, les options d'acompte et récurrence étant désactivées pour les devis).
   2. **Facture d'Acompte / Échelonnée** : Échéancier paramétrable (presets *30%-70%*, *40%-30%-30%*, *50%-50%*, *4x25%* ou sur-mesure) avec dates d'exigibilité par tranche.
   3. **Facture Récurrente / Abonnement** : Périodicité mensuelle, trimestrielle ou annuelle avec calcul automatique de la date de renouvellement.
+- **Modification des Devis Émis** :
+  - Les devis estimatifs restent entièrement modifiables même après émission (`status: 'sent'`) pour permettre les négociations commerciales avec les clients.
+  - Le bouton `Modifier` est directement accessible depuis le tableau principal (`RecentInvoicesTable`), les cartes tactiles mobiles et la modale d'aperçu (`InvoicePreviewModal`).
+  - La page d'édition (`/invoices/[id]/edit`) conserve l'état émis du devis lors de la mise à jour des lignes, tarifs ou remises.
 - **Aperçu A4 Live Réactif & Barre d'Action Mobile** :
   - Document imprimable visualisé en temps réel sur la colonne de droite sur écran large.
   - Barre d'action d'enregistrement direct intégrée en bas du formulaire mobile pour permettre la validation rapide sans défilement de canvas.
