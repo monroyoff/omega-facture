@@ -89,6 +89,8 @@
   - Recherche instantanée, filtres par mode d'encaissement et badges d'état.
   - Boutons d'action directs : **Voir la facture** (Aperçu A4), **Relancer le client** (WhatsApp/Email), **Encaisser** (Nouveau paiement).
 - **Exportation & Impression du Bilan Certifié (`PrintReportModal`)** :
+  - **En-tête Institutionnel & Logo en Haut à Gauche** : Logo Ω et raison sociale (*MONROY Business Solutions — Cotonou & Allada, Bénin*) positionnés en haut à gauche du document, alignés avec le badge officiel de certification.
+  - **Typographie & Spacing Optimisés pour la Responsivité** : Cartes d'indicateurs financiers et de balance âgée redimensionnées avec un espacement harmonisé et des tailles de texte compactes (`text-lg sm:text-xl font-black` pour les montants, `p-3.5 sm:p-4`) éliminant les débordements et optimisant l'affichage sur mobile et desktop.
   - **Sélecteur de Date & Période Dynamique** : Filtrage de l'export par présets (*Année 2026, Octobre, Septembre, Août, 3e Trimestre*) ou **plage personnalisée avec sélecteurs de dates `Du ... Au ...`**. Les métriques, la balance âgée et le tableau des opérations se recalculent en direct.
   - **Génération PDF 100% Conforme & Lisible** : Utilisation de la bibliothèque certifiée `jsPDF` éliminant toute corruption de fichier PDF.
   - **Formats d'Export Multiples** : Document PDF officiel, Image Haute Résolution (PNG via Blob), Tableur Excel / CSV (avec BOM UTF-8) et Impression directe.
