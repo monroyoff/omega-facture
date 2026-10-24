@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
+  const [activeKind, setActiveKind] = useState<'all' | 'invoice' | 'quote'>('invoice');
   const { periodInvoices, periodKPIs, periodLabel, currentUser } = useInvoices();
   const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'MONROY';
 
@@ -31,49 +32,21 @@ export default function DashboardPage() {
   };
 
   const handleCardClick = (cardType: 'invoiced' | 'paid' | 'pending' | 'overdue') => {
-    if (cardType === 'invoiced') {
-      // If only 1 invoice exists for the selected period (as in the screenshot), open it directly!
-      if (periodInvoices.length === 1) {
-        setSelectedInvoice(periodInvoices[0]);
-      } else {
-        setActiveTab('all');
-        scrollToInvoices();
-      }
-    } else if (cardType === 'paid') {
-      const paid = periodInvoices.filter((i) => i.status === 'paid');
-      const withAcompte = periodInvoices.filter((i) => i.amountPaid > 0 && i.status !== 'paid');
-      const allCollected = periodInvoices.filter((i) => i.amountPaid > 0);
+    // Les cartes d'indicateurs financiers affichent exclusivement les opérations de Factures (hors devis)
+    setActiveKind('invoice');
 
-      // If only 1 invoice has collected money (paid or acompte), open it!
-      if (allCollected.length === 1) {
-        setSelectedInvoice(allCollected[0]);
-      } else if (paid.length > 0) {
-        // If paid invoices exist, show the 'paid' tab with 'acompte' right next to it
-        setActiveTab('paid');
-        scrollToInvoices();
-      } else if (withAcompte.length > 0) {
-        // If only acomptes exist, display 'acompte' tab
-        setActiveTab('acompte');
-        scrollToInvoices();
-      } else {
-        router.push('/payments');
-      }
+    if (cardType === 'invoiced') {
+      setActiveTab('all');
+      scrollToInvoices();
+    } else if (cardType === 'paid') {
+      setActiveTab('paid');
+      scrollToInvoices();
     } else if (cardType === 'pending') {
-      const pending = periodInvoices.filter((i) => i.status === 'sent');
-      if (pending.length === 1) {
-        setSelectedInvoice(pending[0]);
-      } else {
-        setActiveTab('sent');
-        scrollToInvoices();
-      }
+      setActiveTab('sent');
+      scrollToInvoices();
     } else if (cardType === 'overdue') {
-      const overdue = periodInvoices.filter((i) => i.status === 'overdue');
-      if (overdue.length === 1) {
-        setSelectedInvoice(overdue[0]);
-      } else {
-        setActiveTab('overdue');
-        scrollToInvoices();
-      }
+      setActiveTab('overdue');
+      scrollToInvoices();
     }
   };
 
@@ -203,6 +176,8 @@ export default function DashboardPage() {
               invoices={periodInvoices}
               activeTab={activeTab}
               onTabChange={setActiveTab}
+              activeKind={activeKind}
+              onKindChange={setActiveKind}
               onSelectInvoice={(inv) => setSelectedInvoice(inv)}
             />
           </section>

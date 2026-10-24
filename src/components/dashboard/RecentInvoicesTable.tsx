@@ -34,6 +34,8 @@ export interface RecentInvoicesTableProps {
   onSelectInvoice?: (invoice: Invoice) => void;
   activeTab?: DashboardTableTab;
   onTabChange?: (tab: DashboardTableTab) => void;
+  activeKind?: 'all' | 'invoice' | 'quote';
+  onKindChange?: (kind: 'all' | 'invoice' | 'quote') => void;
   id?: string;
 }
 
@@ -42,6 +44,8 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   onSelectInvoice,
   activeTab,
   onTabChange,
+  activeKind,
+  onKindChange,
   id = 'invoices-section',
 }) => {
   const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice } = useInvoices();
@@ -52,7 +56,8 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     onTabChange?.(tab);
   };
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedKind, setSelectedKind] = useState<'all' | 'invoice' | 'quote'>('all');
+  const [internalKind, setInternalKind] = useState<'all' | 'invoice' | 'quote'>('all');
+  const selectedKind = activeKind !== undefined ? activeKind : internalKind;
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [relanceInvoice, setRelanceInvoice] = useState<Invoice | null>(null);
   const [relanceToast, setRelanceToast] = useState<string | null>(null);
@@ -122,7 +127,8 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   // Handle switching document kind (Tous, Factures, Devis):
   // Immediately cancels/resets all active status filters (payé, envoyé, retard, brouillons)
   const handleKindChange = (kind: 'all' | 'invoice' | 'quote') => {
-    setSelectedKind(kind);
+    setInternalKind(kind);
+    onKindChange?.(kind);
     handleTabChange('all');
     setSelectedIds([]);
   };

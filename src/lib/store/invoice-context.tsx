@@ -1043,15 +1043,18 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return payments.filter((p) => p.date.startsWith(cleanMonth));
   }, [payments, selectedPeriod]);
 
-  // Recalculate KPIs for the active period
+  // Recalculate KPIs for the active period (uniquement sur les factures, hors devis)
+  const isRealInvoice = (i: Invoice) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-');
+
   const periodKPIs: DashboardKPIs = React.useMemo(() => {
-    const activeInvoices = periodInvoices.filter((i) => i.status !== 'draft');
+    const realInvoices = periodInvoices.filter(isRealInvoice);
+    const activeInvoices = realInvoices.filter((i) => i.status !== 'draft');
     const totalInvoiced = activeInvoices.reduce((acc, i) => acc + i.total, 0);
-    const totalPaid = periodInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
-    const totalPending = periodInvoices
+    const totalPaid = realInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+    const totalPending = realInvoices
       .filter((i) => i.status === 'sent')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
-    const totalOverdue = periodInvoices
+    const totalOverdue = realInvoices
       .filter((i) => i.status === 'overdue')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
 
@@ -1087,7 +1090,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       totalPaid,
       totalPending,
       totalOverdue,
-      invoicesCount: periodInvoices.length,
+      invoicesCount: realInvoices.length,
       paidTrend,
       invoicedTrend,
       pendingTrend,
@@ -1095,15 +1098,16 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [periodInvoices, selectedPeriod]);
 
-  // Overall KPIs (full year)
+  // Overall KPIs (full year, uniquement sur les factures, hors devis)
   const kpis: DashboardKPIs = React.useMemo(() => {
-    const activeInvoices = invoices.filter((i) => i.status !== 'draft');
+    const realInvoices = invoices.filter(isRealInvoice);
+    const activeInvoices = realInvoices.filter((i) => i.status !== 'draft');
     const totalInvoiced = activeInvoices.reduce((acc, i) => acc + i.total, 0);
-    const totalPaid = invoices.reduce((acc, i) => acc + i.amountPaid, 0);
-    const totalPending = invoices
+    const totalPaid = realInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+    const totalPending = realInvoices
       .filter((i) => i.status === 'sent')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
-    const totalOverdue = invoices
+    const totalOverdue = realInvoices
       .filter((i) => i.status === 'overdue')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
 
@@ -1112,7 +1116,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       totalPaid,
       totalPending,
       totalOverdue,
-      invoicesCount: invoices.length,
+      invoicesCount: realInvoices.length,
       paidTrend: 16.8,
       invoicedTrend: 12.4,
       pendingTrend: -4.2,

@@ -158,22 +158,25 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
     return { days, paymentDate, label: '⏳ Règlement différé (> 20j)', badgeColor: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300' };
   };
 
-  // Filtered invoices for the selected section
+  // Filtered invoices for the selected section (uniquement les factures réelles, hors devis)
+  const isRealInvoice = (i: Invoice) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-');
+
   const sectionInvoices = useMemo(() => {
     if (!section) return [];
+    const realInvoices = invoices.filter(isRealInvoice);
 
     switch (section) {
       case 'revenue':
         // All non-draft invoices
-        return invoices.filter((i) => i.status !== 'draft');
+        return realInvoices.filter((i) => i.status !== 'draft');
 
       case 'delay':
         // Paid invoices with recorded payment
-        return invoices.filter((i) => i.amountPaid > 0);
+        return realInvoices.filter((i) => i.amountPaid > 0);
 
       case 'aging_0_30':
         // Unpaid or partially paid with age <= 30 days
-        return invoices.filter((i) => {
+        return realInvoices.filter((i) => {
           if (i.status === 'draft') return false;
           const remaining = i.total - i.amountPaid;
           if (remaining <= 0) return false;
@@ -183,7 +186,7 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
 
       case 'aging_31_60':
         // Unpaid or partially paid with 31 <= age <= 60 days
-        return invoices.filter((i) => {
+        return realInvoices.filter((i) => {
           if (i.status === 'draft') return false;
           const remaining = i.total - i.amountPaid;
           if (remaining <= 0) return false;
@@ -193,7 +196,7 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
 
       case 'aging_60_plus':
         // Unpaid or partially paid with age > 60 days
-        return invoices.filter((i) => {
+        return realInvoices.filter((i) => {
           if (i.status === 'draft') return false;
           const remaining = i.total - i.amountPaid;
           if (remaining <= 0) return false;
