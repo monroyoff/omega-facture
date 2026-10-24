@@ -99,17 +99,37 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       id: 'nav-new-invoice',
       category: 'navigation',
       title: 'Créer une Nouvelle Facture',
-      subtitle: 'Émettre une facture normalisée UEMOA / Devis / Acompte',
-      meta: '/invoices/new',
-      badge: { text: 'Nouveau', variant: 'info' },
+      subtitle: 'Émettre une facture normalisée UEMOA / Acompte',
+      meta: '/invoices/new?kind=invoice',
+      badge: { text: 'Facture', variant: 'info' },
       icon: Plus,
-      href: '/invoices/new',
+      href: '/invoices/new?kind=invoice',
+    },
+    {
+      id: 'nav-new-quote',
+      category: 'navigation',
+      title: 'Créer un Nouveau Devis',
+      subtitle: 'Établir une proposition commerciale chiffrée avec validité',
+      meta: '/invoices/new?kind=quote',
+      badge: { text: 'Devis', variant: 'warning' },
+      icon: Plus,
+      href: '/invoices/new?kind=quote',
+    },
+    {
+      id: 'nav-new-proforma',
+      category: 'navigation',
+      title: 'Créer une Facture Proforma',
+      subtitle: 'Émettre une proforma pour formalités bancaires ou de dédouanement',
+      meta: '/invoices/new?kind=proforma',
+      badge: { text: 'Proforma', variant: 'neutral' },
+      icon: Plus,
+      href: '/invoices/new?kind=proforma',
     },
     {
       id: 'nav-invoices',
       category: 'navigation',
-      title: 'Factures & Devis',
-      subtitle: 'Gérer les factures d’avoir, d’acompte et proformas',
+      title: 'Factures, Devis & Proformas',
+      subtitle: 'Gérer vos factures d’avoir, devis estimatifs et proformas',
       meta: '/invoices',
       icon: FileText,
       href: '/invoices',
@@ -167,9 +187,18 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     const q = query.trim().toLowerCase();
     const items: SearchResultItem[] = [];
 
-    // 1. FACTURES
+    // 1. FACTURES, DEVIS & PROFORMAS
     if (activeCategory === 'all' || activeCategory === 'invoices') {
       invoices.forEach((inv) => {
+        const k =
+          inv.documentKind ||
+          (inv.number.startsWith('DEV-')
+            ? 'quote'
+            : inv.number.startsWith('PRO-')
+            ? 'proforma'
+            : 'invoice');
+        const kindLabel = k === 'quote' ? 'Devis' : k === 'proforma' ? 'Proforma' : 'Facture';
+
         const statusMap: Record<string, { text: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
           paid: { text: 'Payée', variant: 'success' },
           sent: { text: 'Envoyée', variant: 'warning' },
@@ -181,6 +210,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         const matches =
           !q ||
           inv.number.toLowerCase().includes(q) ||
+          kindLabel.toLowerCase().includes(q) ||
           inv.client.name.toLowerCase().includes(q) ||
           inv.client.company.toLowerCase().includes(q) ||
           inv.total.toString().includes(q) ||
@@ -190,8 +220,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           items.push({
             id: `inv-${inv.id}`,
             category: 'invoice',
-            title: `${inv.number} — ${inv.client.company || inv.client.name}`,
-            subtitle: `Émise le ${inv.issueDate} • Échéance : ${inv.dueDate}`,
+            title: `[${kindLabel}] ${inv.number} — ${inv.client.company || inv.client.name}`,
+            subtitle: `Émis le ${inv.issueDate} • Échéance : ${inv.dueDate}`,
             meta: formatFCFA(inv.total),
             badge,
             icon: FileText,

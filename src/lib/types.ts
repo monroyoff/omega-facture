@@ -40,6 +40,8 @@ export interface RecurrenceConfig {
   autoSend: boolean;
 }
 
+export type DocumentKind = 'invoice' | 'quote' | 'proforma';
+
 export interface Invoice {
   id: string;
   number: string;
@@ -56,6 +58,7 @@ export interface Invoice {
   amountPaid: number;
   notes?: string;
   type?: InvoiceBillingType;
+  documentKind?: DocumentKind;
   splitSchedule?: SplitScheduleItem[];
   recurrence?: RecurrenceConfig;
   items: InvoiceItem[];

@@ -27,6 +27,7 @@ import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { NewClientModal } from '@/components/clients/NewClientModal';
+import { DocumentKind } from '@/lib/types';
 
 export default function EditInvoicePage() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function EditInvoicePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [documentKind, setDocumentKind] = useState<DocumentKind>('invoice');
 
   // Form states
   const [sellerName, setSellerName] = useState('MONROY Business Solutions');
@@ -60,6 +62,15 @@ export default function EditInvoicePage() {
     if (!invoiceId) return;
     const inv = getInvoice(invoiceId);
     if (inv) {
+      if (inv.documentKind) {
+        setDocumentKind(inv.documentKind);
+      } else if (inv.number.startsWith('DEV-')) {
+        setDocumentKind('quote');
+      } else if (inv.number.startsWith('PRO-')) {
+        setDocumentKind('proforma');
+      } else {
+        setDocumentKind('invoice');
+      }
       setSelectedClientId(inv.clientId || inv.client.id);
       setIssueDate(inv.issueDate);
       setDueDate(inv.dueDate);
@@ -120,6 +131,7 @@ export default function EditInvoicePage() {
     updateInvoice(invoiceId, {
       clientId: selectedClientId,
       client: currentClient,
+      documentKind,
       issueDate,
       dueDate,
       number: invoiceNumber,
@@ -139,7 +151,8 @@ export default function EditInvoicePage() {
       })),
       status: 'draft',
     });
-    alert(`Brouillon ${invoiceNumber} mis à jour avec succès !`);
+    const label = documentKind === 'quote' ? 'Brouillon devis' : documentKind === 'proforma' ? 'Brouillon proforma' : 'Brouillon facture';
+    alert(`${label} ${invoiceNumber} mis à jour avec succès !`);
     router.push('/invoices');
   };
 
@@ -148,6 +161,7 @@ export default function EditInvoicePage() {
     updateInvoice(invoiceId, {
       clientId: selectedClientId,
       client: currentClient,
+      documentKind,
       issueDate,
       dueDate,
       number: invoiceNumber,
@@ -167,7 +181,8 @@ export default function EditInvoicePage() {
       })),
       status: 'sent',
     });
-    alert(`Facture ${invoiceNumber} émise et passée en statut 'Envoyée' !`);
+    const label = documentKind === 'quote' ? 'Devis' : documentKind === 'proforma' ? 'Facture Proforma' : 'Facture';
+    alert(`${label} ${invoiceNumber} émis et passé en statut 'Envoyée' !`);
     router.push('/invoices');
   };
 
@@ -478,7 +493,9 @@ export default function EditInvoicePage() {
                       <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 block mb-1">
                         Brouillon en cours de modification
                       </span>
-                      <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">FACTURE</h3>
+                      <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                        {documentKind === 'quote' ? 'DEVIS ESTIMATIF' : documentKind === 'proforma' ? 'FACTURE PROFORMA' : 'FACTURE'}
+                      </h3>
                       <p className="text-xs font-semibold text-slate-500 mt-0.5">N° {invoiceNumber}</p>
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-[#004D38] flex items-center justify-center text-[#25E098]">
@@ -495,7 +512,9 @@ export default function EditInvoicePage() {
                       <div className="text-[11px] text-slate-500 mt-0.5"><p>{sellerEmail}</p><p>{sellerAddress}</p></div>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Facturé à :</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        {documentKind === 'quote' ? 'Devis établi pour :' : documentKind === 'proforma' ? 'Proforma établie pour :' : 'Facturé à :'}
+                      </span>
                       <div className="font-bold text-slate-900 text-xs">{currentClient?.company}</div>
                       <div className="text-[11px] text-slate-500 mt-0.5"><p>{currentClient?.email}</p><p>{currentClient?.city}, {currentClient?.country}</p></div>
                     </div>
@@ -507,7 +526,9 @@ export default function EditInvoicePage() {
                       <span className="font-bold text-slate-800 text-xs">{formatDateFR(issueDate)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-medium">Date d’échéance :</span>
+                      <span className="text-[10px] text-slate-400 block font-medium">
+                        {documentKind === 'quote' ? 'Validité de l’offre :' : documentKind === 'proforma' ? 'Date d’exigibilité :' : 'Date d’échéance :'}
+                      </span>
                       <span className="font-bold text-slate-800 text-xs">{formatDateFR(dueDate)}</span>
                     </div>
                   </div>

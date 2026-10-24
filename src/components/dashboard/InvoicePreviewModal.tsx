@@ -46,12 +46,26 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   if (!invoice) return null;
 
+  const docKind =
+    invoice.documentKind ||
+    (invoice.number.startsWith('DEV-')
+      ? 'quote'
+      : invoice.number.startsWith('PRO-')
+      ? 'proforma'
+      : 'invoice');
+
   const handlePrint = () => {
     window.print();
   };
 
   const handleWhatsApp = () => {
-    const text = `Bonjour ${invoice.client.name}, voici la facture ${invoice.number} d'un montant de ${formatFCFA(invoice.total)} émise par OMEGA FACTURE.`;
+    const docLabel =
+      docKind === 'quote'
+        ? 'votre devis'
+        : docKind === 'proforma'
+        ? 'votre facture proforma'
+        : 'votre facture';
+    const text = `Bonjour ${invoice.client.name}, voici ${docLabel} ${invoice.number} d'un montant de ${formatFCFA(invoice.total)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
     const cleanPhone = invoice.client.phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -121,18 +135,42 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                       })}
                     </div>
 
-                    <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800">
+                    <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800 space-y-1">
                       <button
                         type="button"
                         onClick={() => {
                           setNavMenuOpen(false);
                           onClose();
-                          router.push('/invoices/new');
+                          router.push('/invoices/new?kind=invoice');
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold hover:bg-brand-100 transition-colors cursor-pointer text-left"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold hover:bg-brand-100 transition-colors cursor-pointer text-left text-xs"
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>Créer une Facture</span>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Nouvelle Facture</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNavMenuOpen(false);
+                          onClose();
+                          router.push('/invoices/new?kind=quote');
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-semibold hover:bg-purple-100 transition-colors cursor-pointer text-left text-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Nouveau Devis</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNavMenuOpen(false);
+                          onClose();
+                          router.push('/invoices/new?kind=proforma');
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 font-semibold hover:bg-sky-100 transition-colors cursor-pointer text-left text-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Nouvelle Proforma</span>
                       </button>
                     </div>
                   </div>
@@ -140,9 +178,20 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                  docKind === 'quote'
+                    ? 'bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300'
+                    : docKind === 'proforma'
+                    ? 'bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300'
+                    : 'bg-brand-100 text-brand-800 border border-brand-200 dark:bg-brand-950/60 dark:text-brand-300'
+                }`}
+              >
+                {docKind === 'quote' ? 'Devis' : docKind === 'proforma' ? 'Proforma' : 'Facture'}
+              </span>
               <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
-                Aperçu {invoice.number}
+                {invoice.number}
               </h3>
               <StatusBadge status={invoice.status} />
             </div>
@@ -207,7 +256,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Document Officiel
                 </span>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  FACTURE
+                  {docKind === 'quote' ? 'DEVIS ESTIMATIF' : docKind === 'proforma' ? 'FACTURE PROFORMA' : 'FACTURE'}
                 </h1>
                 <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
                   N° {invoice.number}
@@ -251,7 +300,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               {/* Client */}
               <div className="p-3 sm:p-0 rounded-xl bg-slate-50/60 sm:bg-transparent border sm:border-0 border-slate-100">
                 <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1 sm:mb-2">
-                  Facturé à :
+                  {docKind === 'quote' ? 'Devis établi pour :' : docKind === 'proforma' ? 'Proforma établie pour :' : 'Facturé à :'}
                 </span>
                 <div className="font-bold text-slate-900 text-sm">
                   {invoice.client.company || invoice.client.name}
@@ -275,7 +324,9 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block font-medium">Date d’échéance :</span>
+                <span className="text-slate-400 block font-medium">
+                  {docKind === 'quote' ? 'Validité de l’offre :' : docKind === 'proforma' ? 'Date d’exigibilité :' : 'Date d’échéance :'}
+                </span>
                 <span className="font-bold text-slate-900 text-sm">
                   {formatDateFR(invoice.dueDate)}
                 </span>
@@ -372,7 +423,11 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Virement bancaire : Bank of Africa (BOA) Bénin
                 </p>
                 <p className="text-[11px] text-slate-400 mt-2 italic">
-                  Arrêtée la présente facture à la somme exacte de {formatFCFA(invoice.total)}.
+                  {docKind === 'quote'
+                    ? `Arrêté le présent devis à la somme de ${formatFCFA(invoice.total)}. Validité : 30 jours à compter de la date d’émission.`
+                    : docKind === 'proforma'
+                    ? `Arrêtée la présente facture proforma à la somme de ${formatFCFA(invoice.total)}. Délivrée pour formalités préalables.`
+                    : `Arrêtée la présente facture à la somme exacte de ${formatFCFA(invoice.total)}.`}
                 </p>
               </div>
 

@@ -12,7 +12,7 @@ import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal'
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
-import { Sparkles, ArrowRight, ShieldCheck, Calendar } from 'lucide-react';
+import { Sparkles, ArrowRight, ShieldCheck, Calendar, Plus, FileCheck2, FileSpreadsheet } from 'lucide-react';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 
 export default function DashboardPage() {
@@ -135,14 +135,36 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="relative z-10 hidden sm:flex items-center gap-3">
+            {/* Action buttons (Web & Mobile responsive) */}
+            <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto pt-2 sm:pt-0">
               <Link
-                href="/invoices/new"
-                className="px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center gap-2 group whitespace-nowrap"
+                href="/invoices/new?kind=invoice"
+                className="px-4 sm:px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 group whitespace-nowrap shrink-0"
               >
+                <Plus className="w-4 h-4 text-brand-600" />
                 <span>Créer une Facture</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform hidden sm:inline" />
               </Link>
+              
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+                <Link
+                  href="/invoices/new?kind=quote"
+                  className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-2xs backdrop-blur-sm flex items-center justify-center gap-1.5 whitespace-nowrap"
+                  title="Créer un nouveau devis estimatif"
+                >
+                  <FileCheck2 className="w-3.5 h-3.5 text-purple-200" />
+                  <span>+ Devis</span>
+                </Link>
+
+                <Link
+                  href="/invoices/new?kind=proforma"
+                  className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-2xs backdrop-blur-sm flex items-center justify-center gap-1.5 whitespace-nowrap"
+                  title="Créer une facture proforma"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-sky-200" />
+                  <span>+ Proforma</span>
+                </Link>
+              </div>
             </div>
           </div>
 

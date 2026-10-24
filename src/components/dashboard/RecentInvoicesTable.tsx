@@ -48,6 +48,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     onTabChange?.(tab);
   };
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedKind, setSelectedKind] = useState<'all' | 'invoice' | 'quote' | 'proforma'>('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [relanceInvoice, setRelanceInvoice] = useState<Invoice | null>(null);
   const [relanceToast, setRelanceToast] = useState<string | null>(null);
@@ -69,6 +70,22 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     setTimeout(() => setRelanceToast(null), 4000);
   };
 
+  // Document kind counts
+  const kindCounts = useMemo(() => {
+    return {
+      all: invoices.length,
+      invoice: invoices.filter(
+        (i) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-') && !i.number.startsWith('PRO-')
+      ).length,
+      quote: invoices.filter(
+        (i) => i.documentKind === 'quote' || i.number.startsWith('DEV-')
+      ).length,
+      proforma: invoices.filter(
+        (i) => i.documentKind === 'proforma' || i.number.startsWith('PRO-')
+      ).length,
+    };
+  }, [invoices]);
+
   // Count per status & acomptes
   const counts = useMemo(() => {
     return {
@@ -84,6 +101,16 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
+      // Document Kind filter
+      const k =
+        inv.documentKind ||
+        (inv.number.startsWith('DEV-')
+          ? 'quote'
+          : inv.number.startsWith('PRO-')
+          ? 'proforma'
+          : 'invoice');
+      if (selectedKind !== 'all' && k !== selectedKind) return false;
+
       // Tab filter
       if (selectedTab === 'paid') {
         if (inv.status !== 'paid') return false;
@@ -104,7 +131,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
       return true;
     });
-  }, [invoices, selectedTab, searchQuery]);
+  }, [invoices, selectedTab, selectedKind, searchQuery]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -130,7 +157,20 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   ];
 
   const shareOnWhatsApp = (inv: Invoice) => {
-    const message = `Bonjour ${inv.client.name}, voici votre facture ${inv.number} d'un montant de ${formatFCFA(inv.total)} émise par OMEGA FACTURE. Merci de votre confiance !`;
+    const k =
+      inv.documentKind ||
+      (inv.number.startsWith('DEV-')
+        ? 'quote'
+        : inv.number.startsWith('PRO-')
+        ? 'proforma'
+        : 'invoice');
+    const docLabel =
+      k === 'quote'
+        ? 'votre devis'
+        : k === 'proforma'
+        ? 'votre facture proforma'
+        : 'votre facture';
+    const message = `Bonjour ${inv.client.name}, voici ${docLabel} ${inv.number} d'un montant de ${formatFCFA(inv.total)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
     const cleanPhone = inv.client.phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -143,13 +183,13 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Dernières Factures
+                Dernières Factures & Devis
               </h2>
               <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 border border-brand-200/60 dark:border-brand-800/60 truncate max-w-[200px]">
                 📅 {periodLabel}
               </span>
               <span className="text-[11px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                {filteredInvoices.length} affichée{filteredInvoices.length > 1 ? 's' : ''}
+                {filteredInvoices.length} affiché{filteredInvoices.length > 1 ? 's' : ''}
               </span>
               {selectedPeriod !== 'ALL' && (
                 <button
@@ -162,7 +202,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               )}
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              Suivi en temps réel de vos émissions, acomptes et encaissements pour {periodLabel}
+              Suivi en temps réel de vos factures, devis et proformas pour {periodLabel}
             </p>
           </div>
 
@@ -195,19 +235,59 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               />
             </div>
             
-            {selectedTab !== 'all' && (
+            {(selectedTab !== 'all' || selectedKind !== 'all' || searchQuery) && (
               <button
-                onClick={() => handleTabChange('all')}
-                className="px-2.5 py-1.5 sm:py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 transition-colors text-center"
+                onClick={() => {
+                  handleTabChange('all');
+                  setSelectedKind('all');
+                  setSearchQuery('');
+                }}
+                className="px-2.5 py-1.5 sm:py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 transition-colors text-center shrink-0 cursor-pointer"
               >
-                ✕ Effacer filtre
+                ✕ Réinitialiser
               </button>
             )}
           </div>
         </div>
 
+        {/* Document Kind Tabs (Tous, Factures, Devis, Proformas) */}
+        <div className="flex items-center gap-1.5 mt-4 overflow-x-auto pb-1 no-scrollbar border-t border-slate-100 dark:border-slate-800/80 pt-3">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">
+            Type :
+          </span>
+          {[
+            { key: 'all', label: 'Tous', count: kindCounts.all, color: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' },
+            { key: 'invoice', label: '📄 Factures', count: kindCounts.invoice, color: 'bg-brand-600 text-white' },
+            { key: 'quote', label: '📝 Devis', count: kindCounts.quote, color: 'bg-purple-600 text-white' },
+            { key: 'proforma', label: '📑 Proformas', count: kindCounts.proforma, color: 'bg-sky-600 text-white' },
+          ].map((item) => {
+            const isSelected = selectedKind === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setSelectedKind(item.key as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  isSelected
+                    ? `${item.color} shadow-sm scale-100`
+                    : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                <span>{item.label}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    isSelected ? 'bg-black/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {item.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Status Tabs with Acomptes reçus */}
-        <div className="flex items-center gap-1.5 mt-4 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-1 no-scrollbar">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
             
@@ -312,6 +392,28 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                         onChange={() => handleToggleSelect(inv.id)}
                         className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4 shrink-0"
                       />
+                      {(() => {
+                        const k =
+                          inv.documentKind ||
+                          (inv.number.startsWith('DEV-')
+                            ? 'quote'
+                            : inv.number.startsWith('PRO-')
+                            ? 'proforma'
+                            : 'invoice');
+                        return (
+                          <span
+                            className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase shrink-0 ${
+                              k === 'quote'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200'
+                                : k === 'proforma'
+                                ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200'
+                                : 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 border border-brand-200'
+                            }`}
+                          >
+                            {k === 'quote' ? 'Devis' : k === 'proforma' ? 'Proforma' : 'Facture'}
+                          </span>
+                        );
+                      })()}
                       <button
                         onClick={() => onSelectInvoice?.(inv)}
                         className="font-bold text-sm text-slate-900 dark:text-white hover:text-brand-600 hover:underline truncate"
@@ -483,12 +585,36 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
                       {/* Invoice Number */}
                       <td className="py-3.5 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                        <button
-                          onClick={() => onSelectInvoice?.(inv)}
-                          className="hover:text-brand-600 hover:underline flex items-center gap-1.5"
-                        >
-                          {inv.number}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const k =
+                              inv.documentKind ||
+                              (inv.number.startsWith('DEV-')
+                                ? 'quote'
+                                : inv.number.startsWith('PRO-')
+                                ? 'proforma'
+                                : 'invoice');
+                            return (
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${
+                                  k === 'quote'
+                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200'
+                                    : k === 'proforma'
+                                    ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200'
+                                    : 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 border border-brand-200'
+                                }`}
+                              >
+                                {k === 'quote' ? 'Devis' : k === 'proforma' ? 'Proforma' : 'Facture'}
+                              </span>
+                            );
+                          })()}
+                          <button
+                            onClick={() => onSelectInvoice?.(inv)}
+                            className="hover:text-brand-600 hover:underline flex items-center gap-1.5"
+                          >
+                            {inv.number}
+                          </button>
+                        </div>
                       </td>
 
                       {/* Client Information */}
