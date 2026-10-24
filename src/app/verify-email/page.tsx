@@ -107,7 +107,7 @@ function VerifyEmailContent() {
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-6">
         <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand-500/25 group-hover:scale-105 transition-transform">
+          <div className="w-10 h-10 rounded-2xl bg-brand-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand-600/25 group-hover:scale-105 transition-transform">
             Ω
           </div>
           <div className="text-left">
@@ -161,9 +161,9 @@ function VerifyEmailContent() {
           </div>
 
           {/* OTP Code Form — Direct Activation from Smartphone Email */}
-          <form onSubmit={handleVerifyOtp} className="p-5 rounded-2xl bg-gradient-to-b from-blue-50/80 to-slate-50 dark:from-blue-950/30 dark:to-slate-900/40 border-2 border-blue-200/80 dark:border-blue-800/60 text-center space-y-3.5 shadow-sm">
-            <div className="flex items-center justify-center gap-1.5 text-blue-900 dark:text-blue-300 text-xs font-black uppercase tracking-wider">
-              <Key className="w-4 h-4 text-blue-600" />
+          <form onSubmit={handleVerifyOtp} className="p-5 rounded-2xl bg-gradient-to-b from-brand-50/80 to-slate-50 dark:from-brand-950/30 dark:to-slate-900/40 border-2 border-brand-200/80 dark:border-brand-800/60 text-center space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-center gap-1.5 text-brand-900 dark:text-brand-300 text-xs font-black uppercase tracking-wider">
+              <Key className="w-4 h-4 text-brand-600" />
               <span>Saisir le Code de Sécurité (6 chiffres)</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">

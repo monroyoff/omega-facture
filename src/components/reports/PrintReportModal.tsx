@@ -765,7 +765,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                 <div className="space-y-2">
                   {/* Logo et Nom de l'entreprise */}
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-500/20 shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-600/20 shrink-0">
                       Ω
                     </div>
                     <div>

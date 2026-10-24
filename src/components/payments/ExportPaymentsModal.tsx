@@ -540,7 +540,7 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-brand-600 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-600/20">
                     Ω
                   </div>
                   <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -605,14 +605,14 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
               </div>
 
               {/* Virement Bancaire */}
-              <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40">
-                <span className="text-[11px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider block mb-1">
+              <div className="p-4 rounded-xl bg-brand-50/60 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/40">
+                <span className="text-[11px] font-bold text-brand-800 dark:text-brand-300 uppercase tracking-wider block mb-1">
                   Virements Bancaires
                 </span>
-                <div className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">
+                <div className="text-xl sm:text-2xl font-black text-brand-600 dark:text-brand-400">
                   {formatFCFA(totalBank)}
                 </div>
-                <span className="text-[11px] text-blue-700/80 dark:text-blue-400 mt-1 block font-medium">
+                <span className="text-[11px] text-brand-700/80 dark:text-brand-400 mt-1 block font-medium">
                   BOA, Ecobank, SG
                 </span>
               </div>

@@ -117,7 +117,7 @@ export const RevenueOverview: React.FC<RevenueOverviewProps> = ({
                     style={{ height: `${heightPercent}%` }}
                     className={`w-full rounded-lg transition-all duration-500 ${
                       isSelected
-                        ? 'bg-gradient-to-t from-brand-600 to-blue-400 shadow-md shadow-brand-500/30'
+                        ? 'bg-brand-600 shadow-md shadow-brand-600/30'
                         : 'bg-slate-300 dark:bg-slate-700 group-hover:bg-brand-500/80'
                     }`}
                   />

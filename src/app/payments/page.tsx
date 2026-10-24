@@ -386,17 +386,17 @@ export default function PaymentsPage() {
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                     Virements Bancaires
                   </span>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                  <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
                     <Landmark className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-[26px] font-bold text-blue-600 dark:text-blue-400 transition-colors">
+                <div className="text-2xl sm:text-[26px] font-bold text-brand-600 dark:text-brand-400 transition-colors">
                   {formatFCFA(totalBank)}
                 </div>
                 <span className="text-xs text-slate-400 mt-1 block">BOA, Ecobank, SG, BDU</span>
               </div>
 
-              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-brand-600 dark:text-brand-400 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
                 <span>voir les opérations concernées</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </div>

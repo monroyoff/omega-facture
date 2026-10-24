@@ -99,7 +99,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
       {/* Modal Dialog */}
       <div className="relative w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Top Header Banner */}
-        <div className="bg-gradient-to-r from-brand-600 via-blue-600 to-indigo-700 px-6 pt-6 pb-12 text-white relative">
+        <div className="bg-gradient-to-r from-brand-700 via-brand-600 to-brand-800 px-6 pt-6 pb-12 text-white relative">
           <button
             type="button"
             onClick={onClose}

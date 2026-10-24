@@ -102,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
           </button>
 
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-brand-500/20 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white font-black text-xs shadow-md shadow-brand-600/20 shrink-0">
               Ω
             </div>
             <span className="font-black text-xs text-slate-900 dark:text-white hidden min-[360px]:inline sm:hidden tracking-tight">

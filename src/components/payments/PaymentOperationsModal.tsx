@@ -189,12 +189,12 @@ export const PaymentOperationsModal: React.FC<PaymentOperationsModalProps> = ({
             onClick={() => setSelectedMethod('bank_transfer')}
             className={`p-2.5 rounded-xl transition-all cursor-pointer border ${
               selectedMethod === 'bank_transfer'
-                ? 'bg-white dark:bg-[#111622] border-blue-500 shadow-sm'
+                ? 'bg-white dark:bg-[#111622] border-brand-500 shadow-sm'
                 : 'bg-white/60 dark:bg-[#111622]/60 border-transparent hover:bg-white'
             }`}
           >
             <span className="text-[10px] font-bold text-slate-400 uppercase block">Virements</span>
-            <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400 block">
+            <span className="text-sm font-extrabold text-brand-600 dark:text-brand-400 block">
               {formatFCFA(bankAmount)}
             </span>
             <span className="text-[10px] text-slate-400">Banques UEMOA</span>

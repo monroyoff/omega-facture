@@ -148,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Header Brand matching screenshot */}
           <div className="h-16 px-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80">
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-brand-500/25 transition-transform group-hover:scale-105">
+              <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-brand-600/25 transition-transform group-hover:scale-105">
                 Ω
               </div>
               <div className="flex flex-col">

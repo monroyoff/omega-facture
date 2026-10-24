@@ -192,13 +192,13 @@ export const RelanceModal: React.FC<RelanceModalProps> = ({
                 onClick={handleEmailRelance}
                 className="flex items-center gap-3 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800/80 bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/50 text-blue-900 dark:text-blue-200 transition-all text-left shadow-2xs group cursor-pointer"
               >
-                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <div className="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                   <Mail className="w-4 h-4" />
                 </div>
                 <div>
                   <span className="text-xs font-bold block flex items-center gap-1">
                     <span>Relance par Email</span>
-                    <ExternalLink className="w-3 h-3 text-blue-600 opacity-60" />
+                    <ExternalLink className="w-3 h-3 text-brand-600 opacity-60" />
                   </span>
                   <span className="text-[10px] text-blue-700 dark:text-blue-400 block truncate max-w-[130px]">
                     {invoice.client.email}

@@ -284,7 +284,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
               {/* Company Logo Badge */}
               <div className="flex items-center gap-3">
-                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 font-bold text-lg">
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/20 font-bold text-lg">
                   Ω
                 </div>
                 <div className="text-right hidden sm:block">

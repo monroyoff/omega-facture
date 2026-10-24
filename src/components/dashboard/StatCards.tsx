@@ -30,7 +30,7 @@ export const StatCards: React.FC<StatCardsProps> = ({ kpis, onCardClick }) => {
       trendText: 'vs mois dernier',
       isPositive: true,
       icon: FileText,
-      iconBg: 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400',
+      iconBg: 'bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400',
     },
     {
       key: 'paid' as const,
