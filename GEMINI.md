@@ -68,9 +68,11 @@
   - Les devis estimatifs restent entièrement modifiables même après émission (`status: 'sent'`) pour permettre les négociations commerciales avec les clients.
   - Le bouton `Modifier` est directement accessible depuis le tableau principal (`RecentInvoicesTable`), les cartes tactiles mobiles et la modale d'aperçu (`InvoicePreviewModal`).
   - La page d'édition (`/invoices/[id]/edit`) conserve l'état émis du devis lors de la mise à jour des lignes, tarifs ou remises.
-- **Aperçu A4 Live Réactif & Barre d'Action Mobile** :
-  - Document imprimable visualisé en temps réel sur la colonne de droite sur écran large.
-  - Barre d'action d'enregistrement direct intégrée en bas du formulaire mobile pour permettre la validation rapide sans défilement de canvas.
+- **Architecture Modale Live & Fermeture par Clic Extérieur (`CreateInvoiceModal`)** :
+  - L'ouverture de création depuis le Dashboard (`+ Créer une Facture`, `+ Nouveau Devis`) ou depuis le Header (`+ Créer`) ne bloque plus l'utilisateur sur une page isolée.
+  - La création s'ouvre sous la forme d'une modale fluide avec canevas semi-transparent (`bg-slate-950/70 backdrop-blur-sm`).
+  - **Sortie instantanée sans bouton obligatoire** : L'utilisateur peut quitter à tout moment en cliquant simplement n'importe où sur le fond du Dashboard en dehors de la boîte de dialogue, ou en appuyant sur la touche `Échap` (`Escape`). Le bouton `[Fermer]` reste également accessible en en-tête.
+  - La route `/invoices/new` redirige de manière déterministe vers le tableau de bord avec le paramètre de création correspondant pour garantir une expérience identique en accès direct par URL.
 - **Fiabilité SSR** : Numérotation séquentielle déterministe avec calcul client-side pour éliminer toute erreur d'hydratation Next.js.
 
 ### C. Rapports financiers & KPI & Drilldown Interactif (`/reports`)
