@@ -22,6 +22,7 @@ import {
   Percent,
   AlertCircle,
   X,
+  FileText,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
@@ -34,12 +35,13 @@ export default function EditInvoicePage() {
   const params = useParams();
   const invoiceId = params?.id as string;
 
-
-  const { getInvoice, updateInvoice, clients } = useInvoices();
+  const { getInvoice, updateInvoice, deleteInvoice, convertQuoteToInvoice, clients } = useInvoices();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
   const [documentKind, setDocumentKind] = useState<DocumentKind>('invoice');
   const [docStatus, setDocStatus] = useState<import('@/lib/types').InvoiceStatus>('draft');
 
@@ -186,6 +188,43 @@ export default function EditInvoicePage() {
     router.push('/invoices');
   };
 
+  const handleConfirmDelete = () => {
+    if (!invoiceId) return;
+    deleteInvoice(invoiceId);
+    setShowDeleteModal(false);
+    router.push('/invoices');
+  };
+
+  const handleConvertQuoteToInvoice = () => {
+    if (!invoiceId) return;
+    updateInvoice(invoiceId, {
+      clientId: selectedClientId,
+      client: currentClient,
+      documentKind: 'invoice',
+      issueDate,
+      dueDate,
+      currency: currency === 'FCFA' ? 'XOF' : currency,
+      subtotal: totals.subtotalHT,
+      discount: totals.discountAmount,
+      vatAmount: totals.vatAmount,
+      total: totals.totalTTC,
+      items: items.map((it, idx) => ({
+        id: `item-${idx + 1}`,
+        description: it.description,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        discountPct: it.discountPct || 0,
+        vatRate: it.vatRate,
+        total: Math.round(it.quantity * it.unitPrice * (1 - (it.discountPct || 0) / 100)),
+      })),
+      status: 'sent',
+    });
+    const converted = convertQuoteToInvoice(invoiceId, 'sent');
+    setShowConvertModal(false);
+    alert(`Devis ${invoiceNumber} converti avec succès en Facture ${converted?.number || ''} (Envoyée) ! Il a été transféré dans l'onglet Factures.`);
+    router.push('/invoices');
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#070a0f] flex flex-col">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} activePath="/invoices" />
@@ -204,9 +243,32 @@ export default function EditInvoicePage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 hidden sm:inline">
-              Afficher l’Aperçu
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {documentKind === 'quote' && (
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                title="Convertir ce devis en Facture émise (statut Envoyée)"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Convertir en Facture</span>
+                <span className="md:hidden">Facturer</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors active:scale-95 cursor-pointer"
+              title={`Supprimer ${documentKind === 'quote' ? 'ce devis' : 'cette facture'}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Supprimer</span>
+            </button>
+
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 hidden lg:inline ml-1">
+              Aperçu
             </span>
             <button
               onClick={() => setShowPreview(!showPreview)}
@@ -226,7 +288,7 @@ export default function EditInvoicePage() {
             {/* Close / Return to Dashboard cross button */}
             <Link
               href="/dashboard"
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 dark:active:bg-rose-900/60 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer touch-manipulation relative z-30 select-none"
+              className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 dark:active:bg-rose-900/60 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer touch-manipulation relative z-30 select-none"
               title="Fermer et retourner au Tableau de bord"
               aria-label="Fermer et retourner au Tableau de bord"
             >
@@ -477,6 +539,24 @@ export default function EditInvoicePage() {
               <div className="flex sm:hidden items-center gap-2 pt-2">
                 <button
                   type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="min-w-[42px] min-h-[42px] flex items-center justify-center p-2.5 rounded-2xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 text-xs font-bold shadow-2xs active:scale-95 shrink-0"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                {documentKind === 'quote' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowConvertModal(true)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md active:scale-95 transition-all"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Facturer</span>
+                  </button>
+                )}
+                <button
+                  type="button"
                   onClick={handleSaveDraft}
                   className="flex-1 flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-2xs active:scale-95 transition-all"
                 >
@@ -503,6 +583,26 @@ export default function EditInvoicePage() {
                   </span>
 
                   <div className="flex items-center gap-2">
+                    {documentKind === 'quote' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowConvertModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer active:scale-95"
+                        title="Convertir ce devis en Facture émise"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Facturer</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="flex items-center gap-1 px-2.5 py-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors shadow-2xs cursor-pointer active:scale-95"
+                      title={`Supprimer ${documentKind === 'quote' ? 'ce devis' : 'cette facture'}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Supprimer</span>
+                    </button>
                     <button
                       onClick={handleSaveDraft}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 transition-colors shadow-2xs"
@@ -631,6 +731,98 @@ export default function EditInvoicePage() {
         onClose={() => setIsClientModalOpen(false)}
         onClientCreated={(created) => setSelectedClientId(created.id)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Supprimer ce document ?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {documentKind === 'quote' ? 'Devis' : 'Facture'} N° {invoiceNumber}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer définitivement {documentKind === 'quote' ? 'ce devis' : 'cette facture'} pour{' '}
+              <strong>{currentClient?.company || currentClient?.name}</strong> d'un montant de{' '}
+              <strong>{formatFCFA(totals.totalTTC)}</strong> ? Cette action est irréversible.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirmer la suppression</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert Quote to Invoice Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Convertir le Devis en Facture
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Devis N° {invoiceNumber}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Ce devis pour <strong>{currentClient?.company || currentClient?.name}</strong> d'un montant de{' '}
+              <strong>{formatFCFA(totals.totalTTC)}</strong> va être transformé en <strong>Facture officielle</strong> avec attribution automatique d'un numéro séquentiel <code>FAC-2026-XXXX</code> et statut <strong>« Facture envoyée »</strong>.
+            </p>
+            <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/40 p-2.5 rounded-xl border border-brand-200/60 dark:border-brand-800/60">
+              💡 Le document sortira automatiquement de la liste des Devis pour intégrer la liste officielle de vos Factures.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConvertQuoteToInvoice}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Convertir en Facture Envoyée</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

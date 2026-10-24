@@ -25,11 +25,14 @@ import {
   BarChart3,
   Settings,
   Plus,
+  Trash2,
+  Send,
 } from 'lucide-react';
-import { Invoice } from '@/lib/types';
+import { Invoice, InvoiceStatus } from '@/lib/types';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { StatusBadge } from '@/components/ui/Badge';
 import { RelanceModal } from '@/components/invoices/RelanceModal';
+import { useInvoices } from '@/lib/store/invoice-context';
 
 interface InvoicePreviewModalProps {
   invoice: Invoice | null;
@@ -41,8 +44,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   onClose,
 }) => {
   const router = useRouter();
+  const { deleteInvoice, convertQuoteToInvoice } = useInvoices();
   const [isRelanceOpen, setIsRelanceOpen] = useState(false);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [actionToast, setActionToast] = useState<{ title: string; message: string } | null>(null);
 
   if (!invoice) return null;
 
@@ -59,6 +66,20 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     const text = `Bonjour ${invoice.client.name}, voici ${docLabel} ${invoice.number} d'un montant de ${formatFCFA(invoice.total)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
     const cleanPhone = invoice.client.phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleConfirmDelete = () => {
+    if (!invoice) return;
+    deleteInvoice(invoice.id);
+    setShowDeleteModal(false);
+    onClose();
+  };
+
+  const handleConfirmConvert = (targetStatus: InvoiceStatus = 'sent') => {
+    if (!invoice) return;
+    convertQuoteToInvoice(invoice.id, targetStatus);
+    setShowConvertModal(false);
+    onClose();
   };
 
   return (
@@ -196,6 +217,26 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 <span className="hidden sm:inline">Modifier</span>
               </Link>
             )}
+            {docKind === 'quote' && (
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(true)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                title="Convertir ce devis en Facture émise (statut Envoyée)"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Facturer</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors cursor-pointer active:scale-95"
+              title={`Supprimer ${docKind === 'quote' ? 'ce devis' : 'cette facture'}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Supprimer</span>
+            </button>
             <button
               onClick={handleWhatsApp}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
@@ -436,6 +477,98 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
         isOpen={isRelanceOpen}
         onClose={() => setIsRelanceOpen(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Supprimer ce document ?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {docKind === 'quote' ? 'Devis' : 'Facture'} N° {invoice.number}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer définitivement {docKind === 'quote' ? 'ce devis' : 'cette facture'} pour{' '}
+              <strong>{invoice.client.company || invoice.client.name}</strong> d'un montant de{' '}
+              <strong>{formatFCFA(invoice.total)}</strong> ? Cette action est irréversible.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirmer la suppression</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert Quote to Invoice Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Convertir le Devis en Facture
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Devis N° {invoice.number}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Ce devis pour <strong>{invoice.client.company || invoice.client.name}</strong> d'un montant de{' '}
+              <strong>{formatFCFA(invoice.total)}</strong> va être transformé en <strong>Facture officielle</strong> avec attribution automatique d'un numéro séquentiel <code>FAC-2026-XXXX</code> et statut <strong>« Facture envoyée »</strong>.
+            </p>
+            <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/40 p-2.5 rounded-xl border border-brand-200/60 dark:border-brand-800/60">
+              💡 Le document sortira automatiquement de la liste des Devis pour intégrer la liste officielle de vos Factures.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowConvertModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmConvert('sent')}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Convertir en Facture Envoyée</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -225,6 +225,8 @@ interface InvoiceContextType {
   unreadNotificationCount: number;
   addInvoice: (invoice: Invoice) => void;
   updateInvoice: (id: string, updated: Partial<Invoice>) => void;
+  deleteInvoice: (id: string) => void;
+  convertQuoteToInvoice: (quoteId: string, targetStatus?: InvoiceStatus) => Invoice | null;
   addClient: (client: Omit<Client, 'id'>) => Client;
   updateClient: (id: string, updated: Partial<Client>) => void;
   addProduct: (product: Omit<Product, 'id'>) => Product;
@@ -782,6 +784,45 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveInvoices(updated);
   };
 
+  // Delete an invoice or quote
+  const deleteInvoice = (id: string) => {
+    const updated = invoices.filter((inv) => inv.id !== id);
+    saveInvoices(updated);
+    const updatedNotifs = notifications.filter((n) => n.invoiceId !== id);
+    saveNotifications(updatedNotifs);
+  };
+
+  // Convert a quote to an invoice (e.g. into status 'sent')
+  const convertQuoteToInvoice = (quoteId: string, targetStatus: InvoiceStatus = 'sent'): Invoice | null => {
+    const quote = invoices.find((inv) => inv.id === quoteId);
+    if (!quote) return null;
+
+    // Determine the next sequential invoice number FAC-2026-XXXX
+    const numbers = invoices
+      .map((inv) => {
+        const m = inv.number.match(/FAC-\d+-(\d+)/);
+        return m ? parseInt(m[1], 10) : 0;
+      })
+      .filter((n) => !isNaN(n));
+    const maxNum = numbers.length > 0 ? Math.max(...numbers) : 44;
+    const nextInvoiceNum = `FAC-2026-${String(maxNum + 1).padStart(4, '0')}`;
+
+    const convertedInvoice: Invoice = {
+      ...quote,
+      documentKind: 'invoice',
+      number: nextInvoiceNum,
+      status: targetStatus,
+      notes: quote.notes
+        ? `${quote.notes} (Facturé d'après le devis ${quote.number})`
+        : `Facturé d'après le devis ${quote.number}`,
+    };
+
+    const updated = invoices.map((inv) => (inv.id === quoteId ? convertedInvoice : inv));
+    saveInvoices(updated);
+
+    return convertedInvoice;
+  };
+
   // Add client
   const addClient = (clientData: Omit<Client, 'id'>): Client => {
     const tempId = `cli-${Date.now()}`;
@@ -1101,6 +1142,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         unreadNotificationCount,
         addInvoice,
         updateInvoice,
+        deleteInvoice,
+        convertQuoteToInvoice,
         addClient,
         updateClient,
         addProduct,

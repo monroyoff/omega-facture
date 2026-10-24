@@ -16,6 +16,10 @@ import {
   Check,
   X,
   RotateCcw,
+  Trash2,
+  FileText,
+  Send,
+  CheckCircle2,
 } from 'lucide-react';
 import { Invoice, InvoiceStatus } from '@/lib/types';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
@@ -40,7 +44,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   onTabChange,
   id = 'invoices-section',
 }) => {
-  const { periodLabel, selectedPeriod, setSelectedPeriod } = useInvoices();
+  const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice } = useInvoices();
   const [internalTab, setInternalTab] = useState<DashboardTableTab>('all');
   const selectedTab = activeTab !== undefined ? activeTab : internalTab;
   const handleTabChange = (tab: DashboardTableTab) => {
@@ -52,6 +56,39 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [relanceInvoice, setRelanceInvoice] = useState<Invoice | null>(null);
   const [relanceToast, setRelanceToast] = useState<string | null>(null);
+
+  // Modal & Toast states for delete and quote conversion
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  const [quoteToConvert, setQuoteToConvert] = useState<Invoice | null>(null);
+  const [actionToast, setActionToast] = useState<{ title: string; message: string } | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!invoiceToDelete) return;
+    const isQuote = invoiceToDelete.documentKind === 'quote' || invoiceToDelete.number.startsWith('DEV-');
+    const num = invoiceToDelete.number;
+    deleteInvoice(invoiceToDelete.id);
+    setSelectedIds((prev) => prev.filter((id) => id !== invoiceToDelete.id));
+    setInvoiceToDelete(null);
+    setActionToast({
+      title: `${isQuote ? 'Devis' : 'Facture'} supprimé(e)`,
+      message: `Le document ${num} a été supprimé définitivement.`,
+    });
+    setTimeout(() => setActionToast(null), 4000);
+  };
+
+  const handleConfirmConvert = (targetStatus: InvoiceStatus = 'sent') => {
+    if (!quoteToConvert) return;
+    const oldNum = quoteToConvert.number;
+    const converted = convertQuoteToInvoice(quoteToConvert.id, targetStatus);
+    setQuoteToConvert(null);
+    if (converted) {
+      setActionToast({
+        title: 'Devis converti en Facture Envoyée !',
+        message: `Le devis ${oldNum} a été converti en Facture ${converted.number} (statut : Envoyée). Il figure désormais dans l'onglet Factures !`,
+      });
+      setTimeout(() => setActionToast(null), 6000);
+    }
+  };
 
   // If navigated from global search with a query param, pre-fill search and switch to ALL
   React.useEffect(() => {
@@ -472,6 +509,17 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                           <span>Modifier</span>
                         </Link>
                       )}
+                      {(inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
+                        <button
+                          type="button"
+                          onClick={() => setQuoteToConvert(inv)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold active:scale-95 transition-all shadow-2xs"
+                          title="Convertir ce devis en Facture émise (statut Envoyée)"
+                        >
+                          <Send className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>Facturer</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => shareOnWhatsApp(inv)}
                         className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
@@ -485,6 +533,14 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                         title="Aperçu"
                       >
                         <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceToDelete(inv)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        title={`Supprimer ce ${inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'devis' : 'facture'}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => window.print()}
@@ -705,6 +761,18 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                             </button>
                           )}
 
+                          {(inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
+                            <button
+                              type="button"
+                              onClick={() => setQuoteToConvert(inv)}
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all shadow-2xs mr-1 active:scale-95 cursor-pointer"
+                              title="Convertir ce devis en Facture émise (statut Envoyée)"
+                            >
+                              <Send className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              <span>Facturer</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => onSelectInvoice?.(inv)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -725,6 +793,14 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                             title="Imprimer / PDF"
                           >
                             <Download className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceToDelete(inv)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title={`Supprimer ${inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'le devis' : 'la facture'}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -800,6 +876,116 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               D'accord
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {invoiceToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Supprimer {invoiceToDelete.documentKind === 'quote' || invoiceToDelete.number.startsWith('DEV-') ? 'le Devis' : 'la Facture'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Document N° {invoiceToDelete.number}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer définitivement ce document pour{' '}
+              <strong>{invoiceToDelete.client.company || invoiceToDelete.client.name}</strong> d'un montant de{' '}
+              <strong>{formatFCFA(invoiceToDelete.total)}</strong> ? Cette action est irréversible.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setInvoiceToDelete(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirmer la suppression</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert Quote to Invoice Modal */}
+      {quoteToConvert && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Convertir le Devis en Facture
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Devis N° {quoteToConvert.number}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Ce devis pour <strong>{quoteToConvert.client.company || quoteToConvert.client.name}</strong> d'un montant de{' '}
+              <strong>{formatFCFA(quoteToConvert.total)}</strong> va être transformé en <strong>Facture officielle</strong> avec attribution automatique d'un numéro séquentiel <code>FAC-2026-XXXX</code> et statut <strong>« Facture envoyée »</strong>.
+            </p>
+            <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/40 p-2.5 rounded-xl border border-brand-200/60 dark:border-brand-800/60">
+              💡 Le document sortira automatiquement de la liste des Devis pour intégrer la liste officielle de vos Factures.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setQuoteToConvert(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmConvert('sent')}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Convertir en Facture Envoyée</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Toast Feedback */}
+      {actionToast && (
+        <div className="fixed bottom-6 right-6 z-[130] max-w-md bg-slate-900 text-white dark:bg-white dark:text-slate-900 p-4 rounded-2xl shadow-2xl flex items-start gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200 text-xs">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="font-bold">{actionToast.title}</div>
+            <div className="text-slate-300 dark:text-slate-600 mt-0.5 leading-relaxed">{actionToast.message}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionToast(null)}
+            className="text-slate-400 hover:text-white dark:hover:text-slate-900 p-1"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>
