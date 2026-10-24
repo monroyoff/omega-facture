@@ -42,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
   const isDashboard = pathname === '/' || pathname === '/dashboard';
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [headerCreateModalKind, setHeaderCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
@@ -103,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
           </button>
 
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-brand-500/20 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-brand-500/20 shrink-0">
               Ω
             </div>
             <span className="font-black text-xs text-slate-900 dark:text-white hidden min-[360px]:inline sm:hidden tracking-tight">
@@ -399,79 +398,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                     >
                       Voir toutes les factures & créances →
                     </Link>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Quick Create Dropdown (Web & Mobile responsive) */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setCreateMenuOpen(!createMenuOpen)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 hover:shadow-brand-500/30 transition-all shrink-0 cursor-pointer"
-              title="Créer une facture ou un devis"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Créer</span>
-              <span className="sm:hidden text-xs font-bold">Créer</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${createMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {createMenuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setCreateMenuOpen(false)}
-                />
-                <div className="absolute right-0 top-full mt-2 w-56 sm:w-60 bg-white dark:bg-[#111622] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
-                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800 mb-1">
-                    Nouveau document
-                  </div>
-
-                  <div className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCreateMenuOpen(false);
-                        if (onNewInvoice) {
-                          onNewInvoice('invoice');
-                        } else {
-                          setHeaderCreateModalKind('invoice');
-                        }
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:text-brand-600 dark:hover:text-brand-400 font-semibold transition-colors text-left cursor-pointer"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 flex items-center justify-center shrink-0">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold">Facture</div>
-                        <div className="text-[10px] text-slate-400 font-normal">Facture standard ou échelonnée</div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCreateMenuOpen(false);
-                        if (onNewInvoice) {
-                          onNewInvoice('quote');
-                        } else {
-                          setHeaderCreateModalKind('quote');
-                        }
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400 font-semibold transition-colors text-left cursor-pointer"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 flex items-center justify-center shrink-0">
-                        <FileCheck2 className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold">Devis Estimatif</div>
-                        <div className="text-[10px] text-slate-400 font-normal">Proposition commerciale chiffrée</div>
-                      </div>
-                    </button>
                   </div>
                 </div>
               </>

@@ -355,7 +355,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
         </div>
 
         {/* Document Kind Tabs (Tous, Factures, Devis) */}
-        <div className="flex items-center gap-1.5 mt-4 overflow-x-auto pb-1 no-scrollbar border-t border-slate-100 dark:border-slate-800/80 pt-3">
+        <div className="flex items-center gap-1.5 mt-4 overflow-x-auto pb-1 no-scrollbar border-t border-slate-100 dark:border-slate-800/80 pt-3 flex-wrap">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">
             Type :
           </span>
@@ -390,7 +390,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
         </div>
 
         {/* Status Tabs with Acomptes reçus */}
-        <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-1 no-scrollbar flex-wrap">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.key;
             
@@ -407,7 +407,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               <button
                 key={tab.key}
                 onClick={() => handleTabChange(tab.key)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shadow-2xs ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shadow-2xs cursor-pointer ${
                   isActive
                     ? `${activeColor} shadow-md`
                     : 'bg-slate-100/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800'
@@ -571,72 +571,85 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                   </div>
 
                   {/* Dates & Quick Actions */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100/80 dark:border-slate-800/60 text-xs">
-                    <div className="text-[11px] text-slate-400">
-                      Échéance : <span className={inv.status === 'overdue' ? 'text-rose-600 font-bold' : 'text-slate-600 dark:text-slate-300'}>{formatDateFR(inv.dueDate)}</span>
+                  <div className="pt-2.5 border-t border-slate-100/80 dark:border-slate-800/60 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>
+                        Échéance : <strong className={inv.status === 'overdue' ? 'text-rose-600 font-bold' : 'text-slate-700 dark:text-slate-300'}>{formatDateFR(inv.dueDate)}</strong>
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Émis le {formatDateFR(inv.issueDate)}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      {inv.status === 'overdue' && (
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {inv.status === 'overdue' && (
+                          <button
+                            type="button"
+                            onClick={() => setRelanceInvoice(inv)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] font-bold active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          >
+                            <BellRing className="w-3 h-3 text-rose-500 animate-pulse" />
+                            <span>Relancer</span>
+                          </button>
+                        )}
+                        {(inv.status === 'draft' || inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
+                          <Link
+                            href={`/invoices/${inv.id}/edit`}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold active:scale-95 transition-all shadow-2xs cursor-pointer"
+                            title={inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'Modifier le devis' : 'Modifier le brouillon'}
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>Modifier</span>
+                          </Link>
+                        )}
+                        {(inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
+                          <button
+                            type="button"
+                            onClick={() => setQuoteToConvert(inv)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold active:scale-95 transition-all shadow-2xs cursor-pointer"
+                            title="Convertir ce devis en Facture émise (statut Envoyée)"
+                          >
+                            <Send className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            <span>Facturer</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-0.5 sm:gap-1 ml-auto">
                         <button
                           type="button"
-                          onClick={() => setRelanceInvoice(inv)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] font-bold"
+                          onClick={() => shareOnWhatsApp(inv)}
+                          className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                          title="Partager sur WhatsApp"
                         >
-                          <BellRing className="w-3 h-3 text-rose-500 animate-pulse" />
-                          <span>Relancer</span>
+                          <Share2 className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                      {(inv.status === 'draft' || inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
-                        <Link
-                          href={`/invoices/${inv.id}/edit`}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-bold"
-                          title={inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'Modifier le devis' : 'Modifier le brouillon'}
-                        >
-                          <Pencil className="w-3 h-3" />
-                          <span>Modifier</span>
-                        </Link>
-                      )}
-                      {(inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
                         <button
                           type="button"
-                          onClick={() => setQuoteToConvert(inv)}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold active:scale-95 transition-all shadow-2xs"
-                          title="Convertir ce devis en Facture émise (statut Envoyée)"
+                          onClick={() => onSelectInvoice?.(inv)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Aperçu"
                         >
-                          <Send className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                          <span>Facturer</span>
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                      <button
-                        onClick={() => shareOnWhatsApp(inv)}
-                        className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                        title="Partager sur WhatsApp"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => onSelectInvoice?.(inv)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        title="Aperçu"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setInvoiceToDelete(inv)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                        title={`Supprimer ce ${inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'devis' : 'facture'}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => window.print()}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        title="Imprimer / PDF"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setInvoiceToDelete(inv)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title={`Supprimer ce ${inv.documentKind === 'quote' || inv.number.startsWith('DEV-') ? 'devis' : 'facture'}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Imprimer / PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -904,7 +917,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
       {/* Footer Pagination */}
       <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
         <span className="text-center sm:text-left">
-          Affichage de <strong className="text-slate-700 dark:text-slate-300">1 à {filteredInvoices.length}</strong> sur <strong className="text-slate-700 dark:text-slate-300">{invoices.length}</strong> factures
+          Affichage de <strong className="text-slate-700 dark:text-slate-300">1 à {filteredInvoices.length}</strong> sur <strong className="text-slate-700 dark:text-slate-300">{invoices.length}</strong> {selectedKind === 'quote' ? 'devis' : selectedKind === 'invoice' ? 'factures' : 'documents'}
         </span>
 
         <div className="flex items-center gap-1.5">
