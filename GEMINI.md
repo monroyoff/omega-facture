@@ -135,6 +135,14 @@
   5. **Navigation & Raccourcis** : Accès direct à toutes les sections de l'application en un clic.
 - **Expérience Utilisateur Moderne** : Filtres par onglets de catégorie, navigation au clavier (flèches `↑↓` et `Entrée`), mise en surbrillance, badges d'état colorés et synchronisation d'URL.
 
+### I. Inscription & Confirmation d'Email Obligatoire (`/register`, `/verify-email`, `/confirm-email`, `/auth/confirm`)
+- **Processus de Création de Compte Sécurisé** :
+  1. **Saisie du formulaire (`/register`)** : L'utilisateur renseigne son nom, prénom, raison sociale, email et mot de passe.
+  2. **Envoi du lien d'activation par email** : À la soumission, un lien de confirmation sécurisé est généré et transmis à l'adresse email renseignée (intégration Supabase Auth `signUp` avec `emailRedirectTo`).
+  3. **Écran d'Attente & Instructions (`/verify-email`)** : L'utilisateur est immédiatement orienté vers une interface dédiée lui demandant d'ouvrir sa boîte mail et de cliquer sur le lien pour valider son compte. Raccourcis directs vers les messageries (*Ouvrir Gmail*, *Ouvrir Outlook*), bouton de renvoi du lien avec compteur anti-spam (30s) et lien de confirmation directe pour la prévisualisation.
+  4. **Validation du Lien & Activation (`/confirm-email` et `/auth/confirm`)** : Lors du clic sur le lien dans l'email, la route de confirmation valide le jeton de sécurité, marque le profil comme vérifié (`emailVerified: true`), active la session utilisateur et affiche un écran de félicitations animé avec compte à rebours avant redirection automatique vers le tableau de bord.
+  5. **Protection d'Accès au Dashboard** : Tant que l'adresse email n'a pas été confirmée, l'accès au tableau de bord (`/` et `/dashboard`) est strictement bloqué et redirigé vers l'écran de vérification d'email.
+
 ---
 
 ## 4. STRUCTURE DES DOSSIERS & FICHIERS

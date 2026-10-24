@@ -52,7 +52,7 @@ export default function RegisterPage() {
   const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -78,9 +78,8 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      register({
+    try {
+      await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         organization: organization.trim(),
@@ -88,9 +87,13 @@ export default function RegisterPage() {
         password,
       });
 
-      // Redirect immediately to dashboard where the user's first name is welcomed!
-      router.push('/');
-    }, 450);
+      setLoading(false);
+      // Redirection vers la page d'attente et d'instructions de confirmation d'email
+      router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
+    } catch (err) {
+      setLoading(false);
+      setError("Une erreur est survenue lors de l'envoi de votre lien de confirmation. Veuillez réessayer.");
+    }
   };
 
   return (
@@ -319,8 +322,8 @@ export default function RegisterPage() {
                 <UserPlus className="w-4 h-4" />
                 <span>
                   {loading
-                    ? 'Configuration de votre espace...'
-                    : 'Créer mon compte et accéder au dashboard'}
+                    ? 'Envoi de votre lien de confirmation...'
+                    : "Créer mon compte & Recevoir le lien d'activation"}
                 </span>
               </button>
             </div>

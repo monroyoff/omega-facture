@@ -23,8 +23,15 @@ export default function DashboardPage() {
   const [createModalKind, setCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
   const [activeKind, setActiveKind] = useState<'all' | 'invoice' | 'quote'>('invoice');
-  const { periodInvoices, periodKPIs, periodLabel, currentUser } = useInvoices();
+  const { periodInvoices, periodKPIs, periodLabel, currentUser, pendingVerificationUser } = useInvoices();
   const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'MONROY';
+
+  // Si une inscription est en attente de confirmation d'email, rediriger vers la page d'instructions de confirmation
+  React.useEffect(() => {
+    if (pendingVerificationUser && (!currentUser || !currentUser.emailVerified)) {
+      router.push(`/verify-email?email=${encodeURIComponent(pendingVerificationUser.email)}`);
+    }
+  }, [pendingVerificationUser, currentUser, router]);
 
   // Synchroniser avec un paramètre d'URL éventuel (?create=invoice ou ?create=quote)
   React.useEffect(() => {

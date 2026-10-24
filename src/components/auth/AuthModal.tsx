@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Lock,
   Mail,
@@ -37,6 +38,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login',
   onSuccess,
 }) => {
+  const router = useRouter();
   const { login, register } = useInvoices();
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
@@ -112,7 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // Handle Register
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError(null);
 
@@ -138,9 +140,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      register({
+    try {
+      await register({
         firstName: regFirstName.trim(),
         lastName: regLastName.trim(),
         email: regEmail.trim(),
@@ -148,9 +149,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: regPassword,
       });
 
-      onSuccess?.(`Bienvenue sur OMEGA FACTURE, ${regFirstName.trim()} ! Votre espace ${regOrganization.trim()} est prêt.`);
+      setIsSubmitting(false);
       onClose();
-    }, 450);
+      router.push(`/verify-email?email=${encodeURIComponent(regEmail.trim())}`);
+    } catch (err) {
+      setIsSubmitting(false);
+      setRegError("Une erreur est survenue lors de l'envoi de votre lien de confirmation.");
+    }
   };
 
   // Handle Forgot Password

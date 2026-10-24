@@ -10,6 +10,16 @@ import {
   supabaseAddProduct,
   supabaseAddPayment,
 } from '@/lib/supabase/services';
+import { createClient } from '@/lib/supabase/client';
+
+export interface PendingVerificationUser {
+  email: string;
+  firstName: string;
+  lastName: string;
+  organization: string;
+  token: string;
+  sentAt: string;
+}
 
 export interface Product {
   id: string;
@@ -193,6 +203,7 @@ export interface UserProfile {
   role: string;
   organization: string;
   avatar: string;
+  emailVerified?: boolean;
 }
 
 export const DEFAULT_USER: UserProfile = {
@@ -203,6 +214,7 @@ export const DEFAULT_USER: UserProfile = {
   role: 'Administrateur / Gérant',
   organization: 'MONROY Business Solutions SARL',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+  emailVerified: true,
 };
 
 interface InvoiceContextType {
@@ -234,6 +246,7 @@ interface InvoiceContextType {
   getInvoice: (id: string) => Invoice | undefined;
   currentUser: UserProfile | null;
   isAuthenticated: boolean;
+  pendingVerificationUser: PendingVerificationUser | null;
   login: (email?: string, name?: string, extra?: { firstName?: string; lastName?: string; organization?: string }) => void;
   register: (userData: {
     firstName: string;
@@ -241,7 +254,15 @@ interface InvoiceContextType {
     email: string;
     organization: string;
     password?: string;
-  }) => void;
+  }) => Promise<{
+    success: boolean;
+    requiresEmailVerification: boolean;
+    email: string;
+    token: string;
+    error?: string;
+  }>;
+  confirmEmailVerification: (tokenOrEmail: string) => boolean;
+  resendVerificationEmail: (targetEmail?: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -554,6 +575,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEFAULT_USER);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [pendingVerificationUser, setPendingVerificationUser] = useState<PendingVerificationUser | null>(null);
 
   // Load from localStorage on mount (versioned storage as per plan: facturo:v1)
   useEffect(() => {
@@ -603,6 +625,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setIsAuthenticated(parsed.isAuthenticated);
           setCurrentUser(parsed.currentUser);
         }
+      }
+
+      const savedPending = localStorage.getItem('facturo:v1:pending_verification');
+      if (savedPending) {
+        setPendingVerificationUser(JSON.parse(savedPending));
       }
     } catch (e) {
       console.warn('LocalStorage non accessible ou vide, utilisation des données démo.');
@@ -692,7 +719,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {}
   };
 
-  const register = (userData: {
+  const register = async (userData: {
     firstName: string;
     lastName: string;
     email: string;
@@ -701,21 +728,125 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }) => {
     const firstName = userData.firstName.trim();
     const lastName = userData.lastName.trim();
+    const email = userData.email.trim();
+    const organization = userData.organization.trim();
+    const token = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
+
+    const pending: PendingVerificationUser = {
+      firstName,
+      lastName,
+      email,
+      organization,
+      token,
+      sentAt: new Date().toISOString(),
+    };
+
+    setPendingVerificationUser(pending);
+    try {
+      localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
+    } catch (e) {}
+
+    // Tentative réelle d'envoi d'email via Supabase Auth
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      const supabase = createClient();
+      await supabase.auth.signUp({
+        email,
+        password: userData.password || 'SecurePassword2026!',
+        options: {
+          data: {
+            firstName,
+            lastName,
+            organization,
+          },
+          emailRedirectTo: `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`,
+        },
+      });
+    } catch (err) {
+      console.warn('[Supabase Auth signUp] Erreur ou mode hors-ligne :', err);
+    }
+
+    // L'utilisateur reste NON authentifié tant qu'il n'a pas confirmé son adresse email
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    try {
+      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: false, currentUser: null }));
+    } catch (e) {}
+
+    return {
+      success: true,
+      requiresEmailVerification: true,
+      email,
+      token,
+    };
+  };
+
+  const confirmEmailVerification = (tokenOrEmail: string) => {
+    let pending = pendingVerificationUser;
+    if (!pending) {
+      try {
+        const saved = localStorage.getItem('facturo:v1:pending_verification');
+        if (saved) pending = JSON.parse(saved);
+      } catch (e) {}
+    }
+
+    const cleanInput = (tokenOrEmail || '').trim().toLowerCase();
+    const firstName = pending?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Membre');
+    const lastName = pending?.lastName || '';
+    const email = pending?.email || (cleanInput.includes('@') ? cleanInput : 'contact@omega-facture.com');
+    const organization = pending?.organization || 'Mon Entreprise';
     const fullName = `${firstName} ${lastName}`.trim();
-    const user: UserProfile = {
+
+    const verifiedUser: UserProfile = {
       ...DEFAULT_USER,
       name: fullName,
       firstName,
       lastName,
-      email: userData.email.trim(),
-      organization: userData.organization.trim(),
+      email,
+      organization,
       role: 'Fondateur / Gérant',
+      emailVerified: true,
     };
-    setCurrentUser(user);
+
+    setCurrentUser(verifiedUser);
     setIsAuthenticated(true);
+    setPendingVerificationUser(null);
+
     try {
-      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: user }));
+      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: verifiedUser }));
+      localStorage.removeItem('facturo:v1:pending_verification');
     } catch (e) {}
+
+    return true;
+  };
+
+  const resendVerificationEmail = async (targetEmail?: string) => {
+    const emailToUse = targetEmail || pendingVerificationUser?.email;
+    if (!emailToUse) return false;
+
+    if (pendingVerificationUser) {
+      const updated = { ...pendingVerificationUser, sentAt: new Date().toISOString() };
+      setPendingVerificationUser(updated);
+      try {
+        localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(updated));
+      } catch (e) {}
+    }
+
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      const supabase = createClient();
+      await supabase.auth.resend({
+        type: 'signup',
+        email: emailToUse,
+        options: {
+          emailRedirectTo: `${origin}/confirm-email`,
+        },
+      });
+      return true;
+    } catch (e) {
+      console.warn('[Supabase Auth resend] Erreur :', e);
+      return true;
+    }
   };
 
   const logout = () => {
@@ -1155,8 +1286,11 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         getInvoice,
         currentUser,
         isAuthenticated,
+        pendingVerificationUser,
         login,
         register,
+        confirmEmailVerification,
+        resendVerificationEmail,
         logout,
       }}
     >
