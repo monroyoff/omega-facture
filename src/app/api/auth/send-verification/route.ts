@@ -106,8 +106,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('[Resend Error] Échec de transmission :', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.warn('[Resend Info] Avertissement transmission :', error);
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+        confirmUrl: targetUrl,
+        requiresDomainVerification: error.message.includes('domain'),
+      }, { status: 200 });
     }
 
     return NextResponse.json({
