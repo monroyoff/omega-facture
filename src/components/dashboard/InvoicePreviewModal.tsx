@@ -48,23 +48,14 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   const docKind =
     invoice.documentKind ||
-    (invoice.number.startsWith('DEV-')
-      ? 'quote'
-      : invoice.number.startsWith('PRO-')
-      ? 'proforma'
-      : 'invoice');
+    (invoice.number.startsWith('DEV-') ? 'quote' : 'invoice');
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleWhatsApp = () => {
-    const docLabel =
-      docKind === 'quote'
-        ? 'votre devis'
-        : docKind === 'proforma'
-        ? 'votre facture proforma'
-        : 'votre facture';
+    const docLabel = docKind === 'quote' ? 'votre devis' : 'votre facture';
     const text = `Bonjour ${invoice.client.name}, voici ${docLabel} ${invoice.number} d'un montant de ${formatFCFA(invoice.total)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
     const cleanPhone = invoice.client.phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
@@ -160,18 +151,6 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                         <Plus className="w-3.5 h-3.5" />
                         <span>+ Nouveau Devis</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNavMenuOpen(false);
-                          onClose();
-                          router.push('/invoices/new?kind=proforma');
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 font-semibold hover:bg-sky-100 transition-colors cursor-pointer text-left text-xs"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Nouvelle Proforma</span>
-                      </button>
                     </div>
                   </div>
                 </>
@@ -183,12 +162,10 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                   docKind === 'quote'
                     ? 'bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300'
-                    : docKind === 'proforma'
-                    ? 'bg-sky-100 text-sky-800 border border-sky-200 dark:bg-sky-950/60 dark:text-sky-300'
                     : 'bg-brand-100 text-brand-800 border border-brand-200 dark:bg-brand-950/60 dark:text-brand-300'
                 }`}
               >
-                {docKind === 'quote' ? 'Devis' : docKind === 'proforma' ? 'Proforma' : 'Facture'}
+                {docKind === 'quote' ? 'Devis' : 'Facture'}
               </span>
               <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
                 {invoice.number}
@@ -256,7 +233,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Document Officiel
                 </span>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  {docKind === 'quote' ? 'DEVIS ESTIMATIF' : docKind === 'proforma' ? 'FACTURE PROFORMA' : 'FACTURE'}
+                  {docKind === 'quote' ? 'DEVIS ESTIMATIF' : 'FACTURE'}
                 </h1>
                 <p className="text-xs sm:text-sm font-semibold text-slate-500 mt-1">
                   N° {invoice.number}
@@ -300,7 +277,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               {/* Client */}
               <div className="p-3 sm:p-0 rounded-xl bg-slate-50/60 sm:bg-transparent border sm:border-0 border-slate-100">
                 <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1 sm:mb-2">
-                  {docKind === 'quote' ? 'Devis établi pour :' : docKind === 'proforma' ? 'Proforma établie pour :' : 'Facturé à :'}
+                  {docKind === 'quote' ? 'Devis établi pour :' : 'Facturé à :'}
                 </span>
                 <div className="font-bold text-slate-900 text-sm">
                   {invoice.client.company || invoice.client.name}
@@ -325,7 +302,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               </div>
               <div>
                 <span className="text-slate-400 block font-medium">
-                  {docKind === 'quote' ? 'Validité de l’offre :' : docKind === 'proforma' ? 'Date d’exigibilité :' : 'Date d’échéance :'}
+                  {docKind === 'quote' ? 'Validité de l’offre :' : 'Date d’échéance :'}
                 </span>
                 <span className="font-bold text-slate-900 text-sm">
                   {formatDateFR(invoice.dueDate)}
@@ -425,8 +402,6 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 <p className="text-[11px] text-slate-400 mt-2 italic">
                   {docKind === 'quote'
                     ? `Arrêté le présent devis à la somme de ${formatFCFA(invoice.total)}. Validité : 30 jours à compter de la date d’émission.`
-                    : docKind === 'proforma'
-                    ? `Arrêtée la présente facture proforma à la somme de ${formatFCFA(invoice.total)}. Délivrée pour formalités préalables.`
                     : `Arrêtée la présente facture à la somme exacte de ${formatFCFA(invoice.total)}.`}
                 </p>
               </div>

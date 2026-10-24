@@ -40,7 +40,7 @@ export interface RecurrenceConfig {
   autoSend: boolean;
 }
 
-export type DocumentKind = 'invoice' | 'quote' | 'proforma';
+export type DocumentKind = 'invoice' | 'quote';
 
 export interface Invoice {
   id: string;

@@ -1,6 +1,6 @@
 # 🧾 OMEGA FACTURE — Suite de Facturation & Devis Professionnelle
 
-> Solution moderne, réactive et conforme pour la création, l'émission et l'impression de Factures, Devis, Proformas et Reçus commerciaux.
+> Solution moderne, réactive et conforme pour la création, l'émission et l'impression de Factures, Devis et Reçus commerciaux.
 
 ---
 
@@ -14,7 +14,7 @@ Elle permet de générer en temps réel des documents comptables au format stand
 
 ## ✨ Fonctionnalités Clés
 
-- 📄 **Multi-Documents en 1 Clic** : Basculez instantanément entre **Facture**, **Devis**, **Facture Proforma** et **Reçu**.
+- 📄 **Multi-Documents en 1 Clic** : Basculez instantanément entre **Facture**, **Devis** et **Reçu**.
 - ⚡ **Éditeur Réactif en Temps Réel** : Modifiez l'émetteur, le client ou les lignes de prestations et observez le rendu A4 s'actualiser sous vos yeux.
 - 🧮 **Calculs Financiers Automatisés** :
   - Sous-total brut

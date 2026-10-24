@@ -48,7 +48,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     onTabChange?.(tab);
   };
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedKind, setSelectedKind] = useState<'all' | 'invoice' | 'quote' | 'proforma'>('all');
+  const [selectedKind, setSelectedKind] = useState<'all' | 'invoice' | 'quote'>('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [relanceInvoice, setRelanceInvoice] = useState<Invoice | null>(null);
   const [relanceToast, setRelanceToast] = useState<string | null>(null);
@@ -75,13 +75,10 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     return {
       all: invoices.length,
       invoice: invoices.filter(
-        (i) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-') && !i.number.startsWith('PRO-')
+        (i) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-')
       ).length,
       quote: invoices.filter(
         (i) => i.documentKind === 'quote' || i.number.startsWith('DEV-')
-      ).length,
-      proforma: invoices.filter(
-        (i) => i.documentKind === 'proforma' || i.number.startsWith('PRO-')
       ).length,
     };
   }, [invoices]);
@@ -101,14 +98,9 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
-      // Document Kind filter
       const k =
         inv.documentKind ||
-        (inv.number.startsWith('DEV-')
-          ? 'quote'
-          : inv.number.startsWith('PRO-')
-          ? 'proforma'
-          : 'invoice');
+        (inv.number.startsWith('DEV-') ? 'quote' : 'invoice');
       if (selectedKind !== 'all' && k !== selectedKind) return false;
 
       // Tab filter
@@ -159,17 +151,8 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   const shareOnWhatsApp = (inv: Invoice) => {
     const k =
       inv.documentKind ||
-      (inv.number.startsWith('DEV-')
-        ? 'quote'
-        : inv.number.startsWith('PRO-')
-        ? 'proforma'
-        : 'invoice');
-    const docLabel =
-      k === 'quote'
-        ? 'votre devis'
-        : k === 'proforma'
-        ? 'votre facture proforma'
-        : 'votre facture';
+      (inv.number.startsWith('DEV-') ? 'quote' : 'invoice');
+    const docLabel = k === 'quote' ? 'votre devis' : 'votre facture';
     const message = `Bonjour ${inv.client.name}, voici ${docLabel} ${inv.number} d'un montant de ${formatFCFA(inv.total)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
     const cleanPhone = inv.client.phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
@@ -202,7 +185,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               )}
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              Suivi en temps réel de vos factures, devis et proformas pour {periodLabel}
+              Suivi en temps réel de vos factures et devis pour {periodLabel}
             </p>
           </div>
 
@@ -250,7 +233,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
           </div>
         </div>
 
-        {/* Document Kind Tabs (Tous, Factures, Devis, Proformas) */}
+        {/* Document Kind Tabs (Tous, Factures, Devis) */}
         <div className="flex items-center gap-1.5 mt-4 overflow-x-auto pb-1 no-scrollbar border-t border-slate-100 dark:border-slate-800/80 pt-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0">
             Type :
@@ -259,7 +242,6 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
             { key: 'all', label: 'Tous', count: kindCounts.all, color: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' },
             { key: 'invoice', label: '📄 Factures', count: kindCounts.invoice, color: 'bg-brand-600 text-white' },
             { key: 'quote', label: '📝 Devis', count: kindCounts.quote, color: 'bg-purple-600 text-white' },
-            { key: 'proforma', label: '📑 Proformas', count: kindCounts.proforma, color: 'bg-sky-600 text-white' },
           ].map((item) => {
             const isSelected = selectedKind === item.key;
             return (
@@ -395,22 +377,16 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                       {(() => {
                         const k =
                           inv.documentKind ||
-                          (inv.number.startsWith('DEV-')
-                            ? 'quote'
-                            : inv.number.startsWith('PRO-')
-                            ? 'proforma'
-                            : 'invoice');
+                          (inv.number.startsWith('DEV-') ? 'quote' : 'invoice');
                         return (
                           <span
                             className={`px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase shrink-0 ${
                               k === 'quote'
                                 ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200'
-                                : k === 'proforma'
-                                ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200'
                                 : 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 border border-brand-200'
                             }`}
                           >
-                            {k === 'quote' ? 'Devis' : k === 'proforma' ? 'Proforma' : 'Facture'}
+                            {k === 'quote' ? 'Devis' : 'Facture'}
                           </span>
                         );
                       })()}
@@ -589,22 +565,16 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                           {(() => {
                             const k =
                               inv.documentKind ||
-                              (inv.number.startsWith('DEV-')
-                                ? 'quote'
-                                : inv.number.startsWith('PRO-')
-                                ? 'proforma'
-                                : 'invoice');
+                              (inv.number.startsWith('DEV-') ? 'quote' : 'invoice');
                             return (
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${
                                   k === 'quote'
                                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200'
-                                    : k === 'proforma'
-                                    ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200'
                                     : 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300 border border-brand-200'
                                 }`}
                               >
-                                {k === 'quote' ? 'Devis' : k === 'proforma' ? 'Proforma' : 'Facture'}
+                                {k === 'quote' ? 'Devis' : 'Facture'}
                               </span>
                             );
                           })()}

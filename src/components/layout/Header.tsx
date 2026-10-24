@@ -21,7 +21,6 @@ import {
   Pencil,
   ArrowLeft,
   FileCheck2,
-  FileSpreadsheet,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA } from '@/lib/money/format';
@@ -410,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
               type="button"
               onClick={() => setCreateMenuOpen(!createMenuOpen)}
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 hover:shadow-brand-500/30 transition-all shrink-0 cursor-pointer"
-              title="Créer une facture, devis ou proforma"
+              title="Créer une facture ou un devis"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Créer</span>
@@ -455,20 +454,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                       <div>
                         <div className="text-xs font-bold">Devis Estimatif</div>
                         <div className="text-[10px] text-slate-400 font-normal">Proposition commerciale chiffrée</div>
-                      </div>
-                    </Link>
-
-                    <Link
-                      href="/invoices/new?kind=proforma"
-                      onClick={() => setCreateMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-sky-950/40 hover:text-sky-600 dark:hover:text-sky-400 font-semibold transition-colors"
-                    >
-                      <div className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 flex items-center justify-center shrink-0">
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold">Facture Proforma</div>
-                        <div className="text-[10px] text-slate-400 font-normal">Pour accord ou virement préalable</div>
                       </div>
                     </Link>
                   </div>

@@ -66,8 +66,6 @@ export default function EditInvoicePage() {
         setDocumentKind(inv.documentKind);
       } else if (inv.number.startsWith('DEV-')) {
         setDocumentKind('quote');
-      } else if (inv.number.startsWith('PRO-')) {
-        setDocumentKind('proforma');
       } else {
         setDocumentKind('invoice');
       }
@@ -151,7 +149,7 @@ export default function EditInvoicePage() {
       })),
       status: 'draft',
     });
-    const label = documentKind === 'quote' ? 'Brouillon devis' : documentKind === 'proforma' ? 'Brouillon proforma' : 'Brouillon facture';
+    const label = documentKind === 'quote' ? 'Brouillon devis' : 'Brouillon facture';
     alert(`${label} ${invoiceNumber} mis à jour avec succès !`);
     router.push('/invoices');
   };
@@ -181,7 +179,7 @@ export default function EditInvoicePage() {
       })),
       status: 'sent',
     });
-    const label = documentKind === 'quote' ? 'Devis' : documentKind === 'proforma' ? 'Facture Proforma' : 'Facture';
+    const label = documentKind === 'quote' ? 'Devis' : 'Facture';
     alert(`${label} ${invoiceNumber} émis et passé en statut 'Envoyée' !`);
     router.push('/invoices');
   };
@@ -494,7 +492,7 @@ export default function EditInvoicePage() {
                         Brouillon en cours de modification
                       </span>
                       <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                        {documentKind === 'quote' ? 'DEVIS ESTIMATIF' : documentKind === 'proforma' ? 'FACTURE PROFORMA' : 'FACTURE'}
+                        {documentKind === 'quote' ? 'DEVIS ESTIMATIF' : 'FACTURE'}
                       </h3>
                       <p className="text-xs font-semibold text-slate-500 mt-0.5">N° {invoiceNumber}</p>
                     </div>
@@ -513,7 +511,7 @@ export default function EditInvoicePage() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                        {documentKind === 'quote' ? 'Devis établi pour :' : documentKind === 'proforma' ? 'Proforma établie pour :' : 'Facturé à :'}
+                        {documentKind === 'quote' ? 'Devis établi pour :' : 'Facturé à :'}
                       </span>
                       <div className="font-bold text-slate-900 text-xs">{currentClient?.company}</div>
                       <div className="text-[11px] text-slate-500 mt-0.5"><p>{currentClient?.email}</p><p>{currentClient?.city}, {currentClient?.country}</p></div>
@@ -527,7 +525,7 @@ export default function EditInvoicePage() {
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 block font-medium">
-                        {documentKind === 'quote' ? 'Validité de l’offre :' : documentKind === 'proforma' ? 'Date d’exigibilité :' : 'Date d’échéance :'}
+                        {documentKind === 'quote' ? 'Validité de l’offre :' : 'Date d’échéance :'}
                       </span>
                       <span className="font-bold text-slate-800 text-xs">{formatDateFR(dueDate)}</span>
                     </div>

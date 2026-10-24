@@ -343,7 +343,7 @@ function updateLiveSheet() {
    5. HEADER ACTIONS & TOOLBAR
    =================================================================== */
 function bindHeaderActions() {
-    // Document Type Selector (Facture, Devis, Proforma, Reçu)
+    // Document Type Selector (Facture, Devis, Reçu)
     const typeButtons = document.querySelectorAll('.type-btn');
     typeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -357,7 +357,6 @@ function bindHeaderActions() {
                 const currentNum = docNumInput.value.split('-')[2] || '001';
                 let prefix = 'FACT';
                 if (state.docType === 'Devis') prefix = 'DEV';
-                else if (state.docType === 'Proforma') prefix = 'PROF';
                 else if (state.docType === 'Reçu') prefix = 'REC';
                 docNumInput.value = `${prefix}-2026-${currentNum}`;
             }

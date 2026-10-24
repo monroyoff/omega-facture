@@ -116,20 +116,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       href: '/invoices/new?kind=quote',
     },
     {
-      id: 'nav-new-proforma',
-      category: 'navigation',
-      title: 'Créer une Facture Proforma',
-      subtitle: 'Émettre une proforma pour formalités bancaires ou de dédouanement',
-      meta: '/invoices/new?kind=proforma',
-      badge: { text: 'Proforma', variant: 'neutral' },
-      icon: Plus,
-      href: '/invoices/new?kind=proforma',
-    },
-    {
       id: 'nav-invoices',
       category: 'navigation',
-      title: 'Factures, Devis & Proformas',
-      subtitle: 'Gérer vos factures d’avoir, devis estimatifs et proformas',
+      title: 'Factures & Devis',
+      subtitle: 'Gérer vos factures et devis estimatifs',
       meta: '/invoices',
       icon: FileText,
       href: '/invoices',
@@ -187,17 +177,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     const q = query.trim().toLowerCase();
     const items: SearchResultItem[] = [];
 
-    // 1. FACTURES, DEVIS & PROFORMAS
+    // 1. FACTURES & DEVIS
     if (activeCategory === 'all' || activeCategory === 'invoices') {
       invoices.forEach((inv) => {
         const k =
           inv.documentKind ||
-          (inv.number.startsWith('DEV-')
-            ? 'quote'
-            : inv.number.startsWith('PRO-')
-            ? 'proforma'
-            : 'invoice');
-        const kindLabel = k === 'quote' ? 'Devis' : k === 'proforma' ? 'Proforma' : 'Facture';
+          (inv.number.startsWith('DEV-') ? 'quote' : 'invoice');
+        const kindLabel = k === 'quote' ? 'Devis' : 'Facture';
 
         const statusMap: Record<string, { text: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
           paid: { text: 'Payée', variant: 'success' },

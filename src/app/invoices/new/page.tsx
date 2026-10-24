@@ -24,7 +24,6 @@ import {
   Percent,
   X,
   FileCheck2,
-  FileSpreadsheet,
   FileText,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
@@ -72,15 +71,13 @@ export default function CreateInvoicePage() {
   const [documentKind, setDocumentKind] = useState<DocumentKind>('invoice');
   const [invoiceType, setInvoiceType] = useState<'standard' | 'split' | 'recurring'>('standard');
 
-  // Read URL query parameter on mount (?kind=quote or ?kind=proforma or ?kind=invoice)
+  // Read URL query parameter on mount (?kind=quote or ?kind=invoice)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const k = params.get('kind') || params.get('type');
       if (k === 'quote' || k === 'devis') {
         setDocumentKind('quote');
-      } else if (k === 'proforma') {
-        setDocumentKind('proforma');
       } else if (k === 'invoice' || k === 'facture') {
         setDocumentKind('invoice');
       }
@@ -140,15 +137,6 @@ export default function CreateInvoicePage() {
           .filter((n) => !isNaN(n));
         const maxNum = numbers.length > 0 ? Math.max(...numbers) : 12;
         setInvoiceNumber(`DEV-2026-${String(maxNum + 1).padStart(4, '0')}`);
-      } else if (documentKind === 'proforma') {
-        const numbers = invoices
-          .map((inv) => {
-            const m = inv.number.match(/PRO-\d+-(\d+)/);
-            return m ? parseInt(m[1], 10) : 0;
-          })
-          .filter((n) => !isNaN(n));
-        const maxNum = numbers.length > 0 ? Math.max(...numbers) : 5;
-        setInvoiceNumber(`PRO-2026-${String(maxNum + 1).padStart(4, '0')}`);
       } else {
         const numbers = invoices
           .map((inv) => {
@@ -388,8 +376,6 @@ export default function CreateInvoicePage() {
     const docKindLabel =
       documentKind === 'quote'
         ? 'Devis Estimatif'
-        : documentKind === 'proforma'
-        ? 'Facture Proforma'
         : invoiceType === 'split'
         ? `Facture d'Acompte & Paiement Échelonné (${splitSchedule.length} tranches)`
         : invoiceType === 'recurring'
@@ -474,8 +460,6 @@ export default function CreateInvoicePage() {
     const draftKindLabel =
       documentKind === 'quote'
         ? 'Brouillon devis'
-        : documentKind === 'proforma'
-        ? 'Brouillon proforma'
         : invoiceType === 'split'
         ? `Brouillon échelonné (${splitSchedule.length} tranches)`
         : invoiceType === 'recurring'
@@ -514,7 +498,7 @@ export default function CreateInvoicePage() {
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {documentKind === 'quote' ? 'Créer un Devis' : documentKind === 'proforma' ? 'Créer une Proforma' : 'Créer une Facture'}
+              {documentKind === 'quote' ? 'Créer un Devis' : 'Créer une Facture'}
             </span>
           </div>
 
@@ -561,25 +545,21 @@ export default function CreateInvoicePage() {
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                   {documentKind === 'quote'
                     ? 'Créer un Devis Estimatif'
-                    : documentKind === 'proforma'
-                    ? 'Créer une Facture Proforma'
                     : 'Créer une Facture'}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {documentKind === 'quote'
                     ? 'Établissez une proposition commerciale chiffrée avec validité d’offre et conditions conformes UEMOA.'
-                    : documentKind === 'proforma'
-                    ? 'Émettez une facture proforma pour accord préalable, formalités bancaires ou de dédouanement.'
                     : 'Émettez une facture professionnelle conforme UEMOA et partagez-la instantanément.'}
                 </p>
               </div>
 
-              {/* Document Type Selector (Facture, Devis, Proforma) - Fully responsive segmented control */}
+              {/* Document Type Selector (Facture, Devis) - Fully responsive segmented control */}
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                   Type de Document à Émettre :
                 </label>
-                <div className="bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center gap-1.5 max-w-xl">
+                <div className="bg-slate-200/80 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center gap-1.5 max-w-sm">
                   <button
                     type="button"
                     onClick={() => handleDocumentKindChange('invoice')}
@@ -603,18 +583,6 @@ export default function CreateInvoicePage() {
                   >
                     <FileCheck2 className="w-4 h-4" />
                     <span>Devis</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDocumentKindChange('proforma')}
-                    className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
-                      documentKind === 'proforma'
-                        ? 'bg-sky-600 text-white shadow-md shadow-sky-500/25 ring-1 ring-sky-500'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>Proforma</span>
                   </button>
                 </div>
               </div>
@@ -1005,8 +973,6 @@ export default function CreateInvoicePage() {
                     <label className="absolute -top-2.5 left-3.5 bg-white dark:bg-[#111622] px-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300 z-10">
                       {documentKind === 'quote'
                         ? 'Validité de l’offre (Échéance) *'
-                        : documentKind === 'proforma'
-                        ? 'Date d’exigibilité / Échéance *'
                         : 'Date d’échéance *'}
                     </label>
                     <div className="relative">
@@ -1021,10 +987,10 @@ export default function CreateInvoicePage() {
                   </div>
                 </div>
 
-                {/* Invoice / Quote / Proforma Number */}
+                {/* Invoice / Quote Number */}
                 <div className="relative">
                   <label className="absolute -top-2.5 left-3.5 bg-white dark:bg-[#111622] px-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300 z-10">
-                    Numéro de {documentKind === 'quote' ? 'Devis' : documentKind === 'proforma' ? 'Proforma' : 'Facture'}
+                    Numéro de {documentKind === 'quote' ? 'Devis' : 'Facture'}
                   </label>
                   <div className="relative">
                     <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1265,8 +1231,6 @@ export default function CreateInvoicePage() {
                     <span>
                       {documentKind === 'quote'
                         ? 'Émettre le Devis'
-                        : documentKind === 'proforma'
-                        ? 'Émettre la Proforma'
                         : 'Émettre la facture'}
                     </span>
                   </button>
@@ -1313,8 +1277,6 @@ export default function CreateInvoicePage() {
                       <span>
                         {documentKind === 'quote'
                           ? 'Émettre le Devis'
-                          : documentKind === 'proforma'
-                          ? 'Émettre la Proforma'
                           : 'Émettre la facture'}
                       </span>
                     </button>
@@ -1330,17 +1292,11 @@ export default function CreateInvoicePage() {
                         <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                           {documentKind === 'quote'
                             ? 'DEVIS ESTIMATIF'
-                            : documentKind === 'proforma'
-                            ? 'FACTURE PROFORMA'
                             : 'FACTURE'}
                         </h3>
                         {documentKind === 'quote' ? (
                           <span className="text-[10px] font-bold text-purple-700 bg-purple-100 border border-purple-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                             Devis Estimatif
-                          </span>
-                        ) : documentKind === 'proforma' ? (
-                          <span className="text-[10px] font-bold text-sky-700 bg-sky-100 border border-sky-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                            Proforma
                           </span>
                         ) : invoiceType === 'split' ? (
                           <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -1393,8 +1349,6 @@ export default function CreateInvoicePage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                         {documentKind === 'quote'
                           ? 'Devis établi pour :'
-                          : documentKind === 'proforma'
-                          ? 'Proforma établie pour :'
                           : 'Facturé à :'}
                       </span>
                       {currentClient ? (
@@ -1432,8 +1386,6 @@ export default function CreateInvoicePage() {
                       <span className="text-[10px] text-slate-400 block font-medium">
                         {documentKind === 'quote'
                           ? 'Validité de l’offre :'
-                          : documentKind === 'proforma'
-                          ? 'Date d’exigibilité :'
                           : 'Date d’échéance :'}
                       </span>
                       <span className="font-bold text-slate-800 text-xs">
@@ -1608,8 +1560,6 @@ export default function CreateInvoicePage() {
                     <p className="italic">
                       {documentKind === 'quote'
                         ? 'Validité de l’offre : 30 jours à compter de sa date d’émission. Bon pour accord et commande précédé de la mention manuscrite « Lu et approuvé ».'
-                        : documentKind === 'proforma'
-                        ? 'Document proforma délivré à titre d’estimation préalable pour formalités de virement ou crédit bancaire. Ne constitue pas un document comptable définitif.'
                         : 'Note : Tout retard de paiement fera courir un intérêt de pénalité de 10% annuel calculé au prorata temporis.'}
                     </p>
                     <div className="mt-4 flex items-end justify-between">

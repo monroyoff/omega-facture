@@ -22,12 +22,9 @@ export default function InvoicesListPage() {
         'Type_Document,Numero,Client,Societe,Date_Emission,Date_Echeance,Total_FCFA,Statut',
         ...periodInvoices.map((i) => {
           const k =
-            i.documentKind ||
-            (i.number.startsWith('DEV-')
+            i.documentKind === 'quote' || i.number.startsWith('DEV-')
               ? 'Devis'
-              : i.number.startsWith('PRO-')
-              ? 'Proforma'
-              : 'Facture');
+              : 'Facture';
           return `"${k}",${i.number},"${i.client.name}","${i.client.company}",${i.issueDate},${i.dueDate},${i.total},${i.status}`;
         }),
       ].join('\n');
@@ -60,7 +57,7 @@ export default function InvoicesListPage() {
                 Gestion des Factures & Devis
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Consultez, filtrez et émettez vos factures, devis estimatifs et factures proforma.
+                Consultez, filtrez et émettez vos factures et devis estimatifs.
               </p>
             </div>
 
@@ -90,15 +87,6 @@ export default function InvoicesListPage() {
               >
                 <FileCheck2 className="w-3.5 h-3.5" />
                 <span>+ Devis</span>
-              </Link>
-
-              <Link
-                href="/invoices/new?kind=proforma"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold active:scale-95 transition-all"
-                title="Créer une facture proforma"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>+ Proforma</span>
               </Link>
             </div>
           </div>
