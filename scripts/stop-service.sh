@@ -1,15 +1,10 @@
 #!/bin/bash
 # ===================================================================
-# OMEGA FACTURE - Arrêter le service d'arrière-plan macOS
+# OMEGA FACTURE - Arrêter le service PM2
 # ===================================================================
 
-# Libérer le port 3000 si encore actif
-PID=$(lsof -ti:3000 2>/dev/null)
-if [ -n "$PID" ]; then
-    kill -9 $PID 2>/dev/null || true
-    echo "✓ Port 3000 libéré (PID $PID arrêté)."
-else
-    echo "Le port 3000 n'était pas utilisé."
-fi
+export PATH="/Users/MAC/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
-echo "Serveur OMEGA FACTURE arrêté."
+echo "Arrêt d'OMEGA FACTURE..."
+pm2 stop omega-facture 2>/dev/null
+echo "✓ Application arrêtée."

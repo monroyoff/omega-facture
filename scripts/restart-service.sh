@@ -1,16 +1,15 @@
 #!/bin/bash
 # ===================================================================
-# OMEGA FACTURE - Redémarrer le service
+# OMEGA FACTURE - Redémarrer le service PM2
 # ===================================================================
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="/Users/MAC/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
-echo "Arrêt en cours..."
-"$DIR/stop-service.sh"
+echo "Redémarrage d'OMEGA FACTURE..."
+cd "/Users/MAC/Desktop/OMEGA FACTURE" || exit 1
+pm2 restart omega-facture 2>/dev/null || pm2 start npm --name "omega-facture" -- start
+pm2 save
 sleep 1
 
-echo "Démarrage en cours..."
-osascript -e 'do shell script "nohup /bin/bash \"/Users/MAC/Desktop/OMEGA FACTURE/scripts/start-service.sh\" > \"/Users/MAC/Desktop/OMEGA FACTURE/logs/server.log\" 2>&1 &"'
-sleep 2
-
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$DIR/status-service.sh"
