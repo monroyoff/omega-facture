@@ -12,14 +12,16 @@ import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal'
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
-import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowRight, ShieldCheck, Calendar } from 'lucide-react';
+import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
-  const { periodInvoices, periodKPIs, periodLabel } = useInvoices();
+  const { periodInvoices, periodKPIs, periodLabel, currentUser } = useInvoices();
+  const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'MONROY';
 
   const scrollToInvoices = () => {
     const el = document.getElementById('invoices-section');
@@ -92,12 +94,12 @@ export default function DashboardPage() {
       />
 
       {/* Main Content Area */}
-      <div className="lg:pl-72 flex flex-col flex-1">
+      <div className="lg:pl-72 flex flex-col flex-1 min-w-0 w-full overflow-x-hidden">
         {/* Top Header */}
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
 
         {/* Dashboard Main Body */}
-        <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto min-w-0">
           {/* Welcome & Context Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-600 via-brand-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-brand-500/15 relative overflow-hidden">
             {/* Background decorative circles */}
@@ -110,7 +112,7 @@ export default function DashboardPage() {
                 <span>Espace de Facturation Professionnelle — Zone UEMOA</span>
               </div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">
-                Bonjour, MONROY 👋
+                Bonjour, {userFirstName} 👋
               </h1>
               <p className="text-sm text-blue-100 font-normal leading-relaxed">
                 Votre entreprise a généré{' '}
@@ -133,7 +135,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="relative z-10 flex items-center gap-3">
+            <div className="relative z-10 hidden sm:flex items-center gap-3">
               <Link
                 href="/invoices/new"
                 className="px-5 py-3 rounded-2xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center gap-2 group whitespace-nowrap"
@@ -142,6 +144,29 @@ export default function DashboardPage() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
+          </div>
+
+          {/* Mobile Period / Calendar Selector Card (Moved below Hero section on mobile) */}
+          <div className="sm:hidden bg-white dark:bg-[#111622] rounded-3xl p-4 border border-slate-200/80 dark:border-slate-800 shadow-card flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 border border-brand-200/60 dark:border-brand-800/60 shadow-2xs">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Période active
+                </div>
+                <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                  {periodLabel}
+                </div>
+              </div>
+            </div>
+
+            <PeriodPickerDropdown
+              align="right"
+              buttonVariant="card"
+              buttonClassName="px-3.5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-blue-600 hover:from-brand-700 hover:to-blue-700 active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition-all shrink-0 cursor-pointer"
+            />
           </div>
 
           {/* 4 Financial KPI Cards */}

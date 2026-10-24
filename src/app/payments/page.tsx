@@ -25,7 +25,11 @@ import {
   Image as ImageIcon,
   Printer,
   ChevronDown,
+  ArrowRight,
 } from 'lucide-react';
+import { PaymentOperationsModal } from '@/components/payments/PaymentOperationsModal';
+import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
+import { Invoice } from '@/lib/types';
 
 export default function PaymentsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,6 +40,19 @@ export default function PaymentsPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Operations modal & invoice preview state
+  const [operationsModalOpen, setOperationsModalOpen] = useState(false);
+  const [operationsModalMethod, setOperationsModalMethod] = useState<'all' | 'mobile_money' | 'bank_transfer' | 'cash' | 'check'>('all');
+  const [operationsCategoryTitle, setOperationsCategoryTitle] = useState('Total Encaissé');
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+
+  const handleCardClick = (method: 'all' | 'mobile_money' | 'bank_transfer' | 'cash', title: string) => {
+    setOperationsModalMethod(method);
+    setOperationsCategoryTitle(title);
+    setOperationsModalOpen(true);
+    setSelectedMethod(method);
+  };
 
   const {
     payments,
@@ -146,7 +163,7 @@ export default function PaymentsPage() {
       <div className="lg:pl-72 flex flex-col flex-1">
         <Header onOpenSidebar={() => setSidebarOpen(true)} hidePeriodPicker={true} />
 
-        <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto min-w-0">
           {/* Header Action Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -293,53 +310,125 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          {/* 4 KPI stats row including Espèces */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 4 KPI stats row including Espèces with 'voir les opérations concernées' */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             {/* Total Encaissé */}
-            <div className="bg-white dark:bg-[#111622] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-card">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Total Encaissé
-              </span>
-              <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                {formatFCFA(totalCollected)}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => handleCardClick('all', 'Total Encaissé')}
+              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('all', 'Total Encaissé')}
+              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-emerald-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Total Encaissé
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-[26px] font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                  {formatFCFA(totalCollected)}
+                </div>
+                <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {activePayments.length} règlement(s) sur la période
+                </span>
               </div>
-              <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                {activePayments.length} règlements sur la période
-              </span>
+
+              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                <span>voir les opérations concernées</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
 
             {/* Mobile Money */}
-            <div className="bg-white dark:bg-[#111622] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-card">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Mobile Money
-              </span>
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                {formatFCFA(totalMobileMoney)}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => handleCardClick('mobile_money', 'Mobile Money (MTN, Moov, Wave)')}
+              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('mobile_money', 'Mobile Money (MTN, Moov, Wave)')}
+              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-amber-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Mobile Money
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-[26px] font-bold text-amber-600 dark:text-amber-400 transition-colors">
+                  {formatFCFA(totalMobileMoney)}
+                </div>
+                <span className="text-xs text-slate-400 mt-1 block">MTN Bénin, Moov & Wave</span>
               </div>
-              <span className="text-xs text-slate-400 mt-1 block">MTN Bénin, Moov & Wave</span>
+
+              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                <span>voir les opérations concernées</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
 
             {/* Virements Bancaires */}
-            <div className="bg-white dark:bg-[#111622] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-card">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Virements Bancaires
-              </span>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {formatFCFA(totalBank)}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => handleCardClick('bank_transfer', 'Virements Bancaires')}
+              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('bank_transfer', 'Virements Bancaires')}
+              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-blue-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Virements Bancaires
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-[26px] font-bold text-blue-600 dark:text-blue-400 transition-colors">
+                  {formatFCFA(totalBank)}
+                </div>
+                <span className="text-xs text-slate-400 mt-1 block">BOA, Ecobank, SG, BDU</span>
               </div>
-              <span className="text-xs text-slate-400 mt-1 block">BOA, Ecobank, SG</span>
+
+              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                <span>voir les opérations concernées</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
 
             {/* Espèces (Cash) */}
-            <div className="bg-white dark:bg-[#111622] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-card">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                Espèces (Caisse)
-              </span>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {formatFCFA(totalCash)}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => handleCardClick('cash', 'Espèces (Caisse)')}
+              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('cash', 'Espèces (Caisse)')}
+              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-emerald-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Espèces (Caisse)
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                    <Banknote className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-[26px] font-bold text-emerald-600 dark:text-emerald-400 transition-colors">
+                  {formatFCFA(totalCash)}
+                </div>
+                <span className="text-xs text-slate-400 mt-1 block">Règlements directs en mains</span>
               </div>
-              <span className="text-xs text-slate-400 mt-1 block">Règlements directs en mains</span>
+
+              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                <span>voir les opérations concernées</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
           </div>
 
@@ -486,6 +575,22 @@ export default function PaymentsPage() {
 
       <NewPaymentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <ExportPaymentsModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} />
+
+      {/* Payment Operations & Invoices Details Modal */}
+      <PaymentOperationsModal
+        isOpen={operationsModalOpen}
+        onClose={() => setOperationsModalOpen(false)}
+        initialMethod={operationsModalMethod}
+        categoryTitle={operationsCategoryTitle}
+        onSelectInvoice={(inv) => setPreviewInvoice(inv)}
+        onNewPayment={() => setIsModalOpen(true)}
+      />
+
+      {/* Invoice Preview Modal */}
+      <InvoicePreviewModal
+        invoice={previewInvoice}
+        onClose={() => setPreviewInvoice(null)}
+      />
     </div>
   );
 }

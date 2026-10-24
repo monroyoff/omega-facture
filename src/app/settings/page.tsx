@@ -33,9 +33,9 @@ export default function SettingsPage() {
       <div className="lg:pl-72 flex flex-col flex-1">
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
 
-        <main className="flex-1 p-4 sm:p-8 space-y-6 max-w-5xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-5xl w-full mx-auto min-w-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Paramètres de l’Organisation
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">

@@ -185,7 +185,10 @@ const initialNotifications: AppNotification[] = [
 ];
 
 export interface UserProfile {
+  id?: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   role: string;
   organization: string;
@@ -194,6 +197,8 @@ export interface UserProfile {
 
 export const DEFAULT_USER: UserProfile = {
   name: 'MONROY Business',
+  firstName: 'MONROY',
+  lastName: 'Business',
   email: 'jobovog@gmail.com',
   role: 'Administrateur / Gérant',
   organization: 'MONROY Business Solutions SARL',
@@ -227,7 +232,14 @@ interface InvoiceContextType {
   getInvoice: (id: string) => Invoice | undefined;
   currentUser: UserProfile | null;
   isAuthenticated: boolean;
-  login: (email?: string, name?: string) => void;
+  login: (email?: string, name?: string, extra?: { firstName?: string; lastName?: string; organization?: string }) => void;
+  register: (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    organization: string;
+    password?: string;
+  }) => void;
   logout: () => void;
 }
 
@@ -656,11 +668,46 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {}
   };
 
-  const login = (email = 'jobovog@gmail.com', name = 'MONROY Business') => {
+  const login = (
+    email = 'jobovog@gmail.com',
+    name = 'MONROY Business',
+    extra?: { firstName?: string; lastName?: string; organization?: string }
+  ) => {
+    const firstName = extra?.firstName || name.split(' ')[0] || 'MONROY';
+    const lastName = extra?.lastName || (name.split(' ').slice(1).join(' ') || '');
     const user: UserProfile = {
       ...DEFAULT_USER,
-      name,
+      name: name || `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
       email,
+      organization: extra?.organization || DEFAULT_USER.organization,
+    };
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: user }));
+    } catch (e) {}
+  };
+
+  const register = (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    organization: string;
+    password?: string;
+  }) => {
+    const firstName = userData.firstName.trim();
+    const lastName = userData.lastName.trim();
+    const fullName = `${firstName} ${lastName}`.trim();
+    const user: UserProfile = {
+      ...DEFAULT_USER,
+      name: fullName,
+      firstName,
+      lastName,
+      email: userData.email.trim(),
+      organization: userData.organization.trim(),
+      role: 'Fondateur / Gérant',
     };
     setCurrentUser(user);
     setIsAuthenticated(true);
@@ -1062,6 +1109,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         currentUser,
         isAuthenticated,
         login,
+        register,
         logout,
       }}
     >

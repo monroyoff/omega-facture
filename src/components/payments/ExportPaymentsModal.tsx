@@ -443,11 +443,13 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-600 active:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 active:bg-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 transition-all active:scale-95 cursor-pointer touch-manipulation"
               title="Fermer la fenêtre (Échap)"
+              aria-label="Fermer la fenêtre"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 pointer-events-none" />
             </button>
           </div>
         </div>
@@ -538,7 +540,7 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-black flex items-center justify-center text-sm">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white font-black flex items-center justify-center text-sm shadow-md shadow-brand-500/20">
                     Ω
                   </div>
                   <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">

@@ -675,10 +675,11 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-1 cursor-pointer"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-600 active:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 active:bg-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 transition-all active:scale-95 ml-1 cursor-pointer touch-manipulation"
                 title="Fermer"
+                aria-label="Fermer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 pointer-events-none" />
               </button>
             </div>
           </div>
@@ -775,7 +776,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                 </div>
 
                 <div className="text-right">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-950 text-emerald-400 font-extrabold flex items-center justify-center text-xl ml-auto shadow-sm">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-blue-500 text-white font-extrabold flex items-center justify-center text-xl ml-auto shadow-md shadow-brand-500/20">
                     Ω
                   </div>
                   <span className="font-bold text-xs text-slate-900 block mt-2">

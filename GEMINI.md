@@ -125,12 +125,16 @@
 
 ```
 OMEGA FACTURE/
+├── index.html                     # Application standalone live A4 (accès immédiat navigateur)
+├── styles.css                     # Système de design standalone & styles d'impression A4
+├── app.js                         # Moteur réactif standalone, calculs UEMOA & export WhatsApp
 ├── package.json                   # Dépendances (Next 14, React 18, Tailwind, Lucide)
 ├── tsconfig.json                  # Configuration TypeScript stricte (alias @/*)
 ├── tailwind.config.ts             # Configuration Tailwind (couleurs brand, ombres)
 ├── postcss.config.mjs             # Plugins PostCSS
 ├── next.config.mjs                # Configuration Next.js
 ├── GEMINI.md                      # GUIDE MAÎTRE DU PROJET (ce document)
+├── README.md                      # Documentation et instructions de démarrage
 │
 ├── src/
 │   ├── app/                       # Routage Next.js 14 App Router

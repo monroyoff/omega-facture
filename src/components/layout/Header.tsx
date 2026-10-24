@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Menu,
   Bell,
@@ -19,12 +19,14 @@ import {
   CreditCard,
   Eye,
   Pencil,
+  ArrowLeft,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA } from '@/lib/money/format';
 import { NewPaymentModal } from '@/components/payments/NewPaymentModal';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
 import { Invoice } from '@/lib/types';
+import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 
 interface HeaderProps {
   onOpenSidebar: () => void;
@@ -34,47 +36,27 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hidePeriodPicker = false }) => {
   const router = useRouter();
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const pathname = usePathname();
+  const isDashboard = pathname === '/' || pathname === '/dashboard';
+
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [calendarTab, setCalendarTab] = useState<'month' | 'day' | 'quarter' | 'semester' | 'year'>('month');
-  const [customDay, setCustomDay] = useState('2026-10-18');
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
 
-  const quarters = [
-    { id: 'quarter:2026-Q4', label: '4e Trimestre 2026 (Octobre - Décembre)', badge: 'T4' },
-    { id: 'quarter:2026-Q3', label: '3e Trimestre 2026 (Juillet - Septembre)', badge: 'T3' },
-    { id: 'quarter:2026-Q2', label: '2e Trimestre 2026 (Avril - Juin)', badge: 'T2' },
-    { id: 'quarter:2026-Q1', label: '1er Trimestre 2026 (Janvier - Mars)', badge: 'T1' },
-  ];
+  // Dynamic section title based on route
+  const getSectionTitle = (path: string) => {
+    if (path.startsWith('/invoices/new')) return 'Créer une Facture';
+    if (path.startsWith('/invoices')) return 'Factures & Devis';
+    if (path.startsWith('/clients')) return 'Répertoire Clients';
+    if (path.startsWith('/payments')) return 'Paiements & Flux';
+    if (path.startsWith('/reports')) return 'Rapports & KPI';
+    if (path.startsWith('/settings')) return 'Paramètres';
+    if (path.startsWith('/support')) return 'Assistance & Support';
+    if (path.startsWith('/products')) return 'Articles & Prestations';
+    return 'Vue d’ensemble';
+  };
+  const currentSectionTitle = getSectionTitle(pathname);
 
-  const semesters = [
-    { id: 'semester:2026-S2', label: '2e Semestre 2026 (Juillet - Décembre)', badge: 'S2' },
-    { id: 'semester:2026-S1', label: '1er Semestre 2026 (Janvier - Juin)', badge: 'S1' },
-  ];
-
-  const months = [
-    { id: '2026-10', label: 'Octobre 2026', badge: 'En cours' },
-    { id: '2026-09', label: 'Septembre 2026', badge: 'Mois dernier' },
-    { id: '2026-08', label: 'Août 2026' },
-    { id: '2026-07', label: 'Juillet 2026' },
-    { id: '2026-06', label: 'Juin 2026' },
-    { id: '2026-05', label: 'Mai 2026' },
-  ];
-
-  const quickDays = [
-    { id: 'day:2026-10-18', label: 'Aujourd’hui (18 Octobre 2026)' },
-    { id: 'day:2026-10-16', label: '16 Octobre 2026' },
-    { id: 'day:2026-10-14', label: '14 Octobre 2026' },
-    { id: 'day:2026-10-12', label: '12 Octobre 2026' },
-    { id: 'day:2026-10-10', label: '10 Octobre 2026' },
-    { id: 'day:2026-10-02', label: '02 Octobre 2026' },
-  ];
-
-  const years = [
-    { id: 'ALL', label: 'Année 2026 complète (Toutes les factures)', badge: '2026' },
-    { id: 'year:2025', label: 'Exercice 2025 (Historique)', badge: '2025' },
-  ];
 
   const {
     selectedPeriod,
@@ -105,297 +87,58 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-[#0c1017]/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 sm:px-8 flex items-center justify-between">
-        {/* Left: Mobile Toggle & Breadcrumbs */}
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-[#0c1017]/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-3 sm:px-8 flex items-center justify-between min-w-0 w-full">
+        {/* Left: Mobile Toggle & Blue Brand Logo & Breadcrumbs */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={onOpenSidebar}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
+            className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden shrink-0"
             aria-label="Ouvrir le menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-400 font-medium">Dashboard</span>
-            <span className="text-slate-300 dark:text-slate-600">/</span>
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
-              Vue d’ensemble
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-blue-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-brand-500/20 shrink-0">
+              Ω
+            </div>
+            <span className="font-black text-xs text-slate-900 dark:text-white hidden min-[360px]:inline sm:hidden tracking-tight">
+              OMEGA <span className="text-brand-600 dark:text-brand-400">FACTURE</span>
             </span>
+          </Link>
+
+          <div className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
+            {isDashboard ? (
+              <>
+                <span className="text-slate-400 font-medium">Dashboard</span>
+                <span className="text-slate-300 dark:text-slate-600">/</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  Vue d’ensemble
+                </span>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/"
+                  className="text-slate-400 hover:text-brand-600 font-medium transition-colors"
+                >
+                  Dashboard
+                </Link>
+                <span className="text-slate-300 dark:text-slate-600">/</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                  {currentSectionTitle}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         {/* Right: Period Selector, Notification, and New Invoice CTA */}
-        <div className="flex items-center gap-3 relative">
-          {/* Interactive Period Selector (Calendar) */}
+        <div className="flex items-center gap-1.5 sm:gap-3 relative shrink-0">
+          {/* Interactive Period Selector (Calendar) - Desktop only (moved below hero on mobile) */}
           {!hidePeriodPicker && (
-            <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setCalendarOpen(!calendarOpen);
-                setNotificationsOpen(false);
-              }}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shadow-2xs"
-            >
-              <Calendar className="w-3.5 h-3.5 text-brand-600" />
-              <span>{periodLabel}</span>
-              <ChevronDown
-                className={`w-3 h-3 text-slate-400 transition-transform ${
-                  calendarOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-
-            {/* Calendar Dropdown Menu */}
-            {calendarOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setCalendarOpen(false)}
-                />
-                <div className="absolute right-0 top-10 z-50 w-80 sm:w-96 bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-3 animate-in fade-in zoom-in-95 duration-100">
-                  {/* Category tabs: Mois, Jour, Trimestre, Semestre, Année */}
-                  <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl mb-2.5 text-xs font-semibold overflow-x-auto no-scrollbar">
-                    <button
-                      type="button"
-                      onClick={() => setCalendarTab('month')}
-                      className={`flex-1 py-1.5 px-2 rounded-xl transition-all whitespace-nowrap ${
-                        calendarTab === 'month'
-                          ? 'bg-white dark:bg-[#111622] text-brand-600 shadow-sm font-bold'
-                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      Mois
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarTab('day')}
-                      className={`flex-1 py-1.5 px-2 rounded-xl transition-all whitespace-nowrap ${
-                        calendarTab === 'day'
-                          ? 'bg-white dark:bg-[#111622] text-brand-600 shadow-sm font-bold'
-                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      Jour
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarTab('quarter')}
-                      className={`flex-1 py-1.5 px-2 rounded-xl transition-all whitespace-nowrap ${
-                        calendarTab === 'quarter'
-                          ? 'bg-white dark:bg-[#111622] text-brand-600 shadow-sm font-bold'
-                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      Trimestre
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarTab('semester')}
-                      className={`flex-1 py-1.5 px-2 rounded-xl transition-all whitespace-nowrap ${
-                        calendarTab === 'semester'
-                          ? 'bg-white dark:bg-[#111622] text-brand-600 shadow-sm font-bold'
-                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      Semestre
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCalendarTab('year')}
-                      className={`flex-1 py-1.5 px-2 rounded-xl transition-all whitespace-nowrap ${
-                        calendarTab === 'year'
-                          ? 'bg-white dark:bg-[#111622] text-brand-600 shadow-sm font-bold'
-                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                      }`}
-                    >
-                      Année
-                    </button>
-                  </div>
-
-                  {/* Tab Content */}
-                  <div className="max-h-72 overflow-y-auto px-1 py-1 space-y-1">
-                    {/* TAB: MOIS */}
-                    {calendarTab === 'month' &&
-                      months.map((m) => {
-                        const isSelected = selectedPeriod === m.id;
-                        return (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPeriod(m.id);
-                              setCalendarOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-left transition-colors ${
-                              isSelected
-                                ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-600 font-bold border border-brand-200/50 dark:border-brand-800/40'
-                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{m.label}</span>
-                              {m.badge && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
-                                  {m.badge}
-                                </span>
-                              )}
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />}
-                          </button>
-                        );
-                      })}
-
-                    {/* TAB: JOUR */}
-                    {calendarTab === 'day' && (
-                      <div className="space-y-3 p-1">
-                        <div className="space-y-1">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">
-                            Jours Récents & Émissions
-                          </span>
-                          {quickDays.map((d) => {
-                            const isSelected = selectedPeriod === d.id;
-                            return (
-                              <button
-                                key={d.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedPeriod(d.id);
-                                  setCalendarOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors ${
-                                  isSelected
-                                    ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-600 font-bold border border-brand-200/50 dark:border-brand-800/40'
-                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                                }`}
-                              >
-                                <span>{d.label}</span>
-                                {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Custom Date Picker */}
-                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">
-                            Choisir une date exacte :
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="date"
-                              value={customDay}
-                              onChange={(e) => setCustomDay(e.target.value)}
-                              className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-medium text-slate-900 dark:text-white"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (customDay) {
-                                  setSelectedPeriod(`day:${customDay}`);
-                                  setCalendarOpen(false);
-                                }
-                              }}
-                              className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm"
-                            >
-                              Filtrer
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* TAB: TRIMESTRE */}
-                    {calendarTab === 'quarter' &&
-                      quarters.map((q) => {
-                        const isSelected = selectedPeriod === q.id || selectedPeriod === q.id.replace('quarter:', '');
-                        return (
-                          <button
-                            key={q.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPeriod(q.id);
-                              setCalendarOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-left transition-colors ${
-                              isSelected
-                                ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-600 font-bold border border-brand-200/50 dark:border-brand-800/40'
-                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{q.label}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
-                                {q.badge}
-                              </span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />}
-                          </button>
-                        );
-                      })}
-
-                    {/* TAB: SEMESTRE */}
-                    {calendarTab === 'semester' &&
-                      semesters.map((s) => {
-                        const isSelected = selectedPeriod === s.id;
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPeriod(s.id);
-                              setCalendarOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-left transition-colors ${
-                              isSelected
-                                ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-600 font-bold border border-brand-200/50 dark:border-brand-800/40'
-                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{s.label}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
-                                {s.badge}
-                              </span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />}
-                          </button>
-                        );
-                      })}
-
-                    {/* TAB: ANNEE */}
-                    {calendarTab === 'year' &&
-                      years.map((y) => {
-                        const isSelected = selectedPeriod === y.id;
-                        return (
-                          <button
-                            key={y.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPeriod(y.id);
-                              setCalendarOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-left transition-colors ${
-                              isSelected
-                                ? 'bg-brand-50 dark:bg-brand-950/40 text-brand-600 font-bold border border-brand-200/50 dark:border-brand-800/40'
-                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{y.label}</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">
-                                {y.badge}
-                              </span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              </>
-            )}
+            <div className="hidden sm:block">
+              <PeriodPickerDropdown align="right" />
             </div>
           )}
 
@@ -405,7 +148,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
               type="button"
               onClick={() => {
                 setNotificationsOpen(!notificationsOpen);
-                setCalendarOpen(false);
               }}
               className="relative p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Notifications"
@@ -659,15 +401,28 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
             )}
           </div>
 
-          {/* New Invoice Button (styled with royal blue & glow) */}
+          {/* New Invoice Button (Desktop only, hidden on mobile) */}
           <Link
             href="/invoices/new"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 hover:shadow-brand-500/30 transition-all"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 hover:shadow-brand-500/30 transition-all shrink-0"
+            title="Créer une nouvelle facture"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden xs:inline">Nouvelle Facture</span>
-            <span className="xs:hidden">Créer</span>
+            <span>Nouvelle Facture</span>
           </Link>
+
+          {/* Close / Return to Dashboard cross button (Visible on Web & Mobile for all non-dashboard sections) */}
+          {!isDashboard && (
+            <Link
+              href="/dashboard"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 dark:active:bg-rose-900/60 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer touch-manipulation relative z-30 select-none"
+              title="Fermer cette section et retourner au Tableau de bord"
+              aria-label="Fermer et retourner au Tableau de bord"
+            >
+              <X className="w-5 h-5 sm:w-4 sm:h-4 text-slate-600 dark:text-slate-300 pointer-events-none shrink-0" />
+              <span className="hidden sm:inline font-semibold pointer-events-none">Fermer</span>
+            </Link>
+          )}
         </div>
       </header>
 

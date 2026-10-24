@@ -45,18 +45,26 @@ OMEGA FACTURE/
 
 ## 💻 Comment lancer le projet dans Antigravity IDE
 
-1. Dans **Antigravity IDE**, ouvrez le dossier :
-   `Fichier` > `Ouvrir le dossier...` (`⌘ + O`) > Sélectionnez `OMEGA FACTURE` sur votre Bureau.
-2. Pour tester dans votre navigateur :
-   - Ouvrez simplement `index.html` dans Chrome, Safari ou Edge.
-   - Ou lancez un mini serveur local :
-     ```bash
-     npx serve .
-     ```
+Deux modes d'utilisation complémentaires sont disponibles :
+
+### 1. Mode Standalone Ultra-Rapide (Navigateur direct)
+- Ouvrez simplement `index.html` à la racine dans Chrome, Safari ou Edge (double-clic direct depuis le Bureau).
+- Ou lancez un mini serveur local :
+  ```bash
+  npx serve .
+  ```
+
+### 2. Mode SaaS Web Avancé Full-Stack (Next.js 14 & Supabase)
+- Installez les dépendances et démarrez le serveur Next.js :
+  ```bash
+  npm install
+  npm run dev
+  ```
+- Ouvrez ensuite [http://localhost:3000](http://localhost:3000) dans votre navigateur pour profiter du Dashboard complet, de la synchronisation Supabase en temps réel, de la balance âgée et des exports PDF/Excel/PNG certifiés.
 
 ---
 
 ## 📞 Conçu par & pour
-- **Société** : OMEGA LivrExpress & Business Suite
+- **Société** : OMEGA FACTURE Suite & Solutions B2B
 - **Auteur** : MONROY (<jobovog@gmail.com>)
-- **Localisation** : Allada, Bénin
+- **Localisation** : Cotonou / Allada, Bénin (Zone UEMOA)
