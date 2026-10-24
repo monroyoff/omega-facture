@@ -107,39 +107,55 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     setTimeout(() => setRelanceToast(null), 4000);
   };
 
+  // Helper to identify quotes vs invoices
+  const isQuote = (i: Invoice) => i.documentKind === 'quote' || i.number.startsWith('DEV-');
+
   // Document kind counts
   const kindCounts = useMemo(() => {
     return {
       all: invoices.length,
-      invoice: invoices.filter(
-        (i) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-')
-      ).length,
-      quote: invoices.filter(
-        (i) => i.documentKind === 'quote' || i.number.startsWith('DEV-')
-      ).length,
+      invoice: invoices.filter((i) => !isQuote(i)).length,
+      quote: invoices.filter(isQuote).length,
     };
   }, [invoices]);
 
-  // Count per status & acomptes
+  // Handle switching document kind (Tous, Factures, Devis):
+  // Immediately cancels/resets all active status filters (payé, envoyé, retard, brouillons)
+  const handleKindChange = (kind: 'all' | 'invoice' | 'quote') => {
+    setSelectedKind(kind);
+    handleTabChange('all');
+    setSelectedIds([]);
+  };
+
+  // Documents matching current kind selection
+  const scopedInvoices = useMemo(() => {
+    if (selectedKind === 'quote') return invoices.filter(isQuote);
+    if (selectedKind === 'invoice') return invoices.filter((i) => !isQuote(i));
+    return invoices;
+  }, [invoices, selectedKind]);
+
+  // Counts strictly calculated for the active document kind
   const counts = useMemo(() => {
     return {
-      all: invoices.length,
-      paid: invoices.filter((i) => i.status === 'paid').length,
-      acompte: invoices.filter((i) => i.amountPaid > 0 && i.status !== 'paid').length,
-      sent: invoices.filter((i) => i.status === 'sent').length,
-      overdue: invoices.filter((i) => i.status === 'overdue').length,
-      draft: invoices.filter((i) => i.status === 'draft').length,
+      all: scopedInvoices.length,
+      paid: scopedInvoices.filter((i) => i.status === 'paid').length,
+      acompte: scopedInvoices.filter((i) => i.amountPaid > 0 && i.status !== 'paid').length,
+      sent: scopedInvoices.filter((i) => i.status === 'sent').length,
+      overdue: scopedInvoices.filter((i) => i.status === 'overdue').length,
+      draft: scopedInvoices.filter((i) => i.status === 'draft').length,
     };
-  }, [invoices]);
+  }, [scopedInvoices]);
+
+  // Safety safeguard: if on quote and selectedTab is paid or acompte, reset to all
+  React.useEffect(() => {
+    if (selectedKind === 'quote' && (selectedTab === 'paid' || selectedTab === 'acompte')) {
+      handleTabChange('all');
+    }
+  }, [selectedKind, selectedTab]);
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
-      const k =
-        inv.documentKind ||
-        (inv.number.startsWith('DEV-') ? 'quote' : 'invoice');
-      if (selectedKind !== 'all' && k !== selectedKind) return false;
-
+    return scopedInvoices.filter((inv) => {
       // Tab filter
       if (selectedTab === 'paid') {
         if (inv.status !== 'paid') return false;
@@ -160,7 +176,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
       return true;
     });
-  }, [invoices, selectedTab, selectedKind, searchQuery]);
+  }, [scopedInvoices, selectedTab, searchQuery]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -176,14 +192,41 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     );
   };
 
-  const tabs: { key: DashboardTableTab; label: string; count: number }[] = [
-    { key: 'all', label: 'Toutes', count: counts.all },
-    { key: 'paid', label: 'Payées', count: counts.paid },
-    { key: 'acompte', label: 'Acomptes reçus', count: counts.acompte },
-    { key: 'sent', label: 'Envoyées', count: counts.sent },
-    { key: 'overdue', label: 'En retard', count: counts.overdue },
-    { key: 'draft', label: 'Brouillons', count: counts.draft },
-  ];
+  // Tabs tailored specifically to each document type (Devis vs Factures vs Tous)
+  const tabs: { key: DashboardTableTab; label: string; count: number }[] = useMemo(() => {
+    if (selectedKind === 'quote') {
+      const qTabs: { key: DashboardTableTab; label: string; count: number }[] = [
+        { key: 'all', label: 'Tous les devis', count: counts.all },
+        { key: 'sent', label: 'Devis envoyés', count: counts.sent },
+        { key: 'draft', label: 'Brouillons', count: counts.draft },
+      ];
+      if (counts.overdue > 0) {
+        qTabs.push({ key: 'overdue', label: 'Validité expirée', count: counts.overdue });
+      }
+      return qTabs;
+    }
+
+    if (selectedKind === 'invoice') {
+      return [
+        { key: 'all', label: 'Toutes les factures', count: counts.all },
+        { key: 'paid', label: 'Payées', count: counts.paid },
+        { key: 'acompte', label: 'Acomptes reçus', count: counts.acompte },
+        { key: 'sent', label: 'Factures envoyées', count: counts.sent },
+        { key: 'overdue', label: 'En retard', count: counts.overdue },
+        { key: 'draft', label: 'Brouillons', count: counts.draft },
+      ];
+    }
+
+    // Tous les documents
+    return [
+      { key: 'all', label: 'Tous les documents', count: counts.all },
+      { key: 'paid', label: 'Factures payées', count: counts.paid },
+      { key: 'acompte', label: 'Acomptes reçus', count: counts.acompte },
+      { key: 'sent', label: 'Envoyés', count: counts.sent },
+      { key: 'overdue', label: 'En retard / Expirés', count: counts.overdue },
+      { key: 'draft', label: 'Brouillons', count: counts.draft },
+    ];
+  }, [selectedKind, counts]);
 
   const shareOnWhatsApp = (inv: Invoice) => {
     const k =
@@ -203,7 +246,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                Dernières Factures & Devis
+                {selectedKind === 'quote'
+                  ? 'Devis Estimatifs'
+                  : selectedKind === 'invoice'
+                  ? 'Dernières Factures'
+                  : 'Dernières Factures & Devis'}
               </h2>
               <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 border border-brand-200/60 dark:border-brand-800/60 truncate max-w-[200px]">
                 📅 {periodLabel}
@@ -222,7 +269,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               )}
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-              Suivi en temps réel de vos factures et devis pour {periodLabel}
+              {selectedKind === 'quote'
+                ? `Suivi et gestion de vos devis estimatifs pour ${periodLabel}`
+                : selectedKind === 'invoice'
+                ? `Suivi de vos factures et encaissements pour ${periodLabel}`
+                : `Suivi en temps réel de vos factures et devis pour ${periodLabel}`}
             </p>
           </div>
 
@@ -235,12 +286,34 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                 onChange={(e) => handleTabChange(e.target.value as any)}
                 className="w-full sm:w-auto py-2 sm:py-1.5 px-3 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               >
-                <option value="all">Tous les statuts ({counts.all})</option>
-                <option value="paid">🟢 Factures payées ({counts.paid})</option>
-                <option value="acompte">💰 Acomptes reçus ({counts.acompte})</option>
-                <option value="sent">🟠 Factures envoyées ({counts.sent})</option>
-                <option value="overdue">🔴 Factures en retard ({counts.overdue})</option>
-                <option value="draft">⚪ Brouillons ({counts.draft})</option>
+                {selectedKind === 'quote' ? (
+                  <>
+                    <option value="all">Tous les devis ({counts.all})</option>
+                    <option value="sent">🟠 Devis envoyés ({counts.sent})</option>
+                    <option value="draft">⚪ Brouillons ({counts.draft})</option>
+                    {counts.overdue > 0 && (
+                      <option value="overdue">🔴 Validité expirée ({counts.overdue})</option>
+                    )}
+                  </>
+                ) : selectedKind === 'invoice' ? (
+                  <>
+                    <option value="all">Toutes les factures ({counts.all})</option>
+                    <option value="paid">🟢 Factures payées ({counts.paid})</option>
+                    <option value="acompte">💰 Acomptes reçus ({counts.acompte})</option>
+                    <option value="sent">🟠 Factures envoyées ({counts.sent})</option>
+                    <option value="overdue">🔴 Factures en retard ({counts.overdue})</option>
+                    <option value="draft">⚪ Brouillons ({counts.draft})</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="all">Tous les documents ({counts.all})</option>
+                    <option value="paid">🟢 Factures payées ({counts.paid})</option>
+                    <option value="acompte">💰 Acomptes reçus ({counts.acompte})</option>
+                    <option value="sent">🟠 Documents envoyés ({counts.sent})</option>
+                    <option value="overdue">🔴 En retard / Expirés ({counts.overdue})</option>
+                    <option value="draft">⚪ Brouillons ({counts.draft})</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -248,7 +321,13 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="N° facture, client, société..."
+                placeholder={
+                  selectedKind === 'quote'
+                    ? 'N° devis, client, société...'
+                    : selectedKind === 'invoice'
+                    ? 'N° facture, client, société...'
+                    : 'N° facture/devis, client...'
+                }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 sm:py-1.5 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
@@ -258,8 +337,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
             {(selectedTab !== 'all' || selectedKind !== 'all' || searchQuery) && (
               <button
                 onClick={() => {
-                  handleTabChange('all');
-                  setSelectedKind('all');
+                  handleKindChange('all');
                   setSearchQuery('');
                 }}
                 className="px-2.5 py-1.5 sm:py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 transition-colors text-center shrink-0 cursor-pointer"
@@ -285,7 +363,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               <button
                 key={item.key}
                 type="button"
-                onClick={() => setSelectedKind(item.key as any)}
+                onClick={() => handleKindChange(item.key as any)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   isSelected
                     ? `${item.color} shadow-sm scale-100`
@@ -352,12 +430,16 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
             <FileCheck2 className="w-7 h-7 text-slate-400 dark:text-slate-500" />
           </div>
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-            Aucune facture trouvée
+            {selectedKind === 'quote'
+              ? 'Aucun devis trouvé'
+              : selectedKind === 'invoice'
+              ? 'Aucune facture trouvée'
+              : 'Aucun document trouvé'}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
             {searchQuery || selectedTab !== 'all'
-              ? 'Aucune facture ne correspond à votre filtre ou terme de recherche actuel.'
-              : `Aucune facture enregistrée pour la période sélectionnée (${periodLabel}).`}
+              ? `Aucun ${selectedKind === 'quote' ? 'devis' : 'document'} ne correspond à votre filtre ou terme de recherche actuel.`
+              : `Aucun ${selectedKind === 'quote' ? 'devis' : 'document'} enregistré pour la période sélectionnée (${periodLabel}).`}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
             {selectedPeriod !== 'ALL' && (
