@@ -29,7 +29,6 @@ import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal'
 import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
 import { Invoice } from '@/lib/types';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
-import { UserSessionModal } from '@/components/layout/UserSessionModal';
 
 interface HeaderProps {
   onOpenSidebar: () => void;
@@ -43,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
   const isDashboard = pathname === '/' || pathname === '/dashboard';
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [userSessionOpen, setUserSessionOpen] = useState(false);
   const [headerCreateModalKind, setHeaderCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
@@ -74,8 +72,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
     dismissNotification,
     unreadNotificationCount,
     invoices,
-    currentUser,
-    isAuthenticated,
   } = useInvoices();
 
   const handleCardClick = (n: typeof notifications[0]) => {
@@ -408,33 +404,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
             )}
           </div>
 
-          {/* Interactive User Session Button (Shows user avatar, first name, and opens session modal) */}
-          {isAuthenticated && currentUser && (
-            <button
-              type="button"
-              onClick={() => setUserSessionOpen(true)}
-              className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#111622] hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-2xs cursor-pointer group active:scale-98"
-              title="Session de connexion : Voir mon prénom, ma photo et mes informations"
-            >
-              <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-brand-100 dark:bg-brand-900/40 border border-slate-200 dark:border-slate-700 shrink-0">
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-[#111622]" />
-              </div>
-              <div className="hidden md:flex flex-col text-left">
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600 transition-colors leading-tight">
-                  {currentUser.firstName || currentUser.name.split(' ')[0]}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium leading-none truncate max-w-[120px]">
-                  {currentUser.organization}
-                </span>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors hidden sm:block shrink-0" />
-            </button>
-          )}
+
 
           {/* Close / Return to Dashboard cross button (Visible on Web & Mobile for all non-dashboard sections) */}
           {!isDashboard && (
@@ -451,11 +421,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
         </div>
       </header>
 
-      {/* User Session Modal */}
-      <UserSessionModal
-        isOpen={userSessionOpen}
-        onClose={() => setUserSessionOpen(false)}
-      />
+
 
       {/* Global Quick Action Modals reachable from the Header */}
       <CreateInvoiceModal
