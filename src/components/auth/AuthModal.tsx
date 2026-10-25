@@ -345,28 +345,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </form>
 
-            {/* Quick Demo Login */}
-            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
-              <span className="text-[11px] text-slate-400 block mb-2 font-medium">
-                Ou connexion de démonstration :
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginEmail('jobovog@gmail.com');
-                  login('jobovog@gmail.com', 'MONROY Business', { firstName: 'MONROY', organization: 'MONROY Business Solutions' });
-                  onSuccess?.('Connexion rapide réussie ! Bienvenue MONROY.');
-                  onClose();
-                }}
-                className="w-full py-2.5 px-3 rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 text-xs font-bold hover:bg-brand-100 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Connexion rapide (MONROY Business)</span>
-              </button>
-            </div>
-
             {/* Bottom link to Register */}
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 Vous n'avez pas de compte ?{' '}
                 <button

@@ -411,12 +411,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthModalMode('login');
-                    setAuthModalOpen(true);
-                  }}
+                <Link
+                  href="/login"
                   className="w-full flex items-center justify-between p-2 rounded-2xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 hover:bg-brand-100/70 dark:hover:bg-brand-900/40 transition-colors cursor-pointer group active:scale-98"
                   title="Cliquer pour vous connecter à votre compte"
                 >
@@ -434,18 +430,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-brand-600 shrink-0" />
-                </button>
+                </Link>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthModalMode('register');
-                    setAuthModalOpen(true);
-                  }}
-                  className="w-full py-1.5 px-2 rounded-xl text-center text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                <Link
+                  href="/register"
+                  className="w-full py-1.5 px-2 rounded-xl text-center text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer block"
                 >
                   Nouveau ? Créer un compte →
-                </button>
+                </Link>
               </div>
             )}
           </div>

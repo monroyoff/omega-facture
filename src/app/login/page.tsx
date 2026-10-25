@@ -121,7 +121,7 @@ export default function LoginPage() {
                   Connexion à votre espace
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Accédez à vos factures, acomptes et relances en toute sécurité.
+                  Connexion exclusive par Identifiant (Email) et Mot de passe.
                 </p>
               </div>
 
@@ -135,7 +135,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
-                    Adresse Email Professionnelle
+                    Identifiant (Adresse Email)
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -301,9 +301,12 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <div className="mt-6 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Plateforme conforme aux normes fiscales UEMOA</span>
+        <div className="mt-6 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Connexion sécurisée exclusive par Identifiant & Mot de passe</span>
+          </div>
+          <span className="text-[11px] text-slate-400">Plateforme conforme aux normes fiscales UEMOA</span>
         </div>
       </div>
     </div>

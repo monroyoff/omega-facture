@@ -235,7 +235,12 @@
     5. **Paiements & Encaissements (`/payments`)** : `KPICardsSkeleton` (4 cartes de ventilation Mobile Money, Virements, Espèces) et `TableSkeleton` (transactions de flux de trésorerie).
     6. **Rapports financiers & KPI (`/reports`)** : `ReportsSkeleton` (top 3 indicateurs de CA/recouvrement, carte de balance âgée à 3 tranches et tableau d'opérations drilldown).
   - **Animation Shimmer Moderne** : Balayage lumineux fluide `.skeleton-shimmer` avec dégradé linéaire (`@keyframes skeletonWave`) optimisé pour les modes clair et sombre.
-  - **Transition Automatique vers les Données Réelles** : Piloté par l'état `isDataLoading` du contexte `useInvoices()`. Dès que les requêtes Supabase aboutissent, les composants effectuent une transition instantanée vers les données réelles sans exiger aucun rechargement manuel de la page par l'utilisateur.
+### N. Authentification Exclusive par Identifiant & Mot de Passe (`/login`)
+- **Règle d'Or d'Accès au Système** :
+  1. **Méthode Unique & Inviolable** : La seule et unique manière d'accéder à la plateforme est la saisie rigoureuse de son **identifiant (adresse email professionnelle valide)** et de son **mot de passe personnel**.
+  2. **Interdiction Formelle des Connexions Alternatives** : Aucun bouton de connexion tierce (Google, réseaux sociaux), aucun mode invité, ni aucun compte démo ou raccourci de contournement n'est toléré sur l'application.
+  3. **Vérification Stricte du Compte** : Seuls les comptes réels dûment confirmés par email et dont le mot de passe correspond exactement aux données enregistrées (Supabase Auth / Registre sécurisé) peuvent ouvrir une session.
+  4. **Protection Globale (`AuthGuard`)** : Toute tentative d'accès à une page protégée sans être authentifié par son identifiant et mot de passe est immédiatement redirigée vers `/login`.
 
 ---
 
