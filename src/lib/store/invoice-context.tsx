@@ -710,7 +710,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         try {
           localStorage.removeItem('facturo:v1:is_logged_out');
           localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: profile }));
-          localStorage.setItem('facturo:v1:last_email', cleanEmail);
+          localStorage.removeItem('facturo:v1:last_email');
+          localStorage.removeItem('facturo:v1:last_registered_email');
         } catch (e) {}
 
         return { success: true, user: profile };
@@ -769,7 +770,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       localStorage.removeItem('facturo:v1:is_logged_out');
       localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: validUser }));
-      localStorage.setItem('facturo:v1:last_email', cleanEmail);
+      localStorage.removeItem('facturo:v1:last_email');
+      localStorage.removeItem('facturo:v1:last_registered_email');
     } catch (e) {}
 
     return { success: true, user: validUser };
@@ -819,8 +821,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     saveUserToRegistry(userProfile);
     try {
-      localStorage.setItem('facturo:v1:last_registered_email', email);
-      localStorage.setItem('facturo:v1:last_email', email);
+      localStorage.removeItem('facturo:v1:last_registered_email');
+      localStorage.removeItem('facturo:v1:last_email');
     } catch (e) {}
 
     // 1. Envoi via notre passerelle d'emailing de production (/api/auth/send-verification)
@@ -922,7 +924,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     try {
       localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: verifiedUser }));
-      localStorage.setItem('facturo:v1:last_email', email);
+      localStorage.removeItem('facturo:v1:last_email');
+      localStorage.removeItem('facturo:v1:last_registered_email');
       localStorage.removeItem('facturo:v1:pending_verification');
     } catch (e) {}
 
@@ -997,10 +1000,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       localStorage.setItem('facturo:v1:is_logged_out', 'true');
       localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: false, currentUser: null }));
+      localStorage.removeItem('facturo:v1:last_email');
+      localStorage.removeItem('facturo:v1:last_registered_email');
+      localStorage.removeItem('facturo:v1:pending_verification');
       if (typeof window !== 'undefined') {
         // Supprimer toutes les clés de session Supabase stockées en localStorage
         Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('sb-') || key.includes('-auth-token') || key.includes('supabase')) {
+          if (key.startsWith('sb-') || key.includes('-auth-token') || key.includes('supabase') || key.includes('last_email')) {
             localStorage.removeItem(key);
           }
         });

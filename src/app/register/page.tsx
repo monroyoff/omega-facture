@@ -34,6 +34,20 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Garantir des champs 100% vierges à l'ouverture, sans rémanence ni pré-remplissage
+  React.useEffect(() => {
+    setLastName('');
+    setFirstName('');
+    setOrganization('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    try {
+      localStorage.removeItem('facturo:v1:last_email');
+      localStorage.removeItem('facturo:v1:last_registered_email');
+    } catch (e) {}
+  }, []);
+
   // Password strength calculation
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { score: 0, label: 'Vide', color: 'bg-slate-200' };
@@ -139,7 +153,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Row 1: Nom & Prénom */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -151,6 +165,7 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="ex: KOUAME"
@@ -168,6 +183,7 @@ export default function RegisterPage() {
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="ex: Arnaud"
@@ -190,6 +206,7 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={organization}
                   onChange={(e) => setOrganization(e.target.value)}
                   placeholder="ex: KOUAME & PARTNERS SARL, Cabinet Sylla..."
@@ -208,6 +225,10 @@ export default function RegisterPage() {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ex: arnaud.kouame@partners.ci"
@@ -227,6 +248,10 @@ export default function RegisterPage() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 6 caractères"
@@ -265,6 +290,10 @@ export default function RegisterPage() {
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     required
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onKeyDown={(e) => {

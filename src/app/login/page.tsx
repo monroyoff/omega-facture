@@ -30,15 +30,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Pré-remplissage avec l'email réel de l'utilisateur s'il s'est récemment inscrit ou connecté
+  // Garantir des champs 100% vierges à l'ouverture, sans aucun pré-remplissage
   React.useEffect(() => {
+    setEmail('');
+    setPassword('');
     try {
-      const last =
-        localStorage.getItem('facturo:v1:last_email') ||
-        localStorage.getItem('facturo:v1:last_registered_email');
-      if (last) {
-        setEmail(last);
-      }
+      localStorage.removeItem('facturo:v1:last_email');
+      localStorage.removeItem('facturo:v1:last_registered_email');
     } catch (e) {}
   }, []);
 

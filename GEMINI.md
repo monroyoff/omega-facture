@@ -415,5 +415,19 @@ Afin d'éviter tout retour du badge d'erreur Next.js (`(!) 1 error` / `Hydration
 4. **Composants Skeleton Universels** :
    - Tous les modules principaux disposent d'un loader Shimmering Skeleton (`Skeleton.tsx`) affiché tant que `isDataLoading` est actif, évitant tout décalage d'affichage ou flash visuel.
 
+---
+
+## 6. SÉPARATION STRICTE DES COMPTES & ZÉRO PRÉ-REMPLISSAGE (ANTI-AUTOFILL & PURGE DE SESSION)
+
+Afin de garantir la confidentialité absolue et l'indépendance de chaque utilisateur et entreprise :
+1. **Éradication Totale du Pré-remplissage sur Inscription (`/register`) et Connexion (`/login`)** :
+   - Tous les champs de saisie (*Nom*, *Prénom*, *Entreprise*, *Email*, *Mot de passe*, *Confirmation*) doivent obligatoirement démarrer à vide (`""`).
+   - Interdiction formelle de conserver ou de réinjecter un email de session précédente (`last_email` / `last_registered_email`).
+2. **Purge Rigoureuse à la Déconnexion (`logout`)** :
+   - La fonction `logout()` purge instantanément toutes les traces de session, tokens Supabase, drapeaux d'authentification et clés d'email en `localStorage`.
+3. **Protection Anti-Autofill des Navigateurs** :
+   - Les formulaires d'inscription et de connexion intègrent obligatoirement `autoComplete="off"`, `autoComplete="new-password"` pour les mots de passe de création, ainsi que les drapeaux de neutralisation des gestionnaires de mots de passe (`data-lpignore="true"`, `data-1p-ignore="true"`, `data-form-type="other"`).
+
+
 
 

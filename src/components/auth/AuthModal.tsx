@@ -48,16 +48,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Pré-remplissage avec l'email réel s'il est enregistré
+  // Réinitialisation stricte à l'ouverture pour garantir la séparation totale des comptes
   React.useEffect(() => {
     if (isOpen) {
+      setLoginEmail('');
+      setLoginPassword('');
+      setLoginError(null);
+      setRegFirstName('');
+      setRegLastName('');
+      setRegOrganization('');
+      setRegEmail('');
+      setRegPassword('');
+      setRegConfirmPassword('');
+      setRegError(null);
       try {
-        const last =
-          localStorage.getItem('facturo:v1:last_email') ||
-          localStorage.getItem('facturo:v1:last_registered_email');
-        if (last && !loginEmail) {
-          setLoginEmail(last);
-        }
+        localStorage.removeItem('facturo:v1:last_email');
+        localStorage.removeItem('facturo:v1:last_registered_email');
       } catch (e) {}
     }
   }, [isOpen]);
@@ -276,7 +282,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             )}
 
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
                   Adresse Email Professionnelle
@@ -286,6 +292,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="email"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="ex: contact@entreprise.bj"
@@ -316,6 +324,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type={showLoginPassword ? 'text' : 'password'}
                     required
+                    autoComplete="current-password"
+                    data-lpignore="true"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Votre mot de passe"
@@ -376,7 +386,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             )}
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-3">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3" autoComplete="off">
               {/* Row 1: Nom & Prénom */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
@@ -445,6 +455,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="email"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="ex: contact@kora-tech.bj"
@@ -464,6 +478,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type={showRegPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Min. 6 caractères"
@@ -501,6 +519,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type={showRegConfirmPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
                       placeholder="Retapez le mot de passe"
