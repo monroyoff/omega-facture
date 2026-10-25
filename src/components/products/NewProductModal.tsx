@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Package, Tag, Percent, Check, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Product } from '@/lib/store/invoice-context';
+import { formatFCFA } from '@/lib/money/format';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({
   onClose,
   onProductCreated,
 }) => {
-  const { addProduct } = useInvoices();
+  const { addProduct, showToast } = useInvoices();
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Services IT');
@@ -41,7 +42,12 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      alert('Veuillez renseigner le nom de l’article.');
+      showToast({
+        title: 'Nom d’article requis',
+        message: 'Veuillez renseigner le libellé de l’article avant de l’ajouter.',
+        kind: 'warning',
+        duration: 4000,
+      });
       return;
     }
 
@@ -52,6 +58,14 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({
       vat,
       price: Math.max(0, Math.round(price)),
       image: image.trim() || undefined,
+    });
+
+    showToast({
+      title: 'Article ajouté au catalogue avec succès',
+      message: `${name.trim()} (${category}) enregistré à ${formatFCFA(price)} HT.`,
+      kind: 'success',
+      amount: price,
+      duration: 4000,
     });
 
     onProductCreated?.(created);

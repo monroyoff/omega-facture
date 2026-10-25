@@ -7,6 +7,7 @@ import {
   X,
   Printer,
   Share2,
+  Download,
   Mail,
   CheckCircle2,
   Calendar,
@@ -32,6 +33,8 @@ import { Invoice, InvoiceStatus } from '@/lib/types';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { StatusBadge } from '@/components/ui/Badge';
 import { RelanceModal } from '@/components/invoices/RelanceModal';
+import { ShareDocumentModal } from '@/components/invoices/ShareDocumentModal';
+import { generateInvoicePDF } from '@/lib/pdf/invoice-pdf';
 import { useInvoices } from '@/lib/store/invoice-context';
 
 interface InvoicePreviewModalProps {
@@ -44,18 +47,43 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   onClose,
 }) => {
   const router = useRouter();
-  const { deleteInvoice, convertQuoteToInvoice, currentUser } = useInvoices();
+  const { deleteInvoice, convertQuoteToInvoice, currentUser, showToast } = useInvoices();
   const [isRelanceOpen, setIsRelanceOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [navMenuOpen, setNavMenuOpen] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
-  const [actionToast, setActionToast] = useState<{ title: string; message: string } | null>(null);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   if (!invoice) return null;
 
   const docKind =
     invoice.documentKind ||
     (invoice.number.startsWith('DEV-') ? 'quote' : 'invoice');
+
+  const handleDownloadPDF = async () => {
+    if (!invoice || isDownloadingPDF) return;
+    setIsDownloadingPDF(true);
+    try {
+      await generateInvoicePDF({
+        invoice,
+        companyName: currentUser?.organization || 'MONROY Business Solutions',
+        companyEmail: currentUser?.email || 'monmonnroyteam@gmail.com',
+      });
+      showToast({
+        title: 'Document PDF officiel téléchargé !',
+        message: `Le fichier officiel ${invoice.number}.pdf a été généré et téléchargé avec succès.`,
+        kind: 'success',
+        number: invoice.number,
+        duration: 4000,
+      });
+    } catch (e) {
+      console.error('Erreur téléchargement PDF :', e);
+      window.print();
+    } finally {
+      setIsDownloadingPDF(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -70,16 +98,33 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   const handleConfirmDelete = () => {
     if (!invoice) return;
+    const num = invoice.number;
     deleteInvoice(invoice.id);
     setShowDeleteModal(false);
     onClose();
+    showToast({
+      title: `${docKind === 'quote' ? 'Devis' : 'Facture'} supprimé(e)`,
+      message: `Le document ${num} a été supprimé définitivement.`,
+      kind: 'delete',
+      number: num,
+      duration: 4000,
+    });
   };
 
   const handleConfirmConvert = (targetStatus: InvoiceStatus = 'sent') => {
     if (!invoice) return;
-    convertQuoteToInvoice(invoice.id, targetStatus);
+    const oldNum = invoice.number;
+    const converted = convertQuoteToInvoice(invoice.id, targetStatus);
     setShowConvertModal(false);
     onClose();
+    showToast({
+      title: 'Devis converti en Facture Envoyée !',
+      message: `Le devis ${oldNum} a été converti en Facture ${converted?.number || ''} avec succès.`,
+      kind: 'invoice',
+      number: converted?.number,
+      amount: converted?.total,
+      duration: 4500,
+    });
   };
 
   return (
@@ -87,7 +132,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
       {/* Modal Container */}
       <div className="relative w-full max-w-4xl bg-slate-100 dark:bg-[#0c1017] rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto max-h-[92vh] sm:max-h-[90vh] flex flex-col">
         {/* Top Action & Navigation Bar */}
-        <div className="px-4 sm:px-6 py-3.5 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="no-print px-4 sm:px-6 py-3.5 bg-white dark:bg-[#111622] border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
             {/* Quick Navigation Dropdown */}
             <div className="relative">
@@ -238,12 +283,23 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               <span className="hidden sm:inline">Supprimer</span>
             </button>
             <button
-              onClick={handleWhatsApp}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
-              title="Envoyer par WhatsApp"
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer active:scale-95 shadow-2xs"
+              title="Partager ce document (WhatsApp ou Email)"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">WhatsApp</span>
+              <Share2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+              <span className="hidden sm:inline">Partager</span>
+            </button>
+            <button
+              type="button"
+              disabled={isDownloadingPDF}
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-brand-600/20 transition-all cursor-pointer disabled:opacity-50"
+              title="Télécharger le document officiel en PDF (.pdf)"
+            >
+              <Download className={`w-3.5 h-3.5 ${isDownloadingPDF ? 'animate-bounce' : ''}`} />
+              <span>{isDownloadingPDF ? 'Génération...' : 'Télécharger PDF'}</span>
             </button>
             <button
               onClick={handlePrint}
@@ -267,7 +323,10 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
         {/* Scrollable Document Canvas */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-6 md:p-8 flex justify-center items-start bg-slate-200/70 dark:bg-[#070a0f] min-h-0">
           {/* A4 Sheet Container */}
-          <div className="w-full max-w-[800px] h-fit min-h-full bg-white text-slate-900 rounded-2xl p-4 sm:p-8 md:p-12 shadow-paper border border-slate-200/80 select-text font-sans my-0 sm:my-2">
+          <div
+            id="invoice-printable-area"
+            className="printable-document w-full max-w-[800px] h-fit min-h-full bg-white text-slate-900 rounded-2xl p-4 sm:p-8 md:p-12 shadow-paper border border-slate-200/80 select-text font-sans my-0 sm:my-2"
+          >
             {/* Header: Title, Number, and Company Logo */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-6 sm:pb-8 mb-6 sm:mb-8">
               <div>
@@ -569,6 +628,13 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Share Document Modal (WhatsApp or Email) */}
+      <ShareDocumentModal
+        isOpen={isShareModalOpen}
+        invoice={invoice}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </div>
   );
 };

@@ -55,7 +55,10 @@ Deux modes d'utilisation complémentaires sont disponibles :
   ```
 
 ### 2. Mode SaaS Web Avancé Full-Stack (Next.js 14 & Supabase)
-- Installez les dépendances et démarrez le serveur Next.js :
+- **Via les Raccourcis Bureau macOS** :
+  - Double-cliquez sur **`Lancer OMEGA FACTURE.command`** sur votre Bureau : le serveur démarre automatiquement avec actualisation en direct (*Fast Refresh*) et ouvre votre navigateur sur `http://localhost:3000`.
+  - Pour stopper l'application à tout moment, double-cliquez sur **`Arrêter OMEGA FACTURE.command`** sur votre Bureau ou faites `Ctrl + C` dans la fenêtre Terminal.
+- **Ou via la console dans Antigravity IDE** :
   ```bash
   npm install
   npm run dev

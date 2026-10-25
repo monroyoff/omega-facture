@@ -15,6 +15,7 @@
 .env.*
 !.env.example
 .env.local
+.agents/mcp_config.json
 
 # Dependencies
 node_modules/

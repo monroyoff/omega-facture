@@ -23,6 +23,7 @@ import {
   AlertCircle,
   X,
   FileText,
+  Menu,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
@@ -35,7 +36,7 @@ export default function EditInvoicePage() {
   const params = useParams();
   const invoiceId = params?.id as string;
 
-  const { getInvoice, updateInvoice, deleteInvoice, convertQuoteToInvoice, clients, currentUser } = useInvoices();
+  const { getInvoice, updateInvoice, deleteInvoice, convertQuoteToInvoice, clients, currentUser, showToast } = useInvoices();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
@@ -153,8 +154,15 @@ export default function EditInvoicePage() {
       })),
       status: documentKind === 'quote' ? (docStatus === 'draft' ? 'draft' : 'sent') : 'draft',
     });
-    const label = documentKind === 'quote' ? 'Devis' : 'Brouillon facture';
-    alert(`${label} ${invoiceNumber} mis à jour avec succès !`);
+    const isQuote = documentKind === 'quote';
+    showToast({
+      title: isQuote ? 'Devis mis à jour' : 'Brouillon mis à jour',
+      message: `${isQuote ? 'Devis' : 'Brouillon de facture'} ${invoiceNumber} sauvegardé avec succès.`,
+      kind: 'draft',
+      number: invoiceNumber,
+      amount: totals.totalTTC,
+      duration: 4000,
+    });
     router.push('/invoices');
   };
 
@@ -183,8 +191,15 @@ export default function EditInvoicePage() {
       })),
       status: 'sent',
     });
-    const label = documentKind === 'quote' ? 'Devis' : 'Facture';
-    alert(`${label} ${invoiceNumber} validé et enregistré avec succès !`);
+    const isQuote = documentKind === 'quote';
+    showToast({
+      title: isQuote ? 'Devis émis avec succès' : 'Facture émise avec succès',
+      message: `${isQuote ? 'Devis' : 'Facture'} ${invoiceNumber} validé et enregistré avec succès.`,
+      kind: isQuote ? 'quote' : 'invoice',
+      number: invoiceNumber,
+      amount: totals.totalTTC,
+      duration: 4500,
+    });
     router.push('/invoices');
   };
 
@@ -197,10 +212,9 @@ export default function EditInvoicePage() {
 
   const handleConvertQuoteToInvoice = () => {
     if (!invoiceId) return;
-    updateInvoice(invoiceId, {
+    const converted = convertQuoteToInvoice(invoiceId, 'sent', {
       clientId: selectedClientId,
       client: currentClient,
-      documentKind: 'invoice',
       issueDate,
       dueDate,
       currency: currency === 'FCFA' ? 'XOF' : currency,
@@ -217,11 +231,16 @@ export default function EditInvoicePage() {
         vatRate: it.vatRate,
         total: Math.round(it.quantity * it.unitPrice * (1 - (it.discountPct || 0) / 100)),
       })),
-      status: 'sent',
     });
-    const converted = convertQuoteToInvoice(invoiceId, 'sent');
     setShowConvertModal(false);
-    alert(`Devis ${invoiceNumber} converti avec succès en Facture ${converted?.number || ''} (Envoyée) ! Il a été transféré dans l'onglet Factures.`);
+    showToast({
+      title: 'Devis converti en Facture',
+      message: `Devis ${invoiceNumber} converti avec succès en Facture ${converted?.number || ''} (Envoyée).`,
+      kind: 'invoice',
+      number: converted?.number,
+      amount: totals.totalTTC,
+      duration: 4500,
+    });
     router.push('/invoices');
   };
 
@@ -231,15 +250,23 @@ export default function EditInvoicePage() {
 
       <div className="lg:pl-72 flex flex-col flex-1">
         <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-[#0c1017]/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 sm:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <Link href="/" className="text-slate-400 hover:text-slate-600 font-medium">Dashboard</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-            <Link href="/invoices" className="text-slate-400 hover:text-slate-600 font-medium">Factures</Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden shrink-0 cursor-pointer"
+              aria-label="Ouvrir le menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <Link href="/" className="text-slate-400 hover:text-slate-600 font-medium shrink-0">Dashboard</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+            <Link href="/invoices" className="text-slate-400 hover:text-slate-600 font-medium shrink-0">Factures</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0 hidden sm:inline" />
+            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[120px] sm:max-w-xs">
               {documentKind === 'quote'
-                ? `Modifier le Devis (${invoiceNumber})`
-                : `Modifier le Brouillon (${invoiceNumber})`}
+                ? `Modifier (${invoiceNumber})`
+                : `Modifier (${invoiceNumber})`}
             </span>
           </div>
 

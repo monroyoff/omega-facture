@@ -215,7 +215,9 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
   }, [payments]);
 
   const recoveryPendingInvoices = useMemo(() => {
-    return invoices.filter((i) => i.status !== 'draft' && i.total - i.amountPaid > 0);
+    return invoices
+      .filter(isRealInvoice)
+      .filter((i) => i.status !== 'draft' && i.total - (i.amountPaid || 0) > 0);
   }, [invoices]);
 
   // Search filtered items

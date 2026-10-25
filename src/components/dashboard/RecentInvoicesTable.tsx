@@ -26,6 +26,8 @@ import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { StatusBadge } from '@/components/ui/Badge';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { RelanceModal } from '@/components/invoices/RelanceModal';
+import { ShareDocumentModal } from '@/components/invoices/ShareDocumentModal';
+import { generateInvoicePDF } from '@/lib/pdf/invoice-pdf';
 
 export type DashboardTableTab = 'all' | 'paid' | 'acompte' | 'sent' | 'overdue' | 'draft';
 
@@ -48,7 +50,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   onKindChange,
   id = 'invoices-section',
 }) => {
-  const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice } = useInvoices();
+  const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice, showToast } = useInvoices();
   const [internalTab, setInternalTab] = useState<DashboardTableTab>('all');
   const selectedTab = activeTab !== undefined ? activeTab : internalTab;
   const handleTabChange = (tab: DashboardTableTab) => {
@@ -62,9 +64,10 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   const [relanceInvoice, setRelanceInvoice] = useState<Invoice | null>(null);
   const [relanceToast, setRelanceToast] = useState<string | null>(null);
 
-  // Modal & Toast states for delete and quote conversion
+  // Modal & Toast states for delete, share, and quote conversion
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [quoteToConvert, setQuoteToConvert] = useState<Invoice | null>(null);
+  const [shareInvoice, setShareInvoice] = useState<Invoice | null>(null);
   const [actionToast, setActionToast] = useState<{ title: string; message: string } | null>(null);
 
   const handleConfirmDelete = () => {
@@ -74,11 +77,37 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     deleteInvoice(invoiceToDelete.id);
     setSelectedIds((prev) => prev.filter((id) => id !== invoiceToDelete.id));
     setInvoiceToDelete(null);
-    setActionToast({
+    showToast({
       title: `${isQuote ? 'Devis' : 'Facture'} supprimé(e)`,
       message: `Le document ${num} a été supprimé définitivement.`,
+      kind: 'delete',
+      number: num,
+      duration: 4000,
     });
-    setTimeout(() => setActionToast(null), 4000);
+  };
+
+  const handleDownloadInvoicePDF = async (inv: Invoice, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      setActionToast({
+        title: 'Téléchargement PDF en cours...',
+        message: `Génération haute résolution du fichier ${inv.number}.pdf...`,
+      });
+      await generateInvoicePDF({
+        invoice: inv,
+        companyName: 'MONROY Business Solutions',
+      });
+      showToast({
+        title: 'Document PDF officiel téléchargé !',
+        message: `Le fichier officiel ${inv.number}.pdf est prêt et téléchargé sur votre appareil.`,
+        kind: 'success',
+        number: inv.number,
+        duration: 4000,
+      });
+    } catch (err) {
+      console.error('Erreur PDF:', err);
+      window.print();
+    }
   };
 
   const handleConfirmConvert = (targetStatus: InvoiceStatus = 'sent') => {
@@ -87,11 +116,14 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     const converted = convertQuoteToInvoice(quoteToConvert.id, targetStatus);
     setQuoteToConvert(null);
     if (converted) {
-      setActionToast({
+      showToast({
         title: 'Devis converti en Facture Envoyée !',
         message: `Le devis ${oldNum} a été converti en Facture ${converted.number} (statut : Envoyée). Il figure désormais dans l'onglet Factures !`,
+        kind: 'invoice',
+        number: converted.number,
+        amount: converted.total,
+        duration: 4500,
       });
-      setTimeout(() => setActionToast(null), 6000);
     }
   };
 
@@ -108,8 +140,13 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   }, [setSelectedPeriod]);
 
   const handleRelanceSent = (inv: Invoice, channel: string) => {
-    setRelanceToast(`Relance ${channel} transmise pour ${inv.client.name} (${inv.number})`);
-    setTimeout(() => setRelanceToast(null), 4000);
+    showToast({
+      title: 'Relance transmise avec succès',
+      message: `Relance ${channel} effectuée pour ${inv.client.name} (${inv.number}).`,
+      kind: 'info',
+      number: inv.number,
+      duration: 4000,
+    });
   };
 
   // Helper to identify quotes vs invoices
@@ -619,9 +656,9 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                       <div className="flex items-center gap-0.5 sm:gap-1 ml-auto">
                         <button
                           type="button"
-                          onClick={() => shareOnWhatsApp(inv)}
-                          className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
-                          title="Partager sur WhatsApp"
+                          onClick={() => setShareInvoice(inv)}
+                          className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors cursor-pointer"
+                          title="Partager (WhatsApp ou Email)"
                         >
                           <Share2 className="w-3.5 h-3.5" />
                         </button>
@@ -643,9 +680,9 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => window.print()}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                          title="Imprimer / PDF"
+                          onClick={(e) => handleDownloadInvoicePDF(inv, e)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors cursor-pointer"
+                          title="Télécharger le PDF officiel (.pdf)"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
@@ -882,16 +919,18 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => shareOnWhatsApp(inv)}
-                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
-                            title="Partager sur WhatsApp"
+                            type="button"
+                            onClick={() => setShareInvoice(inv)}
+                            className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors cursor-pointer"
+                            title="Partager (WhatsApp ou Email)"
                           >
                             <Share2 className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => window.print()}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            title="Imprimer / PDF"
+                            type="button"
+                            onClick={(e) => handleDownloadInvoicePDF(inv, e)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors cursor-pointer"
+                            title="Télécharger le PDF officiel (.pdf)"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </button>
@@ -1089,6 +1128,13 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
           </button>
         </div>
       )}
+
+      {/* Share Document Modal (WhatsApp or Email) */}
+      <ShareDocumentModal
+        isOpen={!!shareInvoice}
+        invoice={shareInvoice}
+        onClose={() => setShareInvoice(null)}
+      />
     </div>
   );
 };

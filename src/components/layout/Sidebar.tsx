@@ -52,9 +52,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [authToast, setAuthToast] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const { currentUser, isAuthenticated, login, logout, invoices } = useInvoices();
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const pendingCount = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue').length;
 
@@ -112,16 +117,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
     setProfileMenuOpen(false);
-    setAuthToast('Vous avez été déconnecté avec succès. Vous êtes désormais en mode invité.');
-    setTimeout(() => setAuthToast(null), 3500);
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    }
+    if (typeof window !== 'undefined') {
+      window.location.replace('/login');
+    }
   };
 
   const navItems = [
     { label: 'Tableau de bord', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Factures & Devis', href: '/invoices', icon: FileText, count: pendingCount > 0 ? pendingCount : undefined },
+    { label: 'Factures & Devis', href: '/invoices', icon: FileText, count: mounted && pendingCount > 0 ? pendingCount : undefined },
     { label: 'Clients & Contacts', href: '/clients', icon: Users },
     { label: 'Produits & Services', href: '/products', icon: Package },
     { label: 'Paiements & Flux', href: '/payments', icon: ArrowLeftRight },
@@ -347,11 +360,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:scale-98 transition-all cursor-pointer"
+                    disabled={loggingOut}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:scale-98 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-2">
                       <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                      <span>Se déconnecter</span>
+                      <span>{loggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
                     </div>
                     <span className="text-[10px] text-rose-400 dark:text-rose-500 font-normal">Quitter</span>
                   </button>
@@ -360,7 +374,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             {/* Profile Card Trigger */}
-            {isAuthenticated && currentUser ? (
+            {!mounted ? (
+              <div className="flex items-center gap-2.5 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 h-[50px] animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                  <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded w-28" />
+                </div>
+              </div>
+            ) : isAuthenticated && currentUser ? (
               <div
                 onClick={() => setSessionModalOpen(true)}
                 className="flex items-center justify-between p-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group active:scale-98"

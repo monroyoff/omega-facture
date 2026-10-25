@@ -39,6 +39,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPresets, setShowPresets] = useState(false);
   const [photoUpdated, setPhotoUpdated] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   if (!isOpen || !currentUser) return null;
 
@@ -71,11 +72,16 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
     setTimeout(() => setPhotoUpdated(false), 2500);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (e) {
+      console.warn('[UserSessionModal] Logout error:', e);
+    }
     onClose();
-    logout();
     if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+      window.location.replace('/login');
     }
   };
 
@@ -288,10 +294,11 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer"
+              disabled={loggingOut}
+              className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <LogOut className="w-4 h-4" />
-              <span>Se déconnecter de la session</span>
+              <span>{loggingOut ? 'Déconnexion en cours...' : 'Se déconnecter de la session'}</span>
             </button>
           </div>
         </div>

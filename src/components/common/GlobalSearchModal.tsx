@@ -530,7 +530,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                 Aucun résultat pour « {query} »
               </h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                Vérifiez l’orthographe ou essayez un numéro de facture (ex: FAC-2026-0042), un nom de client (Fadila, MTN) ou une commande de menu.
+                Vérifiez l’orthographe ou essayez un numéro de facture (ex: FAC-2026-0001), un nom de client ou un mot-clé.
               </p>
             </div>
           )}

@@ -30,6 +30,7 @@ import {
 import { PaymentOperationsModal } from '@/components/payments/PaymentOperationsModal';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
 import { Invoice } from '@/lib/types';
+import { KPICardsSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
 
 export default function PaymentsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,6 +61,7 @@ export default function PaymentsPage() {
     selectedPeriod,
     setSelectedPeriod,
     periodLabel,
+    isDataLoading,
   } = useInvoices();
 
   // If navigated from global search with a query param, pre-fill search and switch to ALL
@@ -311,126 +313,130 @@ export default function PaymentsPage() {
           </div>
 
           {/* 4 KPI stats row including Espèces with 'voir les opérations concernées' */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            {/* Total Encaissé */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => handleCardClick('all', 'Total Encaissé')}
-              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('all', 'Total Encaissé')}
-              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-emerald-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Total Encaissé
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
-                    <CheckCircle2 className="w-4 h-4" />
+          {isDataLoading ? (
+            <KPICardsSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              {/* Total Encaissé */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick('all', 'Total Encaissé')}
+                onKeyDown={(e) => e.key === 'Enter' && handleCardClick('all', 'Total Encaissé')}
+                className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-emerald-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                      Total Encaissé
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
                   </div>
+                  <div className="text-2xl sm:text-[26px] font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                    {formatFCFA(totalCollected)}
+                  </div>
+                  <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {activePayments.length} règlement(s) sur la période
+                  </span>
                 </div>
-                <div className="text-2xl sm:text-[26px] font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                  {formatFCFA(totalCollected)}
+
+                <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                  <span>voir les opérations concernées</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>
-                <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {activePayments.length} règlement(s) sur la période
-                </span>
               </div>
 
-              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
-                <span>voir les opérations concernées</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              {/* Mobile Money */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick('mobile_money', 'Mobile Money (MTN, Moov, Wave)')}
+                onKeyDown={(e) => e.key === 'Enter' && handleCardClick('mobile_money', 'Mobile Money (MTN, Moov, Wave)')}
+                className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-amber-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                      Mobile Money
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-[26px] font-bold text-amber-600 dark:text-amber-400 transition-colors">
+                    {formatFCFA(totalMobileMoney)}
+                  </div>
+                  <span className="text-xs text-slate-400 mt-1 block">MTN Bénin, Moov & Wave</span>
+                </div>
+
+                <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                  <span>voir les opérations concernées</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+
+              {/* Virements Bancaires */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick('bank_transfer', 'Virements Bancaires')}
+                onKeyDown={(e) => e.key === 'Enter' && handleCardClick('bank_transfer', 'Virements Bancaires')}
+                className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-blue-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                      Virements Bancaires
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                      <Landmark className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-[26px] font-bold text-brand-600 dark:text-brand-400 transition-colors">
+                    {formatFCFA(totalBank)}
+                  </div>
+                  <span className="text-xs text-slate-400 mt-1 block">BOA, Ecobank, SG, BDU</span>
+                </div>
+
+                <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-brand-600 dark:text-brand-400 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
+                  <span>voir les opérations concernées</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+
+              {/* Espèces (Cash) */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCardClick('cash', 'Espèces (Caisse)')}
+                onKeyDown={(e) => e.key === 'Enter' && handleCardClick('cash', 'Espèces (Caisse)')}
+                className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-emerald-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                      Espèces (Caisse)
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
+                      <Banknote className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl sm:text-[26px] font-bold text-emerald-600 dark:text-emerald-400 transition-colors">
+                    {formatFCFA(totalCash)}
+                  </div>
+                  <span className="text-xs text-slate-400 mt-1 block">Règlements directs en mains</span>
+                </div>
+
+                <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                  <span>voir les opérations concernées</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </div>
             </div>
-
-            {/* Mobile Money */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => handleCardClick('mobile_money', 'Mobile Money (MTN, Moov, Wave)')}
-              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('mobile_money', 'Mobile Money (MTN, Moov, Wave)')}
-              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-amber-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Mobile Money
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-[26px] font-bold text-amber-600 dark:text-amber-400 transition-colors">
-                  {formatFCFA(totalMobileMoney)}
-                </div>
-                <span className="text-xs text-slate-400 mt-1 block">MTN Bénin, Moov & Wave</span>
-              </div>
-
-              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
-                <span>voir les opérations concernées</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-
-            {/* Virements Bancaires */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => handleCardClick('bank_transfer', 'Virements Bancaires')}
-              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('bank_transfer', 'Virements Bancaires')}
-              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-blue-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Virements Bancaires
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
-                    <Landmark className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-[26px] font-bold text-brand-600 dark:text-brand-400 transition-colors">
-                  {formatFCFA(totalBank)}
-                </div>
-                <span className="text-xs text-slate-400 mt-1 block">BOA, Ecobank, SG, BDU</span>
-              </div>
-
-              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-brand-600 dark:text-brand-400 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
-                <span>voir les opérations concernées</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-
-            {/* Espèces (Cash) */}
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => handleCardClick('cash', 'Espèces (Caisse)')}
-              onKeyDown={(e) => e.key === 'Enter' && handleCardClick('cash', 'Espèces (Caisse)')}
-              className="group bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-card hover:shadow-dropdown hover:border-emerald-500/70 transition-all duration-200 cursor-pointer active:scale-[0.98] flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Espèces (Caisse)
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xs">
-                    <Banknote className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl sm:text-[26px] font-bold text-emerald-600 dark:text-emerald-400 transition-colors">
-                  {formatFCFA(totalCash)}
-                </div>
-                <span className="text-xs text-slate-400 mt-1 block">Règlements directs en mains</span>
-              </div>
-
-              <div className="pt-2.5 mt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
-                <span>voir les opérations concernées</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Search bar & Filter Row */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -497,79 +503,144 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          {/* Payments Table */}
-          <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-slate-400 uppercase text-[11px] font-semibold">
-                    <th className="py-3.5 pl-6 pr-3">Date</th>
-                    <th className="py-3.5 px-3">Facture</th>
-                    <th className="py-3.5 px-3">Client</th>
-                    <th className="py-3.5 px-3">Mode</th>
-                    <th className="py-3.5 px-3">Référence / Reçu</th>
-                    <th className="py-3.5 pr-6 pl-3 text-right">Montant Encaissé</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filtered.length > 0 ? (
-                    filtered.map((pay) => (
-                      <tr key={pay.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3.5 pl-6 pr-3 font-medium text-slate-600 dark:text-slate-400">
-                          {formatDateFR(pay.date)}
-                        </td>
-                        <td className="py-3.5 px-3 font-bold text-slate-900 dark:text-white">
-                          {pay.invoiceNumber}
-                        </td>
-                        <td className="py-3.5 px-3 font-semibold text-slate-700 dark:text-slate-300">
-                          {pay.clientName}
-                        </td>
-                        <td className="py-3.5 px-3">{getMethodBadge(pay.method)}</td>
-                        <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
-                          {pay.reference}
-                        </td>
-                        <td className="py-3.5 pr-6 pl-3 text-right font-extrabold text-emerald-600">
+          {/* Payments Table, Skeleton or Empty State */}
+          {isDataLoading ? (
+            <TableSkeleton rowsCount={6} showHeaderTabs={false} />
+          ) : (
+            <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-card overflow-hidden">
+              {/* Mobile Cards View (< sm) */}
+              <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                {filtered.length > 0 ? (
+                  filtered.map((pay) => (
+                    <div key={pay.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-slate-900 dark:text-white text-xs">
+                            {pay.invoiceNumber}
+                          </span>
+                          {getMethodBadge(pay.method)}
+                        </div>
+                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm shrink-0">
                           {formatFCFA(pay.amount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
+                          {pay.clientName}
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-400">
+                          {pay.reference}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Encaissé le {formatDateFR(pay.date)}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 px-4 text-center">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mx-auto mb-2">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                      Aucun encaissement sur cette période
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 mb-3">
+                      Période : {periodLabel}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPeriod('ALL')}
+                        className="w-full py-2 rounded-xl bg-brand-600 text-white text-xs font-bold shadow-sm"
+                      >
+                        Afficher toute l'année 2026
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsModalOpen(true)}
+                        className="w-full py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                      >
+                        + Enregistrer un paiement
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop / Tablet Table View (>= sm) */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-slate-400 uppercase text-[11px] font-semibold">
+                      <th className="py-3.5 pl-6 pr-3">Date</th>
+                      <th className="py-3.5 px-3">Facture</th>
+                      <th className="py-3.5 px-3">Client</th>
+                      <th className="py-3.5 px-3">Mode</th>
+                      <th className="py-3.5 px-3">Référence / Reçu</th>
+                      <th className="py-3.5 pr-6 pl-3 text-right">Montant Encaissé</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filtered.length > 0 ? (
+                      filtered.map((pay) => (
+                        <tr key={pay.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3.5 pl-6 pr-3 font-medium text-slate-600 dark:text-slate-400">
+                            {formatDateFR(pay.date)}
+                          </td>
+                          <td className="py-3.5 px-3 font-bold text-slate-900 dark:text-white">
+                            {pay.invoiceNumber}
+                          </td>
+                          <td className="py-3.5 px-3 font-semibold text-slate-700 dark:text-slate-300">
+                            {pay.clientName}
+                          </td>
+                          <td className="py-3.5 px-3">{getMethodBadge(pay.method)}</td>
+                          <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
+                            {pay.reference}
+                          </td>
+                          <td className="py-3.5 pr-6 pl-3 text-right font-extrabold text-emerald-600">
+                            {formatFCFA(pay.amount)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-14 text-center">
+                          <div className="max-w-sm mx-auto flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
+                              <CreditCard className="w-6 h-6" />
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                              Aucun encaissement sur cette période
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4 leading-relaxed">
+                              Aucun paiement n’a été enregistré pour la période : <strong>{periodLabel}</strong>.
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPeriod('ALL')}
+                                className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                              >
+                                Afficher toute l'année 2026
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsModalOpen(true)}
+                                className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111622] text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+                              >
+                                + Enregistrer un paiement
+                              </button>
+                            </div>
+                          </div>
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-14 text-center">
-                        <div className="max-w-sm mx-auto flex flex-col items-center">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
-                            <CreditCard className="w-6 h-6" />
-                          </div>
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                            Aucun encaissement sur cette période
-                          </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4 leading-relaxed">
-                            Aucun paiement n’a été enregistré pour la période : <strong>{periodLabel}</strong>.
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedPeriod('ALL')}
-                              className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
-                            >
-                              Afficher toute l'année 2026
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setIsModalOpen(true)}
-                              className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111622] text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
-                            >
-                              + Enregistrer un paiement
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
 

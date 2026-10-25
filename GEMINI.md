@@ -37,10 +37,22 @@
 ### A. Dashboard Principal (`/` et `/dashboard`)
 - **Salutation Nominative Personnalisée par le Prénom** : Bannière d'accueil dynamique sur le Dashboard s'adressant directement à l'utilisateur par son **prénom** (`Bonjour, {userFirstName} 👋`, ex: *Bonjour, Mari-ella 👋*).
 - **Session Utilisateur & Profil Interactif (`UserSessionModal`)** : Accès direct à la session de connexion depuis le **Header (en haut à droite)** et depuis le bas de la **Sidebar**. Au clic, ouverture d'un volet d'informations complet affichant la photo en grand format (avec possibilité d'importer une photo ou de choisir parmi 6 avatars professionnels), le prénom, le nom de famille, le rôle, l'email certifié, l'organisation, le numéro IFU, et le bouton de déconnexion.
-- **Cartes KPI en temps réel** : Chiffre d'affaires facturé, Total encaissé, Montant en attente de règlement, Créances en retard, avec badges de variation en pourcentage.
+- **Cartes KPI en temps réel & Prise en Compte Intégrale des Acomptes** :
+  - **Montant Facturé (CA)** : Chiffre d'affaires facturé strict (factures réelles validées, devis exclus).
+  - **Montant Encaissé** : Cumule rigoureusement toutes les **factures soldées** ET l'ensemble des **acomptes perçus** (y compris acomptes sur devis/commandes et acomptes de factures échelonnées).
+  - **En attente de règlement** : Montant restant dû sur factures non échues (`solde = total - montant encaissé`).
+  - **Créances en retard** : Factures réelles échues non soldées avec badges de variation en pourcentage.
 - **Barre d'Action Responsive & Mobile Native** : Bouton d'action direct `+ Créer une Facture` accessible et optimisé pour le tactile mobile (< 640px) ainsi que sur desktop, complété du raccourci direct `+ Nouveau Devis`. (Bouton d'en-tête supprimé au profit de l'action bar principale pour épurer la barre de navigation sur web et mobile).
 - **Cartes Tactiles & Tableau Multi-Documents Récent (`RecentInvoicesTable`)** : Onglets de filtrage par type de document (*Tous, 📄 Factures, 📝 Devis*) et par statut (*Toutes, Payées, Envoyées, Brouillons, En retard*) avec disposition fluide `flex-wrap` sans débordement horizontal sur smartphone. Cartes mobiles restructurées avec affichage clair de l'échéance et barre d'actions compacte anti-débordement. Badges visuels distinctifs (Violet pour Devis, Indigo pour Facture), recherche textuelle, tri et pagination dynamique.
-- **Aperçu Instantané (`InvoicePreviewModal`)** : Modale d'aperçu d'un document complet adaptée selon sa nature (Facture, Devis) avec actions d'impression, relance WhatsApp personnalisée et partage.
+- **Téléchargement Direct de PDF Officiel & Impression A4 Épurée (`generateInvoicePDF`)** :
+  - Chaque facture et devis dispose d'un bouton de téléchargement direct (`Download`) sur chaque ligne/carte du tableau et dans la modale d'aperçu (`InvoicePreviewModal`).
+  - Génère et télécharge instantanément un véritable fichier PDF haute définition (`FAC-YYYY-XXXX.pdf` ou `DEV-YYYY-XXXX.pdf`) avec logo Ω, mentions fiscales UEMOA, tableau détaillé des articles, totaux TTC en FCFA, acomptes, solde restant dû, RIB/Mobile Money et signature de direction.
+  - Remplacement de l'ancien simple appel `window.print()` par une génération de fichier PDF physique native (`jsPDF`).
+  - Prise en charge des styles `@media print` nettoyés masquant l'interface pour l'impression papier directe.
+- **Aperçu Instantané (`InvoicePreviewModal`)** : Modale d'aperçu d'un document complet adaptée selon sa nature (Facture, Devis) avec actions de téléchargement PDF direct, d'impression A4, de relance et de partage multi-canal (WhatsApp / Email).
+- **Moteur d'Export CSV Universel & Incorruptible (`downloadCSV` via `@/lib/export/csv-export`)** :
+  - Téléchargement des registres et bilans en fichier CSV / Excel certifié avec BOM UTF-8 (`\uFEFF`), délimiteur point-virgule (`;`) conforme à Microsoft Excel et Apple Numbers, et échappement strict RFC 4180.
+  - Élimination des téléchargements corrompus provoqués par les data URIs encodées via `encodeURI` au profit d'un téléchargement via `Blob` natif et `URL.createObjectURL`.
 
 ### B. Création & Édition Multi-Documents — Factures & Devis (`/invoices/new` et `/invoices/[id]/edit`)
 - **Prise en charge Native des Devis Estimatifs** :
@@ -49,8 +61,32 @@
   - **Vocabulaire & Mentions Fiscales / Juridiques UEMOA Adaptés** :
     - *Devis* : « Devis N° », « Devis établi pour : », « Validité de l'offre (30 jours) », mention de signature « Bon pour accord et commande avec mention manuscrite 'Lu et approuvé' ».
     - *Facture* : « Facture N° », « Facturé à : », « Date d'échéance », mentions légales et pénalités de retard.
-  - **Partage & Relance WhatsApp Contextuels** : Le message pré-formaté WhatsApp adapte automatiquement son objet et sa formule de politesse selon qu'il s'agisse d'un devis ou d'une facture.
-- **Formulaire Vierge à l'Ouverture** :
+  - **Partage Multi-Canal Interactif (WhatsApp & Email) — `ShareDocumentModal`** :
+    - Au clic sur le bouton `Partager` (depuis le tableau `RecentInvoicesTable` en mode desktop ou cartes mobiles, et depuis l'en-tête de `InvoicePreviewModal`), ouverture d'une modale intuitive offrant le choix explicite à l'utilisateur entre **WhatsApp** et **Email**.
+    - **Deux grandes cartes interactives** avec indicateurs d'état (vert pour WhatsApp, bleu pour Email).
+    - **Messages & Objets contextuels dynamiques** :
+      - *Factures* : Récapitule le total TTC, le solde restant dû (ou statut soldé), l'échéance, les moyens de paiement acceptés (Mobile Money MTN/Moov/Wave, Virement), et objet d'email standardisé `[FACTURE] FAC-YYYY-XXXX — Client`.
+      - *Devis* : Récapitule le montant estimatif, la durée de validité de l'offre (30 jours), les consignes pour valider la commande (« Bon pour accord »), et objet d'email `[DEVIS] DEV-YYYY-XXXX — Client`.
+    - Pré-remplissage automatique des coordonnées (téléphone WhatsApp ou email professionnel du client), zone de texte intégralement éditable, bouton `Copier le texte` avec notification, et ouverture directe en un clic (`wa.me` ou messagerie par défaut via `mailto:`).
+- **Système Universel de Notifications Toast & Disparition Automatique (`ToastNotification`)** :
+  - **Éradication totale des boîtes d'alerte natives bloquantes (`window.alert`)** au profit d'un système de notifications toast haut de gamme flottant en haut à droite (`z-[9999]`), actif sur 100% des opérations applicatives :
+    1. *Émission de Facture* : Badge vert émeraude, total en FCFA, nom du client et référence `FAC-...`.
+    2. *Émission de Devis* : Badge violet royal, montant estimatif, validité 30 jours et référence `DEV-...`.
+    3. *Sauvegarde de Brouillons* : Badge ambre indiquant l'enregistrement et la possibilité de finaliser ultérieurement.
+    4. *Mise à jour & Validation en Édition* : Badge bleu informant de l'enregistrement des modifications.
+    5. *Suppression de Documents* : Badge rose/rouge confirmant la suppression définitive du document.
+    6. *Conversion Devis en Facture* : Confirmation instantanée du transfert vers l'onglet Factures avec attribution du numéro de facture.
+    7. *Encaissements & Règlements* : Badge cyan/teal avec montant encaissé en FCFA et référence facture soldée.
+    8. *Création & Modification Clients* : Confirmation de l'ajout ou de la mise à jour dans le répertoire.
+    9. *Ajout d'Articles au Catalogue* : Confirmation du produit avec son tarif HT en FCFA.
+    10. *Téléchargements PDF & Relances* : Confirmation de la génération du fichier officiel ou de la relance.
+    11. *Partages WhatsApp & Messagerie* : Confirmation de l'ouverture ou de la copie du message.
+    12. *Alertes de Contrôle & Validation* : Toast d'avertissement ambre guidant l'utilisateur (ex: client ou montant requis) sans bloquer l'interface.
+  - Comprend une barre de progression animée décomptant les 4 secondes, la mise en pause au survol de la souris et un bouton de fermeture instantanée (✕).
+- **Indépendance Absolue & Réinitialisation Systématique à l'Ouverture** :
+  - **Réinitialisation Automatique (`resetFormToBlank`)** : Chaque clic sur `+ Créer une Facture`, `+ Facture` ou `+ Nouveau Devis` réinitialise intégralement tous les champs (articles, client, remise, échéancier, dates du jour) pour garantir qu'aucune donnée d'un document précédent ne subsiste.
+  - **Clé de Remontage Déterministe (`key={createModalKey}`)** : Ré-instancie le composant à chaque ouverture pour éliminer toute rémanence d'état dans React.
+  - **Bouton d'Action Direct `Vider` (`RotateCcw`)** : Permet à l'utilisateur de purger et remettre à zéro le formulaire en 1 clic sans fermer la modale.
   - **Articles / Lignes** : Démarre avec une seule ligne vide sans aucun montant pré-rempli (0 FCFA).
   - **Placeholders discrets** pour la description et les prix.
   - **Bouton `+ Ajouter une ligne vide`** : Insère une ligne propre sans texte ni montant imposé.
@@ -68,6 +104,9 @@
   - Les devis estimatifs restent entièrement modifiables même après émission (`status: 'sent'`) pour permettre les négociations commerciales avec les clients.
   - Le bouton `Modifier` est directement accessible depuis le tableau principal (`RecentInvoicesTable`), les cartes tactiles mobiles et la modale d'aperçu (`InvoicePreviewModal`).
   - La page d'édition (`/invoices/[id]/edit`) conserve l'état émis du devis lors de la mise à jour des lignes, tarifs ou remises.
+- **Conversion Définitive & Incorruptible Devis -> Facture (`convertQuoteToInvoice`)** :
+  - Au clic sur « Convertir en facture » (depuis `RecentInvoicesTable`, `InvoicePreviewModal` ou `/invoices/[id]/edit`), le devis reçoit son numéro de facture séquentiel officiel `FAC-YYYY-XXXX`, son statut cible (`sent`), et son type standard.
+  - **Synchronisation Supabase Immédiate** : La conversion déclenche immédiatement `supabaseUpdateInvoice` avec mise à jour du numéro, du type et du statut dans la base de données distante. Cela garantit qu'aucun rechargement ni synchronisation en arrière-plan (`loadUserData`) ne puisse réimporter l'ancien devis ou faire repasser la facture en devis.
 - **Architecture Modale Live & Fermeture par Clic Extérieur (`CreateInvoiceModal`)** :
   - L'ouverture de création depuis le Dashboard (`+ Créer une Facture`, `+ Nouveau Devis`) ou depuis le Header (`+ Créer`) ne bloque plus l'utilisateur sur une page isolée.
   - La création s'ouvre sous la forme d'une modale fluide avec canevas semi-transparent (`bg-slate-950/70 backdrop-blur-sm`).
@@ -77,13 +116,20 @@
 
 ### C. Rapports financiers & KPI & Drilldown Interactif (`/reports`)
 - **Titre officiel** : « Rapports financiers & KPI » (intégré dans la barre latérale, le header et les modales).
+- **Règle Comptable Stricte d'Exclusion des Devis (`isRealInvoice`)** :
+  - **Les devis estimatifs (`DEV-*` ou `documentKind === 'quote'`) ne constituent en aucun cas du chiffre d'affaires et sont formellement et rigoureusement exclus de l'ensemble des états financiers.**
+  - **Chiffre d’Affaires Cumulé** : Calculé strictement sur la somme des factures réelles validées (`status !== 'draft'`), excluant tout devis.
+  - **Taux de Recouvrement** : Rapport entre les montants réellement encaissés sur factures et le total facturé réel.
+  - **Balance Âgée des Créances (0-30j, 31-60j, +60j)** : Ne ventile que les factures réelles en attente de règlement (solde > 0 FCFA), aucun devis n'est comptabilisé en créance.
+  - **Détail des Opérations (`SectionOperationsDetail`)** : Tous les onglets (CA, encaissements, créances en attente) ne présentent que les factures réelles et règlements associés.
+  - **Exports Bilan & KPI (`PrintReportModal`)** : Les documents générés (PDF officiel, PNG, tableur CSV/Excel, impression directe) ne contiennent que les factures réelles et les métriques financières certifiées sans aucun devis.
 - **Architecture Modale Responsif & Universel** : Modales d'aperçu de documents (`PrintReportModal` et `InvoicePreviewModal`) conçues en `z-[100]` avec canevas de défilement `items-start`, tables scrollables horizontalement en mode mobile (`overflow-x-auto min-w-[500px]`), dimensions adaptatives A4 sans troncature ni débordement, et menu de navigation déroulant direct `Menu Principal` en en-tête.
 - **6 Sections Interactives Cliquables** :
-  1. **Chiffre d’Affaires Cumulé 2026** : Toutes les factures validées de l'exercice.
-  2. **Taux de Recouvrement Global** : Analyse des flux perçus vs solde restant.
+  1. **Chiffre d’Affaires Cumulé 2026** : Toutes les factures validées de l'exercice (hors devis et hors brouillons).
+  2. **Taux de Recouvrement Global** : Analyse des flux perçus vs solde restant des factures.
   3. **Délai Moyen de Règlement** : Délais réels constatés entre émission et encaissement (*Règlement rapide ≤ 7j*, *Conforme UEMOA 8-20j*, *Différé > 20j*).
-  4. **Balance Âgée : 0 à 30 jours (Créances saines)** : Factures récentes à échéance normale.
-  5. **Balance Âgée : 31 à 60 jours (À surveiller)** : Factures avec retard modéré et relance recommandée.
+  4. **Balance Âgée : 0 à 30 jours (Créances saines)** : Factures réelles récentes à échéance normale.
+  5. **Balance Âgée : 31 à 60 jours (À surveiller)** : Factures réelles avec retard modéré et relance recommandée.
   6. **Balance Âgée : + de 60 jours (Contentieux)** : Créances en souffrance critique nécessitant une mise en demeure.
 - **Volet Drilldown des Opérations (`SectionOperationsDetail`)** :
   - S'ouvre sous les cartes d'un simple clic avec animation fluide et scroll automatique.
@@ -113,9 +159,20 @@
   4. **Impression Directe (`Print`)** : Dialogue d'impression optimisé A4 avec mise en page dédiée.
   - **Sélecteur de Périmètre d'Export** : Bascule instantanée entre « Période active » (filtrée par le calendrier) et « Toutes les transactions » (Exercice complet).
 - **Calendrier Unique et Universel** : Un seul calendrier fonctionnel dédié sur la page (suppression du calendrier dupliqué du header avec `hidePeriodPicker={true}`), proposant tous les modes temporels : *Mois*, *Jour précis*, *Plage libre (Du ... Au ...)*, *Trimestre (T1-T4)*, *Semestre (S1-S2)*, et *Année complète*. Ce calendrier unique pilote instantanément l'ensemble des 4 cartes KPI (*Total Encaissé, Mobile Money, Virements Bancaires, Espèces / Caisse*) ainsi que l'intégralité du tableau des transactions.
-- **Formulaire d'Encaissement Vierge** : À l'ouverture de `NewPaymentModal` via le bouton principal « Enregistrer un Paiement », aucun pré-rempli n'est imposé : le menu déroulant démarre sur l'option neutre `-- Sélectionner une facture à encaisser --`, le montant est à 0 et la référence est vierge.
+- **Formulaire d'Encaissement Vierge & Filtrage Strict des Factures Éligibles (`NewPaymentModal`)** :
+  - **Exclusion stricte des soldées et des devis** : Seules les factures avec un solde restant strictement positif (`inv.total - (inv.amountPaid || 0) > 0`) et en attente de règlement (`status !== 'paid'`) apparaissent dans le menu déroulant « Facture à payer ».
+  - Les factures déjà soldées (solde = 0 FCFA ou statut `paid`), les devis estimatifs (`DEV-*` ou `documentKind === 'quote'`) et les brouillons purs sont rigoureusement exclus de la liste.
+  - Si toutes les factures sont soldées, l'option affiche explicitement `-- Aucune facture en attente de paiement (Toutes soldées) --`.
+  - **Fiche récapitulative & Contrôle de saisie** : À la sélection d'une facture, une carte récapitule en direct le client, le montant total TTC, le montant déjà réglé et le solde restant dû. Le champ montant s'initialise automatiquement au montant restant dû et interdit tout dépassement supérieur au solde restant.
+  - Détection dynamique de la date du jour (format standardisé `YYYY-MM-DD`).
 - Enregistrement d'un encaissement pour tous les canaux UEMOA : **Mobile Money (MTN, Moov, Wave)**, **Virement bancaire**, **Chèque**, **Espèces (Caisse)**.
 - Rapprochement automatique : mise à jour en direct du solde restant dû et bascule automatique au statut `paid` à solde nul.
+- **Affichage Réactif & Modale des Opérations de Paiement (`PaymentOperationsModal`)** :
+  - **Empilement & z-index Universel (`z-[100]`)** : Élimination définitive du chevauchement de la barre latérale (`Sidebar` en `z-[70]`). La modale d'opérations et de règlements se superpose désormais rigoureusement au-dessus de tous les éléments de l'interface, que la fenêtre du navigateur soit réduite, redimensionnée ou agrandie en plein écran.
+  - **Menu Déroulant Permanent en Haut à Gauche** : Présence d'un bouton d'accès rapide déroulant (`Menu`) dans l'en-tête de la modale donnant un accès instantané à toutes les fonctionnalités (*Dashboard, Factures, Clients, Produits, Flux, Rapports, Paramètres, + Nouveau Paiement, + Nouvelle Facture*).
+  - **Fermeture Universelle** : Clic sur le fond extérieur semi-transparent (`bg-slate-950/75`), touche `Échap` (`Escape`) ou bouton de fermeture [✕].
+  - **Cartes Tactiles Mobiles des Flux** : Sur les appareils mobiles (< 640px), la liste des encaissements s'adapte automatiquement sous forme de cartes tactiles individuelles fluides, évitant les barres de défilement horizontal encombrantes.
+  - **Disponibilité Universelle du Menu Hamburger sur Mobile** : Le menu déroulant latéral est accessible en permanence en haut à gauche sur l'intégralité des vues du SaaS (y compris la page d'édition `/invoices/[id]/edit`).
 
 ### F. Gestion des Clients (`/clients`)
 - Annuaire complet avec contacts, raison sociale, ville, pays, téléphone et numéro IFU/fiscal.
@@ -146,6 +203,39 @@
   5. **Protection d'Accès au Dashboard** : Tant que l'adresse email n'a pas été confirmée, l'accès au tableau de bord (`/` et `/dashboard`) est strictement bloqué et redirigé vers l'écran de vérification d'email.
   6. **Passerelle d'Envoi Haute Délivrabilité (`/api/auth/send-verification`)** : Passerelle hybride **Gmail SMTP (`smtp.gmail.com` via Nodemailer)** avec fallback **Resend API**, template HTML institutionnel OMEGA FACTURE certifié, assurant la distribution directe des liens d'activation en boîte principale sans être intercepté par les filtres antispam de Gmail ou Outlook.
 
+
+### J. Déconnexion Déterministe & Gestion de Session Sécurisée (`UserSessionModal`, `AuthGuard`, `/api/auth/logout`)
+- **Déconnexion Déterministe sans Boucle de Reconnexion** :
+  1. **Purge Synchrone Locale & Serveur** : Dès le clic sur « Se déconnecter de la session », l'état React est vidé immédiatement, le flag `facturo:v1:is_logged_out` est posé, toutes les clés Supabase (`sb-*`) et les cookies résiduels sont purgés, et la route serveur `/api/auth/logout` invalide les cookies HTTP de session.
+  2. **Respect Strict des Règles des Hooks React** : Élimination du crash Minified React Error #310 dans `UserSessionModal.tsx` en plaçant tous les hooks d'état au niveau supérieur avant toute sortie conditionnelle (`return null`).
+  3. **Protection & Redirection Stables (`AuthGuard`)** : L'accès aux pages publiques (`/login`, `/register`) ne déclenche plus de reconnexion automatique en boucle : un utilisateur déconnecté reste sur `/login` jusqu'à ce qu'il soumette à nouveau ses identifiants.
+
+### K. Paramètres de l'Organisation & Notification de Sauvegarde Centrée (`/settings`)
+- **Notification Modale Centrée au Milieu de l'Écran** :
+  - Au clic sur « Enregistrer les Modifications », affichage instantané d'une modale de confirmation positionnée **au centre exact de l'écran** (`fixed inset-0 flex items-center justify-center`) avec fond semi-transparent flouté (`backdrop-blur-sm`).
+  - **Design Haut de Gamme** : Badge circulaire émeraude animé avec icône de validation, halo lumineux, message explicite *« Paramètres enregistrés avec succès ! »*, sous-titre de confirmation, bouton de fermeture manuelle, et **barre de progression dégressive automatique**.
+  - **Disparition Automatique** : La notification s'efface automatiquement au bout de ~3 secondes (ou immédiatement par clic sur le bouton d'action, la croix de fermeture ou l'arrière-plan).
+  - **Persistance Complète** : Sauvegarde synchrone dans le profil utilisateur et persistance locale des coordonnées (`facturo:v1:settings` : raison sociale, IFU, RCCM, email, téléphone, adresse, TVA par défaut, préfixe, délai de paiement, numéro Mobile Money).
+
+### L. Résilience & Protection Anti-Blocage Permanente (Zero-Freeze & Chunk Auto-Recovery)
+- **Suppression Définitive de l'Écran de Blocage au Chargement** :
+  1. **Initialisation Synchrone Locale** : L'état `currentUser`, `isAuthenticated` et l'ensemble des données (factures, clients, paiements) s'initialisent directement et de manière synchrone depuis le `localStorage` dès le premier rendu. L'état `authLoading` démarre à `false`. Résultat : les pages s'affichent instantanément en 0 ms sans aucun écran de chargement intermédiaire.
+  2. **Coupe-Circuit Automatique de Sécurité** : `AuthGuard` ne rend plus de conteneur bloquant persistant sur le SSR ou le client ; toute session non validée est redirigée immédiatement vers `/login`.
+  3. **Auto-Récupération des Assets & Chunks Corrompus** : Script d'écoute globale dans le `<head>` de `layout.tsx` détectant tout échec de chargement de chunk (`Loading chunk ... failed`) ou 404 sur les fichiers CSS/JS pour déclencher automatiquement un rechargement propre et transparent de la page avec protection anti-boucle (8s).
+  4. **Purge Préventive du Cache au Lancement** : Les scripts de démarrage (`Lancer OMEGA FACTURE.command` et `npm run build`) purgent systématiquement `.next/cache` pour prévenir tout conflit webpack entre builds.
+
+### M. Système Universel de Skeleton Loaders & Rendu Direct sans Actualisation (Zero-Empty-Screen)
+- **Chargement Visuel Prédictif Haute Définition (`Skeleton.tsx`)** :
+  - **Élimination intégrale des écrans vides et du clignotement « 0 FCFA »** pendant l'interrogation de la base de données Supabase.
+  - Chaque composant de chaque page dispose d'un Skeleton Loader sur-mesure reproduisant fidèlement la géométrie exacte des éléments :
+    1. **Dashboard principal (`/` et `/dashboard`)** : `DashboardHeaderSkeleton`, `KPICardsSkeleton` (4 cartes KPI avec badges et variations), `RevenueChartSkeleton` (12 barres de graphique animées), et `TableSkeleton` (lignes de documents récents).
+    2. **Factures & Devis (`/invoices`)** : `TableSkeleton` (6 lignes complètes avec barre d'onglets de filtrage et recherche).
+    3. **Répertoire Clients (`/clients`)** : `ClientsGridSkeleton` (grille de 6 fiches clients avec placeholders d'avatar, de coordonnées et d'IFU).
+    4. **Catalogue Produits & Services (`/products`)** : `ProductsTableSkeleton` (tableau détaillé avec placeholders d'articles, badges TVA, unités et tarifs HT).
+    5. **Paiements & Encaissements (`/payments`)** : `KPICardsSkeleton` (4 cartes de ventilation Mobile Money, Virements, Espèces) et `TableSkeleton` (transactions de flux de trésorerie).
+    6. **Rapports financiers & KPI (`/reports`)** : `ReportsSkeleton` (top 3 indicateurs de CA/recouvrement, carte de balance âgée à 3 tranches et tableau d'opérations drilldown).
+  - **Animation Shimmer Moderne** : Balayage lumineux fluide `.skeleton-shimmer` avec dégradé linéaire (`@keyframes skeletonWave`) optimisé pour les modes clair et sombre.
+  - **Transition Automatique vers les Données Réelles** : Piloté par l'état `isDataLoading` du contexte `useInvoices()`. Dès que les requêtes Supabase aboutissent, les composants effectuent une transition instantanée vers les données réelles sans exiger aucun rechargement manuel de la page par l'utilisateur.
 
 ---
 
@@ -301,5 +391,24 @@ Le projet est entièrement connecté et synchronisé avec le backend **Supabase*
   - Mise à jour optimiste instantanée de l'interface (zéro latence perçue).
   - Persistance asynchrone dans Supabase.
   - Cache local (`facturo:v1:*`) garantissant un fonctionnement continu même en cas de coupure temporaire de connexion internet.
+
+---
+
+## 5. RÈGLE D'OR : GARANTIE ANTI-ERREUR D'HYDRATATION SSR & STABILITÉ RUNTIME
+
+Afin d'éviter tout retour du badge d'erreur Next.js (`(!) 1 error` / `Hydration failed because the initial UI does not match what was rendered on the server`), les règles d'architecture suivantes sont obligatoires :
+
+1. **Interdiction de `localStorage` dans les initialiseurs synchrones `useState`** :
+   - Tout état de contexte (`invoices`, `clients`, `products`, `payments`, `currentUser`) doit débuter avec un état neutre identique sur le serveur SSR et le client (`[]`, `null`, `false`, `isDataLoading: true`).
+   - Le remplissage via le cache local et Supabase doit se faire exclusivement au montage dans `useEffect`.
+2. **Garde de Montage (`mounted`) sur les Éléments Dynamiques dans des Balises Interactives** :
+   - Tout badge ou balise conditionnelle inséré dans un lien `<Link>` (balise `<a>`) ou un `<button>` (ex: pastille de notification clignotante dans `Header.tsx`, badge de décompte des factures en attente dans `Sidebar.tsx`) doit être strictement conditionné par l'état `mounted` (`mounted && pendingCount > 0`).
+   - La carte de profil utilisateur en bas de la barre latérale affiche un squelette de chargement neutre tant que `mounted` est faux pour garantir une parité 100% conforme avec le HTML SSR.
+3. **Protection `suppressHydrationWarning`** :
+   - Actif sur les balises racine `<html>` et `<body>` dans `layout.tsx` pour neutraliser les injections d'extensions de navigateurs ou de thèmes.
+   - Actif sur le titre de bienvenue personnalisé (`<h1 suppressHydrationWarning>Bonjour, {userFirstName} 👋</h1>`) dans `page.tsx`.
+4. **Composants Skeleton Universels** :
+   - Tous les modules principaux disposent d'un loader Shimmering Skeleton (`Skeleton.tsx`) affiché tant que `isDataLoading` est actif, évitant tout décalage d'affichage ou flash visuel.
+
 
 

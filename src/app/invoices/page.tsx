@@ -11,33 +11,66 @@ import { useInvoices } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { Plus, Download, FileSpreadsheet, FileCheck2, FileText } from 'lucide-react';
 
+import { downloadCSV } from '@/lib/export/csv-export';
+import { TableSkeleton } from '@/components/ui/Skeleton';
+
 export default function InvoicesListPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [createModalKind, setCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
-  const { invoices, periodInvoices } = useInvoices();
+  const [createModalKey, setCreateModalKey] = useState<number>(0);
+
+  const openCreateModal = (kind: 'invoice' | 'quote') => {
+    setCreateModalKey((prev) => prev + 1);
+    setCreateModalKind(kind);
+  };
+
+  const { invoices, periodInvoices, isDataLoading } = useInvoices();
 
   const handleExportCSV = () => {
-    const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
+    const rows: (string | number)[][] = [
       [
-        'Type_Document,Numero,Client,Societe,Date_Emission,Date_Echeance,Total_FCFA,Statut',
-        ...periodInvoices.map((i) => {
-          const k =
-            i.documentKind === 'quote' || i.number.startsWith('DEV-')
-              ? 'Devis'
-              : 'Facture';
-          return `"${k}",${i.number},"${i.client.name}","${i.client.company}",${i.issueDate},${i.dueDate},${i.total},${i.status}`;
-        }),
-      ].join('\n');
+        'Type_Document',
+        'Numero',
+        'Client',
+        'Societe',
+        'Date_Emission',
+        'Date_Echeance',
+        'Total_TTC_FCFA',
+        'Montant_Paye_FCFA',
+        'Solde_Restant_FCFA',
+        'Statut',
+      ],
+      ...periodInvoices.map((i) => {
+        const k =
+          i.documentKind === 'quote' || i.number.startsWith('DEV-')
+            ? 'Devis'
+            : 'Facture';
+        const remaining = Math.max(0, i.total - (i.amountPaid || 0));
+        const statusLabel =
+          i.status === 'paid'
+            ? 'Soldée'
+            : i.status === 'sent'
+            ? 'Envoyée'
+            : i.status === 'overdue'
+            ? 'En retard'
+            : 'Brouillon';
+        return [
+          k,
+          i.number,
+          i.client?.name || '',
+          i.client?.company || '',
+          i.issueDate,
+          i.dueDate,
+          i.total,
+          i.amountPaid || 0,
+          remaining,
+          statusLabel,
+        ];
+      }),
+    ];
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `documents_omega_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadCSV(`registre_documents_omega_${Date.now()}.csv`, rows);
   };
 
   return (
@@ -51,7 +84,7 @@ export default function InvoicesListPage() {
       <div className="lg:pl-72 flex flex-col flex-1">
         <Header
           onOpenSidebar={() => setSidebarOpen(true)}
-          onNewInvoice={(kind) => setCreateModalKind(kind || 'invoice')}
+          onNewInvoice={(kind) => openCreateModal(kind || 'invoice')}
         />
 
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto min-w-0">
@@ -79,7 +112,7 @@ export default function InvoicesListPage() {
 
               <button
                 type="button"
-                onClick={() => setCreateModalKind('invoice')}
+                onClick={() => openCreateModal('invoice')}
                 className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -88,7 +121,7 @@ export default function InvoicesListPage() {
 
               <button
                 type="button"
-                onClick={() => setCreateModalKind('quote')}
+                onClick={() => openCreateModal('quote')}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
                 title="Créer un devis estimatif"
               >
@@ -99,15 +132,20 @@ export default function InvoicesListPage() {
           </div>
 
           {/* Table */}
-          <RecentInvoicesTable
-            invoices={periodInvoices}
-            onSelectInvoice={(inv) => setSelectedInvoice(inv)}
-          />
+          {isDataLoading ? (
+            <TableSkeleton rowsCount={6} showHeaderTabs={true} />
+          ) : (
+            <RecentInvoicesTable
+              invoices={periodInvoices}
+              onSelectInvoice={(inv) => setSelectedInvoice(inv)}
+            />
+          )}
         </main>
       </div>
 
       {/* Creation Modal for Invoice & Quote with click-outside on background to exit */}
       <CreateInvoiceModal
+        key={`invoices-create-modal-${createModalKey}`}
         isOpen={!!createModalKind}
         initialKind={createModalKind || 'invoice'}
         onClose={() => setCreateModalKind(null)}

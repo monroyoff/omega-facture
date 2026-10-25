@@ -1,3 +1,8 @@
+---
+description: Règle du design système et standards métier OMEGA FACTURE
+always_on: true
+---
+
 # RÈGLE DU DESIGN SYSTÈME OMEGA FACTURE (SaaS UEMOA)
 
 Cette règle s'applique obligatoirement à **TOUS** les fichiers, composants, pages et modales créés ou modifiés dans le projet OMEGA FACTURE. Elle garantit une cohérence visuelle, ergonomique et technique absolue inspirée du Dashboard de référence.

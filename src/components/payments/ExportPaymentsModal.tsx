@@ -23,6 +23,32 @@ import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { useInvoices } from '@/lib/store/invoice-context';
 import jsPDF from 'jspdf';
 import { PaymentRecord } from '@/lib/store/invoice-context';
+import { downloadCSV } from '@/lib/export/csv-export';
+
+function safeRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, width, height, radius);
+  } else {
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+  }
+  ctx.closePath();
+}
 
 interface ExportPaymentsModalProps {
   isOpen: boolean;
@@ -143,7 +169,7 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 14);
+      safeRoundRect(ctx, x, y, w, h, 14);
       ctx.fill();
       ctx.stroke();
 
@@ -318,66 +344,22 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
 
   // 2. CSV / Excel Export with UTF-8 BOM
   const handleExportCSV = () => {
-    const csvRows = [
-      ['REGISTRE DES PAIEMENTS & FLUX DE TRESORERIE - OMEGA FACTURE'],
-      ['Societe', 'MONROY Business Solutions SARL'],
-      ['IFU', '3202412894567'],
-      ['Perimetre', exportScope === 'period' ? periodLabel : 'Toutes les transactions'],
-      ['Date edition', new Date().toLocaleDateString('fr-FR')],
-      ['Devise', 'FCFA (XOF)'],
-      [],
-      ['SYNTHESE DES ENCAISSEMENTS'],
-      ['Total Encaisse (FCFA)', totalCollected],
-      ['Mobile Money (FCFA)', totalMobileMoney],
-      ['Virements Bancaires (FCFA)', totalBank],
-      ['Especes (FCFA)', totalCash],
-      ['Cheques (FCFA)', totalCheck],
-      ['Nombre total de reglements', activeList.length],
-      [],
-      ['DETAIL DES TRANSACTIONS'],
+    const csvRows: (string | number)[][] = [
       ['Date', 'Reference_Transaction', 'Client', 'Numero_Facture', 'Mode_Paiement', 'Montant_FCFA'],
+      ...activeList.map((pay) => [
+        pay.date,
+        pay.reference,
+        pay.clientName,
+        pay.invoiceNumber,
+        getMethodName(pay.method),
+        pay.amount,
+      ]),
     ];
 
-    activeList.forEach((pay) => {
-      csvRows.push([
-        pay.date,
-        `"${pay.reference}"`,
-        `"${pay.clientName}"`,
-        `"${pay.invoiceNumber}"`,
-        `"${getMethodName(pay.method)}"`,
-        pay.amount.toString(),
-      ]);
-    });
-
-    const csvContent =
-      '\uFEFF' +
-      csvRows
-        .map((row) =>
-          row
-            .map((val) => {
-              if (val === undefined || val === null) return '';
-              const str = String(val);
-              if (str.includes(',') || str.includes(';') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`;
-              }
-              return str;
-            })
-            .join(';')
-        )
-        .join('\r\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
     const safePeriod = (exportScope === 'period' ? periodLabel : 'annuel')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '_');
-    link.download = `flux_paiements_omega_${safePeriod}_${Date.now()}.csv`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadCSV(`flux_paiements_omega_${safePeriod}_${Date.now()}.csv`, csvRows);
 
     showToast('Fichier Excel / CSV téléchargé avec succès (compatible Excel & Sheets) !');
   };
@@ -405,7 +387,7 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
       }, 'image/png');
     } catch (e) {
       console.error('[Export PNG] Erreur :', e);
-      alert('Erreur lors de la génération de l’image.');
+      showToast('Erreur lors de la génération de l’image.');
     }
   };
 

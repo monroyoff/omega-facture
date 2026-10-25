@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { BarChart3, PieChart, ArrowUpRight, ArrowRight } from 'lucide-react';
-import { monthlyRevenueData } from '@/lib/mock-data';
 import { formatFCFA } from '@/lib/money/format';
 import { useInvoices } from '@/lib/store/invoice-context';
 
@@ -17,8 +16,32 @@ export const RevenueOverview: React.FC<RevenueOverviewProps> = ({
   onMonthClick,
   onTotalClick,
 }) => {
-  const { selectedPeriod, setSelectedPeriod, periodLabel, periodKPIs } = useInvoices();
-  const maxAmount = Math.max(...monthlyRevenueData.map((d) => d.amount));
+  const { invoices, selectedPeriod, setSelectedPeriod, periodLabel, periodKPIs } = useInvoices();
+
+  const monthlyRevenueData = React.useMemo(() => {
+    const months = [
+      { key: '2026-05', month: 'Mai' },
+      { key: '2026-06', month: 'Juin' },
+      { key: '2026-07', month: 'Juil' },
+      { key: '2026-08', month: 'Août' },
+      { key: '2026-09', month: 'Sept' },
+      { key: '2026-10', month: 'Oct' },
+    ];
+    return months.map((m) => {
+      const monthInvoices = invoices.filter(
+        (inv) =>
+          (!inv.documentKind || inv.documentKind === 'invoice') &&
+          !inv.number.startsWith('DEV-') &&
+          inv.status !== 'draft' &&
+          inv.issueDate.startsWith(m.key)
+      );
+      const amount = monthInvoices.reduce((sum, inv) => sum + inv.total, 0);
+      return { month: m.month, amount, periodKey: m.key };
+    });
+  }, [invoices]);
+
+  const rawMax = Math.max(...monthlyRevenueData.map((d) => d.amount), 0);
+  const maxAmount = rawMax > 0 ? rawMax : 1;
 
   // Determine active month in chart
   const activeMonthCode = {
@@ -98,7 +121,7 @@ export const RevenueOverview: React.FC<RevenueOverviewProps> = ({
         {/* Visual Bar Graph */}
         <div className="h-44 flex items-end justify-between gap-3 pt-6 pb-2 px-2 border-b border-slate-100 dark:border-slate-800/60">
           {monthlyRevenueData.map((item) => {
-            const heightPercent = Math.round((item.amount / maxAmount) * 100);
+            const heightPercent = rawMax > 0 && item.amount > 0 ? Math.max(Math.round((item.amount / maxAmount) * 100), 6) : 4;
             const isSelected = item.month === activeMonthCode;
             return (
               <div

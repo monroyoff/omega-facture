@@ -1,13 +1,21 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Client, Invoice, InvoiceStatus, InvoiceItem, DashboardKPIs } from '@/lib/types';
 import { mockClients, mockInvoices } from '@/lib/mock-data';
+import { ToastNotification, type ToastMessage } from '@/components/ui/ToastNotification';
 import {
   fetchSupabaseData,
+  getOrCreateUserCompany,
   supabaseAddInvoice,
+  supabaseUpdateInvoice,
+  supabaseDeleteInvoice,
   supabaseAddClient,
+  supabaseUpdateClient,
+  supabaseDeleteClient,
   supabaseAddProduct,
+  supabaseUpdateProduct,
+  supabaseDeleteProduct,
   supabaseAddPayment,
 } from '@/lib/supabase/services';
 import { createClient } from '@/lib/supabase/client';
@@ -135,68 +143,11 @@ export const PERIOD_OPTIONS: PeriodOption[] = [
   { id: 'ALL', label: 'Année 2026 (Toutes les factures)', shortLabel: 'Année 2026 complète', type: 'year' },
 ];
 
-const initialNotifications: AppNotification[] = [
-  {
-    id: 'notif-1',
-    type: 'overdue',
-    title: 'Facture en retard d’échéance',
-    desc: 'FAC-2026-0040 (Koudjo Architectes) a 18 jours de retard. Montant restant : 2 032 000 FCFA.',
-    time: 'Il y a 2 heures',
-    unread: true,
-    invoiceId: 'inv-3',
-    invoiceNumber: 'FAC-2026-0040',
-    clientName: 'Fadila Koudjo',
-    clientCompany: 'Koudjo Architectes & Urbanisme',
-    clientPhone: '+229 01 66 88 99 11',
-    amount: 2832000,
-    remainingAmount: 2032000,
-    dueDate: '2026-09-30',
-  },
-  {
-    id: 'notif-2',
-    type: 'payment',
-    title: 'Paiement Mobile Money reçu',
-    desc: '1 770 000 FCFA reçu de Cédric Agbossou (Réf: MTN-BJ-9021847) pour FAC-2026-0042.',
-    time: 'Hier à 16:42',
-    unread: true,
-    invoiceId: 'inv-1',
-    invoiceNumber: 'FAC-2026-0042',
-    clientName: 'Cédric Agbossou',
-    amount: 1770000,
-  },
-  {
-    id: 'notif-3',
-    type: 'draft',
-    title: 'Brouillon prêt pour émission',
-    desc: 'FAC-2026-0039 pour Teranga Food (708 000 FCFA) en attente de validation.',
-    time: 'Il y a 2 jours',
-    unread: true,
-    invoiceId: 'inv-4',
-    invoiceNumber: 'FAC-2026-0039',
-    clientName: 'Babacar Ndiaye',
-    clientCompany: 'Teranga Food Trading',
-    amount: 708000,
-  },
-  {
-    id: 'notif-4',
-    type: 'overdue',
-    title: 'Facture en retard d’échéance',
-    desc: 'FAC-2026-0037 (Agbossou Logistics) a 13 jours de retard. Montant restant : 531 000 FCFA.',
-    time: 'Il y a 3 jours',
-    unread: true,
-    invoiceId: 'inv-6',
-    invoiceNumber: 'FAC-2026-0037',
-    clientName: 'Cédric Agbossou',
-    clientCompany: 'Agbossou Logistics & Co',
-    clientPhone: '+229 01 97 12 34 56',
-    amount: 531000,
-    remainingAmount: 531000,
-    dueDate: '2026-10-05',
-  },
-];
+const initialNotifications: AppNotification[] = [];
 
 export interface UserProfile {
   id?: string;
+  companyId?: string;
   name: string;
   firstName?: string;
   lastName?: string;
@@ -205,9 +156,12 @@ export interface UserProfile {
   organization: string;
   avatar: string;
   emailVerified?: boolean;
+  password?: string;
 }
 
 export const DEFAULT_USER: UserProfile = {
+  id: 'fc1ff9e5-80d6-4bcf-8794-c4bb463e148d',
+  companyId: 'c0000000-0000-0000-0000-000000000001',
   name: 'Mari-ella Manille',
   firstName: 'Mari-ella',
   lastName: 'Manille',
@@ -220,6 +174,8 @@ export const DEFAULT_USER: UserProfile = {
 
 export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
   'monmonnroyteam@gmail.com': {
+    id: 'fc1ff9e5-80d6-4bcf-8794-c4bb463e148d',
+    companyId: 'c0000000-0000-0000-0000-000000000001',
     name: 'Mari-ella Manille',
     firstName: 'Mari-ella',
     lastName: 'Manille',
@@ -230,6 +186,8 @@ export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
     emailVerified: true,
   },
   'laradamourr@gmail.com': {
+    id: '292fab7a-a210-44b9-bee4-a54aca4321e9',
+    companyId: 'c0000000-0000-0000-0000-000000000002',
     name: 'TFTGCFXF JHJHGU',
     firstName: 'TFTGCFXF',
     lastName: 'JHJHGU',
@@ -239,17 +197,9 @@ export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
     avatar: 'https://ui-avatars.com/api/?name=TFTGCFXF+JHJHGU&background=2563eb&color=fff&size=160&bold=true',
     emailVerified: true,
   },
-  'omegafacture@gmail.com': {
-    name: 'OMEGA FACTURE',
-    firstName: 'OMEGA',
-    lastName: 'FACTURE',
-    email: 'omegafacture@gmail.com',
-    role: 'Administrateur Principal',
-    organization: 'OMEGA FACTURE Inc.',
-    avatar: 'https://ui-avatars.com/api/?name=OMEGA+FACTURE&background=2563eb&color=fff&size=160&bold=true',
-    emailVerified: true,
-  },
   'jobovog@gmail.com': {
+    id: '6c146673-29b7-4b00-9df8-9ff27224b617',
+    companyId: 'c0000000-0000-0000-0000-000000000003',
     name: 'MONROY Business',
     firstName: 'MONROY',
     lastName: 'Business',
@@ -300,23 +250,31 @@ interface InvoiceContextType {
   markAllNotificationsAsRead: () => void;
   dismissNotification: (id: string) => void;
   unreadNotificationCount: number;
+  toast: ToastMessage | null;
+  showToast: (options: Omit<ToastMessage, 'id'>) => void;
+  hideToast: () => void;
   addInvoice: (invoice: Invoice) => void;
   updateInvoice: (id: string, updated: Partial<Invoice>) => void;
   deleteInvoice: (id: string) => void;
-  convertQuoteToInvoice: (quoteId: string, targetStatus?: InvoiceStatus) => Invoice | null;
+  convertQuoteToInvoice: (quoteId: string, targetStatus?: InvoiceStatus, extraFields?: Partial<Invoice>) => Invoice | null;
   addClient: (client: Omit<Client, 'id'>) => Client;
   updateClient: (id: string, updated: Partial<Client>) => void;
+  deleteClient?: (id: string) => void;
   addProduct: (product: Omit<Product, 'id'>) => Product;
+  deleteProduct?: (id: string) => void;
   addPayment: (payment: Omit<PaymentRecord, 'id'>) => void;
   getInvoice: (id: string) => Invoice | undefined;
   currentUser: UserProfile | null;
   isAuthenticated: boolean;
+  authLoading: boolean;
+  isDataLoading: boolean;
+  refreshData: () => Promise<void>;
   pendingVerificationUser: PendingVerificationUser | null;
   login: (
     email?: string,
     passwordOrName?: string,
     extra?: { firstName?: string; lastName?: string; organization?: string; avatar?: string }
-  ) => Promise<{ success: boolean; user: UserProfile; error?: string }>;
+  ) => Promise<{ success: boolean; user?: UserProfile; error?: string; requiresEmailVerification?: boolean }>;
   register: (userData: {
     firstName: string;
     lastName: string;
@@ -333,556 +291,488 @@ interface InvoiceContextType {
   confirmEmailVerification: (tokenOrEmail: string) => boolean;
   resendVerificationEmail: (targetEmail?: string) => Promise<boolean>;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
-const initialProducts: Product[] = [
-  {
-    id: 'prod-1',
-    name: 'Développement Web & Mobile',
-    price: 1200000,
-    vat: 18,
-    unit: 'Prestation',
-    cat: 'Services IT',
-    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=160&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'prod-2',
-    name: 'Intégration Mobile Money UEMOA',
-    price: 450000,
-    vat: 18,
-    unit: 'Module',
-    cat: 'Fintech',
-    image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=160&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'prod-3',
-    name: 'Maintenance & Support Prioritaire',
-    price: 150000,
-    vat: 18,
-    unit: 'Mois',
-    cat: 'Infogérance',
-    image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=160&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'prod-4',
-    name: 'Hébergement Cloud Haute Dispo',
-    price: 75000,
-    vat: 0,
-    unit: 'An',
-    cat: 'Cloud',
-    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=160&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'prod-5',
-    name: 'Audit UX/UI & Stratégie Digitale',
-    price: 600000,
-    vat: 18,
-    unit: 'Mission',
-    cat: 'Design',
-    image: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=160&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'prod-6',
-    name: 'Formation Équipe & Transfert Compétences',
-    price: 300000,
-    vat: 18,
-    unit: 'Journée',
-    cat: 'Formation',
-    image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=160&auto=format&fit=crop&q=80',
-  },
-];
+const initialProducts: Product[] = [];
 
-const initialPayments: PaymentRecord[] = [
-  // Aujourd'hui (18 Octobre 2026)
-  {
-    id: 'pay-today-1',
-    invoiceId: 'inv-1',
-    invoiceNumber: 'FAC-2026-0042',
-    clientName: 'Cédric Agbossou',
-    amount: 350000,
-    method: 'cash',
-    reference: 'RECU-ESP-0089',
-    date: '2026-10-18',
-  },
-  {
-    id: 'pay-today-2',
-    invoiceId: 'inv-2',
-    invoiceNumber: 'FAC-2026-0041',
-    clientName: 'Amina Traoré',
-    amount: 620000,
-    method: 'mobile_money',
-    reference: 'MTN-BJ-9912044',
-    date: '2026-10-18',
-  },
-  // 16 Octobre 2026
-  {
-    id: 'pay-5',
-    invoiceId: 'inv-2',
-    invoiceNumber: 'FAC-2026-0041',
-    clientName: 'Amina Traoré',
-    amount: 450000,
-    method: 'cash',
-    reference: 'RECU-ESP-0041',
-    date: '2026-10-16',
-  },
-  // 15 Octobre 2026
-  {
-    id: 'pay-1',
-    invoiceId: 'inv-1',
-    invoiceNumber: 'FAC-2026-0042',
-    clientName: 'Cédric Agbossou',
-    amount: 1770000,
-    method: 'mobile_money',
-    reference: 'MTN-BJ-9021847',
-    date: '2026-10-15',
-  },
-  // 14 Octobre 2026
-  {
-    id: 'pay-d14',
-    invoiceId: 'inv-7',
-    invoiceNumber: 'FAC-2026-0036',
-    clientName: 'Amina Traoré',
-    amount: 750000,
-    method: 'bank_transfer',
-    reference: 'VIR-ECO-20261014',
-    date: '2026-10-14',
-  },
-  // 13 Octobre 2026
-  {
-    id: 'pay-4',
-    invoiceId: 'inv-7',
-    invoiceNumber: 'FAC-2026-0036',
-    clientName: 'Amina Traoré',
-    amount: 500000,
-    method: 'bank_transfer',
-    reference: 'VIR-SG-881923',
-    date: '2026-10-13',
-  },
-  // 12 Octobre 2026
-  {
-    id: 'pay-d12',
-    invoiceId: 'inv-5',
-    invoiceNumber: 'FAC-2026-0038',
-    clientName: 'Jean-Marc Houessou',
-    amount: 850000,
-    method: 'mobile_money',
-    reference: 'MOOV-BJ-551022',
-    date: '2026-10-12',
-  },
-  // 10 Octobre 2026
-  {
-    id: 'pay-d10',
-    invoiceId: 'inv-3',
-    invoiceNumber: 'FAC-2026-0040',
-    clientName: 'Fadila Koudjo',
-    amount: 800000,
-    method: 'check',
-    reference: 'CHQ-BOA-004921',
-    date: '2026-10-10',
-  },
-  // 08 Octobre 2026
-  {
-    id: 'pay-d08',
-    invoiceId: 'inv-11',
-    invoiceNumber: 'FAC-2026-0043',
-    clientName: 'Jean-Marc Houessou',
-    amount: 1800000,
-    method: 'mobile_money',
-    reference: 'MTN-BJ-778210',
-    date: '2026-10-08',
-  },
-  // 04 Octobre 2026
-  {
-    id: 'pay-2',
-    invoiceId: 'inv-5',
-    invoiceNumber: 'FAC-2026-0038',
-    clientName: 'Jean-Marc Houessou',
-    amount: 3540000,
-    method: 'bank_transfer',
-    reference: 'VIR-BOA-20261002',
-    date: '2026-10-04',
-  },
-  // 02 Octobre 2026
-  {
-    id: 'pay-d02',
-    invoiceId: 'inv-6',
-    invoiceNumber: 'FAC-2026-0037',
-    clientName: 'Cédric Agbossou',
-    amount: 531000,
-    method: 'cash',
-    reference: 'RECU-ESP-0021',
-    date: '2026-10-02',
-  },
-  // Septembre 2026 (T3 / S2)
-  {
-    id: 'pay-3',
-    invoiceId: 'inv-3',
-    invoiceNumber: 'FAC-2026-0040',
-    clientName: 'Fadila Koudjo',
-    amount: 800000,
-    method: 'mobile_money',
-    reference: 'MOOV-BJ-448109',
-    date: '2026-09-28',
-  },
-  {
-    id: 'pay-s20',
-    invoiceId: 'inv-6',
-    invoiceNumber: 'FAC-2026-0037',
-    clientName: 'Cédric Agbossou',
-    amount: 1200000,
-    method: 'bank_transfer',
-    reference: 'VIR-BOA-884910',
-    date: '2026-09-20',
-  },
-  {
-    id: 'pay-s08',
-    invoiceId: 'inv-12',
-    invoiceNumber: 'FAC-2026-0032',
-    clientName: 'Cédric Agbossou',
-    amount: 5537000,
-    method: 'bank_transfer',
-    reference: 'VIR-SG-993812',
-    date: '2026-09-08',
-  },
-  // Août 2026 (T3 / S2)
-  {
-    id: 'pay-a28',
-    invoiceId: 'inv-8',
-    invoiceNumber: 'FAC-2026-0035',
-    clientName: 'Bakary Koné',
-    amount: 4484000,
-    method: 'bank_transfer',
-    reference: 'VIR-ECO-20260828',
-    date: '2026-08-28',
-  },
-  {
-    id: 'pay-a22',
-    invoiceId: 'inv-9',
-    invoiceNumber: 'FAC-2026-0034',
-    clientName: 'Fadila Koudjo',
-    amount: 2616000,
-    method: 'check',
-    reference: 'CHQ-BOA-881923',
-    date: '2026-08-22',
-  },
-  // Juillet 2026 (T3 / S2)
-  {
-    id: 'pay-j28',
-    invoiceId: 'inv-10',
-    invoiceNumber: 'FAC-2026-0033',
-    clientName: 'Jean-Marc Houessou',
-    amount: 5400000,
-    method: 'bank_transfer',
-    reference: 'VIR-BOA-20260728',
-    date: '2026-07-28',
-  },
-  // Juin 2026 (T2 / S1)
-  {
-    id: 'pay-m06',
-    invoiceId: 'inv-m06',
-    invoiceNumber: 'FAC-2026-0030',
-    clientName: 'Amina Traoré',
-    amount: 6200000,
-    method: 'bank_transfer',
-    reference: 'VIR-SG-20260625',
-    date: '2026-06-25',
-  },
-  // Mai 2026 (T2 / S1)
-  {
-    id: 'pay-m05',
-    invoiceId: 'inv-m05',
-    invoiceNumber: 'FAC-2026-0028',
-    clientName: 'Cédric Agbossou',
-    amount: 4800000,
-    method: 'bank_transfer',
-    reference: 'VIR-BOA-20260520',
-    date: '2026-05-20',
-  },
-  // Avril 2026 (T2 / S1)
-  {
-    id: 'pay-q2',
-    invoiceId: 'inv-q2',
-    invoiceNumber: 'FAC-2026-0025',
-    clientName: 'Jean-Marc Houessou',
-    amount: 3100000,
-    method: 'bank_transfer',
-    reference: 'VIR-BOA-20260418',
-    date: '2026-04-18',
-  },
-  // Février 2026 (T1 / S1)
-  {
-    id: 'pay-q1',
-    invoiceId: 'inv-q1',
-    invoiceNumber: 'FAC-2026-0020',
-    clientName: 'Fadila Koudjo',
-    amount: 2500000,
-    method: 'mobile_money',
-    reference: 'MTN-BJ-20260215',
-    date: '2026-02-15',
-  },
-  // Exercice 2025
-  {
-    id: 'pay-y25',
-    invoiceId: 'inv-y25',
-    invoiceNumber: 'FAC-2025-0089',
-    clientName: 'Cédric Agbossou',
-    amount: 3800000,
-    method: 'bank_transfer',
-    reference: 'VIR-BOA-20251120',
-    date: '2025-11-20',
-  },
-];
+const initialPayments: PaymentRecord[] = [];
+
+
+const isFictitiousId = (id?: string) => {
+  if (!id) return true;
+  if (/^(inv|dev|cli|prod|pay|notif)-00\d$/.test(id)) return true;
+  if (id.startsWith('a0000000') || id.startsWith('b0000000') || id.startsWith('e0000000')) return true;
+  if (id === '54e9c159-da2e-4eae-ba06-24a7b85a0486') return true;
+  return false;
+};
 
 const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
 
 export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
-  const [clients, setClients] = useState<Client[]>(mockClients);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [payments, setPayments] = useState<PaymentRecord[]>(initialPayments);
+  // 1. Initialisation uniforme SSR & Client pour éliminer tout décalage d'hydratation (Hydration Mismatch)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // 2. Initialisation des listes (peuplées immédiatement dans useEffect via le cache local et Supabase)
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+
   const [selectedPeriod, setSelectedPeriod] = useState<string>('2026-10');
-  const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEFAULT_USER);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [authLoading, setAuthLoading] = useState<boolean>(false);
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
   const [pendingVerificationUser, setPendingVerificationUser] = useState<PendingVerificationUser | null>(null);
 
-  // Load from localStorage on mount (versioned storage as per plan: facturo:v1)
-  useEffect(() => {
-    try {
-      const savedInvoices = localStorage.getItem('facturo:v1:invoices');
-      if (savedInvoices) {
-        const parsed = JSON.parse(savedInvoices);
-        // Ensure new mock invoices (inv-8, inv-9, inv-10, inv-11, inv-12) are present so all months have data
-        const existingIds = new Set(parsed.map((i: Invoice) => i.id));
-        const missing = mockInvoices.filter((i) => !existingIds.has(i.id));
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          setInvoices(merged);
-          localStorage.setItem('facturo:v1:invoices', JSON.stringify(merged));
-        } else {
-          setInvoices(parsed);
-        }
-      }
-
-      const savedClients = localStorage.getItem('facturo:v1:clients');
-      if (savedClients) setClients(JSON.parse(savedClients));
-
-      const savedProducts = localStorage.getItem('facturo:v1:products');
-      if (savedProducts) setProducts(JSON.parse(savedProducts));
-
-      const savedPayments = localStorage.getItem('facturo:v1:payments');
-      if (savedPayments) {
-        const parsed = JSON.parse(savedPayments);
-        const existingIds = new Set(parsed.map((p: PaymentRecord) => p.id));
-        const missing = initialPayments.filter((p) => !existingIds.has(p.id));
-        if (missing.length > 0) {
-          const merged = [...parsed, ...missing];
-          setPayments(merged);
-          localStorage.setItem('facturo:v1:payments', JSON.stringify(merged));
-        } else {
-          setPayments(parsed);
-        }
-      }
-
-      const savedNotifs = localStorage.getItem('facturo:v1:notifications');
-      if (savedNotifs) setNotifications(JSON.parse(savedNotifs));
-
-      const savedAuth = localStorage.getItem('facturo:v1:auth');
-      if (savedAuth) {
-        const parsed = JSON.parse(savedAuth);
-        if (typeof parsed.isAuthenticated === 'boolean') {
-          setIsAuthenticated(parsed.isAuthenticated);
-          setCurrentUser(parsed.currentUser);
-        }
-      }
-
-      const savedPending = localStorage.getItem('facturo:v1:pending_verification');
-      if (savedPending) {
-        setPendingVerificationUser(JSON.parse(savedPending));
-      }
-    } catch (e) {
-      console.warn('LocalStorage non accessible ou vide, utilisation des données démo.');
+  /**
+   * Charge les données de facturation strictement isolées pour une société donnée
+   */
+  const loadUserData = async (user: UserProfile) => {
+    setIsDataLoading(true);
+    let companyId = user.companyId;
+    if (!companyId) {
+      companyId = await getOrCreateUserCompany(user.id, user.organization, user.email);
+      user.companyId = companyId;
+      saveUserToRegistry(user);
     }
 
-    // Synchronisation en tâche de fond avec Supabase
-    fetchSupabaseData().then((remote) => {
-      if (remote) {
-        if (remote.clients.length > 0) {
-          setClients(remote.clients);
-          try { localStorage.setItem('facturo:v1:clients', JSON.stringify(remote.clients)); } catch (e) {}
-        }
-        if (remote.products.length > 0) {
-          setProducts(remote.products);
-          try { localStorage.setItem('facturo:v1:products', JSON.stringify(remote.products)); } catch (e) {}
-        }
-        if (remote.invoices.length > 0) {
-          setInvoices((prev) => {
-            const remoteIds = new Set(remote.invoices.map((i) => i.id));
-            const localOnly = prev.filter((i) => !remoteIds.has(i.id));
-            const merged = [...remote.invoices, ...localOnly];
-            try { localStorage.setItem('facturo:v1:invoices', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          });
-        }
-        if (remote.payments.length > 0) {
-          setPayments((prev) => {
-            const remoteIds = new Set(remote.payments.map((p) => p.id));
-            const localOnly = prev.filter((p) => !remoteIds.has(p.id));
-            const merged = [...remote.payments, ...localOnly];
-            try { localStorage.setItem('facturo:v1:payments', JSON.stringify(merged)); } catch (e) {}
-            return merged;
-          });
-        }
+    const cacheKey = `facturo:v1:${companyId}`;
+    let localInvoices: Invoice[] = [];
+    try {
+      const savedInvoices = localStorage.getItem(`${cacheKey}:invoices`);
+      if (savedInvoices) {
+        const parsed = JSON.parse(savedInvoices);
+        localInvoices = Array.isArray(parsed) ? parsed.filter((i: Invoice) => !isFictitiousId(i.id)) : [];
+        setInvoices(localInvoices);
+      } else {
+        setInvoices([]);
       }
-    });
+
+      const savedClients = localStorage.getItem(`${cacheKey}:clients`);
+      if (savedClients) {
+        const parsed = JSON.parse(savedClients);
+        setClients(Array.isArray(parsed) ? parsed.filter((c: Client) => !isFictitiousId(c.id)) : []);
+      } else {
+        setClients([]);
+      }
+
+      const savedProducts = localStorage.getItem(`${cacheKey}:products`);
+      if (savedProducts) {
+        const parsed = JSON.parse(savedProducts);
+        setProducts(Array.isArray(parsed) ? parsed.filter((p: Product) => !isFictitiousId(p.id)) : []);
+      } else {
+        setProducts([]);
+      }
+
+      const savedPayments = localStorage.getItem(`${cacheKey}:payments`);
+      if (savedPayments) {
+        const parsed = JSON.parse(savedPayments);
+        setPayments(Array.isArray(parsed) ? parsed.filter((p: PaymentRecord) => !isFictitiousId(p.id)) : []);
+      } else {
+        setPayments([]);
+      }
+    } catch (e) {}
+
+    // Synchronisation depuis Supabase (source réelle filtrée par company_id) avec Réconciliation Inviolable
+    try {
+      const remote = await fetchSupabaseData(companyId);
+      if (remote) {
+        // Registre persistant des conversions inviolables
+        let convertedMap: Record<string, { number: string }> = {};
+        try {
+          const rawConv = localStorage.getItem('facturo:v1:converted_quotes');
+          if (rawConv) convertedMap = JSON.parse(rawConv);
+        } catch (e) {}
+
+        const localMap = new Map<string, Invoice>();
+        for (const inv of localInvoices) {
+          localMap.set(inv.id, inv);
+        }
+
+        const reconciledInvoices: Invoice[] = remote.invoices.map((remoteInv) => {
+          const localInv = localMap.get(remoteInv.id);
+          const wasConverted = convertedMap[remoteInv.id];
+
+          // RÈGLE D'OR : Si le document a été converti en facture (soit en local, soit dans le registre persistant),
+          // une ancienne version distante (devis DEV-) NE PEUT JAMAIS l'écraser !
+          const localIsFacture = (localInv && (!localInv.documentKind || localInv.documentKind === 'invoice') && !localInv.number.startsWith('DEV-')) || Boolean(wasConverted);
+          const remoteIsDevis = remoteInv.documentKind === 'quote' || remoteInv.number.startsWith('DEV-');
+
+          if (localIsFacture && remoteIsDevis) {
+            const finalNumber = wasConverted?.number || localInv?.number || remoteInv.number.replace('DEV-', 'FAC-');
+            const reconciled: Invoice = {
+              ...(localInv || remoteInv),
+              id: remoteInv.id,
+              number: finalNumber,
+              documentKind: 'invoice',
+              type: 'standard',
+              status: localInv?.status || remoteInv.status || 'sent',
+              notes: localInv?.notes || remoteInv.notes,
+            };
+
+            // Auto-heal Supabase en arrière-plan pour réparer la base distante immédiatement
+            supabaseUpdateInvoice(
+              remoteInv.id,
+              {
+                number: finalNumber,
+                documentKind: 'invoice',
+                type: 'standard',
+                status: reconciled.status,
+                notes: reconciled.notes,
+              },
+              remoteInv.number
+            ).catch((err) => console.warn('[Auto-heal conversion error] :', err));
+
+            return reconciled;
+          }
+
+          return remoteInv;
+        });
+
+        // Conserver les factures créées localement qui ne sont pas encore arrivées sur Supabase
+        for (const localInv of localInvoices) {
+          if (!reconciledInvoices.some((r) => r.id === localInv.id)) {
+            reconciledInvoices.push(localInv);
+            supabaseAddInvoice(localInv, companyId).catch((err) => console.warn('[Auto-heal new invoice error] :', err));
+          }
+        }
+
+        setClients(remote.clients);
+        setProducts(remote.products);
+        setInvoices(reconciledInvoices);
+        setPayments(remote.payments);
+        try {
+          localStorage.setItem(`${cacheKey}:clients`, JSON.stringify(remote.clients));
+          localStorage.setItem(`${cacheKey}:products`, JSON.stringify(remote.products));
+          localStorage.setItem(`${cacheKey}:invoices`, JSON.stringify(reconciledInvoices));
+          localStorage.setItem(`${cacheKey}:payments`, JSON.stringify(remote.payments));
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('[loadUserData] Erreur de synchronisation Supabase :', e);
+    } finally {
+      setIsDataLoading(false);
+    }
+  };
+
+  // Initialisation au montage : vérification de session stricte
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const isLoggedOutFlag = typeof window !== 'undefined' && localStorage.getItem('facturo:v1:is_logged_out') === 'true';
+        const isPublicPath = typeof window !== 'undefined' && (
+          window.location.pathname === '/login' ||
+          window.location.pathname === '/register' ||
+          window.location.pathname === '/verify-email' ||
+          window.location.pathname === '/confirm-email'
+        );
+
+        if (isLoggedOutFlag) {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setInvoices([]);
+          setClients([]);
+          setProducts([]);
+          setPayments([]);
+          setAuthLoading(false);
+          setIsDataLoading(false);
+          return;
+        }
+
+        const savedPending = typeof window !== 'undefined' ? localStorage.getItem('facturo:v1:pending_verification') : null;
+        if (savedPending) {
+          setPendingVerificationUser(JSON.parse(savedPending));
+        }
+
+        const savedAuth = typeof window !== 'undefined' ? localStorage.getItem('facturo:v1:auth') : null;
+        if (savedAuth) {
+          const parsed = JSON.parse(savedAuth);
+          if (parsed && parsed.isAuthenticated === false) {
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            setInvoices([]);
+            setClients([]);
+            setProducts([]);
+            setPayments([]);
+            setAuthLoading(false);
+            return;
+          }
+          if (parsed?.isAuthenticated && parsed?.currentUser && parsed?.currentUser?.emailVerified) {
+            setCurrentUser(parsed.currentUser);
+            setIsAuthenticated(true);
+            setAuthLoading(false);
+            // Charger les données en arrière-plan sans bloquer l'affichage de l'écran
+            loadUserData(parsed.currentUser).catch((err) => console.warn('[loadUserData background] :', err));
+            return;
+          }
+        }
+
+        // Sur les pages publiques (/login, /register), ne JAMAIS auto-reconnecter via session Supabase
+        if (isPublicPath) {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setAuthLoading(false);
+          setIsDataLoading(false);
+          return;
+        }
+
+        // Vérification de la session Supabase active avec timeout de sécurité (max 2.5s)
+        try {
+          const supabase = createClient();
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { session: null } }), 2500)
+          );
+          const { data } = await Promise.race([sessionPromise, timeoutPromise]);
+          if (data?.session?.user) {
+            const sbUser = data.session.user;
+            const meta = (sbUser.user_metadata || {}) as Record<string, any>;
+            const isVerified = Boolean(sbUser.confirmed_at || sbUser.email_confirmed_at || meta.email_verified);
+            if (isVerified) {
+              const fullName = `${meta.firstName || ''} ${meta.lastName || ''}`.trim() || meta.organization || sbUser.email?.split('@')[0] || 'Utilisateur';
+              const companyId = await getOrCreateUserCompany(sbUser.id, meta.organization, sbUser.email);
+              const userProfile: UserProfile = {
+                id: sbUser.id,
+                companyId,
+                name: fullName,
+                firstName: meta.firstName || fullName,
+                lastName: meta.lastName || '',
+                email: sbUser.email || '',
+                organization: meta.organization || 'Mon Entreprise',
+                role: 'Administrateur / Gérant',
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
+                emailVerified: true,
+              };
+              setCurrentUser(userProfile);
+              setIsAuthenticated(true);
+              try {
+                localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: userProfile }));
+                localStorage.removeItem('facturo:v1:is_logged_out');
+              } catch (e) {}
+              saveUserToRegistry(userProfile);
+              setAuthLoading(false);
+              loadUserData(userProfile).catch((err) => console.warn('[loadUserData background] :', err));
+              return;
+            }
+          }
+        } catch (e) {}
+
+        // Par défaut : non authentifié, aucune donnée en mémoire
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        setInvoices([]);
+        setClients([]);
+        setProducts([]);
+        setPayments([]);
+        setIsDataLoading(false);
+      } catch (e) {
+        console.warn('[initAuth] Erreur :', e);
+        setIsDataLoading(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
-  // Save changes to localStorage
+  // Synchronisation inter-onglets : si un onglet se déconnecte, tous les onglets se déconnectent instantanément
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'facturo:v1:is_logged_out' && e.newValue === 'true') {
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        setInvoices([]);
+        setClients([]);
+        setProducts([]);
+        setPayments([]);
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.replace('/login');
+        }
+      } else if (e.key === 'facturo:v1:auth') {
+        try {
+          const parsed = e.newValue ? JSON.parse(e.newValue) : null;
+          if (parsed && parsed.isAuthenticated === false) {
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            setInvoices([]);
+            setClients([]);
+            setProducts([]);
+            setPayments([]);
+            if (!window.location.pathname.startsWith('/login')) {
+              window.location.replace('/login');
+            }
+          }
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Sauvegarde des modifications dans le cache spécifique à l'utilisateur
   const saveInvoices = (newInvoices: Invoice[]) => {
     setInvoices(newInvoices);
+    const key = currentUser?.companyId ? `facturo:v1:${currentUser.companyId}:invoices` : 'facturo:v1:invoices';
     try {
-      localStorage.setItem('facturo:v1:invoices', JSON.stringify(newInvoices));
+      localStorage.setItem(key, JSON.stringify(newInvoices));
     } catch (e) {}
   };
 
   const saveClients = (newClients: Client[]) => {
     setClients(newClients);
+    const key = currentUser?.companyId ? `facturo:v1:${currentUser.companyId}:clients` : 'facturo:v1:clients';
     try {
-      localStorage.setItem('facturo:v1:clients', JSON.stringify(newClients));
+      localStorage.setItem(key, JSON.stringify(newClients));
     } catch (e) {}
   };
 
   const saveProducts = (newProducts: Product[]) => {
     setProducts(newProducts);
+    const key = currentUser?.companyId ? `facturo:v1:${currentUser.companyId}:products` : 'facturo:v1:products';
     try {
-      localStorage.setItem('facturo:v1:products', JSON.stringify(newProducts));
+      localStorage.setItem(key, JSON.stringify(newProducts));
     } catch (e) {}
   };
 
   const savePayments = (newPayments: PaymentRecord[]) => {
     setPayments(newPayments);
+    const key = currentUser?.companyId ? `facturo:v1:${currentUser.companyId}:payments` : 'facturo:v1:payments';
     try {
-      localStorage.setItem('facturo:v1:payments', JSON.stringify(newPayments));
+      localStorage.setItem(key, JSON.stringify(newPayments));
     } catch (e) {}
   };
 
+  /**
+   * Connexion sécurisée : AUCUN compte fictif toléré.
+   * L'utilisateur DOIT obligatoirement avoir un compte valide et un mot de passe correct.
+   */
   const login = async (
     emailOrCredentials?: string,
-    passwordOrName?: string,
-    extra?: { firstName?: string; lastName?: string; organization?: string; avatar?: string }
-  ): Promise<{ success: boolean; user: UserProfile; error?: string }> => {
+    passwordOrName?: string
+  ): Promise<{ success: boolean; user?: UserProfile; error?: string; requiresEmailVerification?: boolean }> => {
     const cleanEmail = (emailOrCredentials || '').trim().toLowerCase();
-    const password = passwordOrName || '';
+    const password = (passwordOrName || '').trim();
 
-    // 1. Look up user in persistent registry
-    const registry = getUserRegistry();
-    let matchedUser: Partial<UserProfile> | undefined = cleanEmail ? registry[cleanEmail] : undefined;
-
-    // 2. Query Supabase Auth for real user credentials and metadata if online
-    if (cleanEmail && password && !password.includes(' ') && password.length >= 6) {
-      try {
-        const supabase = createClient();
-        const { data: authData } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: password,
-        });
-
-        if (authData?.user) {
-          const meta = (authData.user.user_metadata || {}) as Record<string, any>;
-          const sbFirstName = meta.firstName || meta.first_name;
-          const sbLastName = meta.lastName || meta.last_name;
-          const sbOrg = meta.organization;
-
-          if (sbFirstName || sbOrg) {
-            const fullName = `${sbFirstName || ''} ${sbLastName || ''}`.trim() || sbFirstName || cleanEmail.split('@')[0];
-            matchedUser = {
-              ...DEFAULT_USER,
-              ...(matchedUser || {}),
-              email: authData.user.email || cleanEmail,
-              firstName: sbFirstName || matchedUser?.firstName || 'Utilisateur',
-              lastName: sbLastName || matchedUser?.lastName || '',
-              name: fullName,
-              organization: sbOrg || matchedUser?.organization || 'Mon Entreprise',
-              avatar: matchedUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
-              emailVerified: true,
-            };
-            saveUserToRegistry(matchedUser as UserProfile);
-          }
-        }
-      } catch (e) {
-        console.warn('[login] Supabase auth attempt:', e);
-      }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: 'Veuillez saisir une adresse email valide.' };
+    }
+    if (!password) {
+      return { success: false, error: 'Veuillez renseigner votre mot de passe.' };
     }
 
-    // 3. Fallback to pending verification user if matching
-    if (!matchedUser && pendingVerificationUser && pendingVerificationUser.email.toLowerCase() === cleanEmail) {
-      const fullName = `${pendingVerificationUser.firstName} ${pendingVerificationUser.lastName}`.trim();
-      matchedUser = {
-        ...DEFAULT_USER,
+    // 1. Authentification Supabase Auth
+    try {
+      const supabase = createClient();
+      const { data: authData, error: sbError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
-        firstName: pendingVerificationUser.firstName,
-        lastName: pendingVerificationUser.lastName,
-        name: fullName,
-        organization: pendingVerificationUser.organization,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
-        emailVerified: true,
+        password: password,
+      });
+
+      if (!sbError && authData?.user) {
+        const sbUser = authData.user;
+        const isVerified = Boolean(sbUser.confirmed_at || sbUser.email_confirmed_at || (sbUser.user_metadata as any)?.email_verified);
+        if (!isVerified) {
+          return {
+            success: false,
+            error: "Votre adresse email n'a pas encore été confirmée. Veuillez vérifier votre boîte mail et valider le lien reçu.",
+            requiresEmailVerification: true,
+          };
+        }
+
+        const meta = (sbUser.user_metadata || {}) as Record<string, any>;
+        const fullName = `${meta.firstName || ''} ${meta.lastName || ''}`.trim() || meta.organization || cleanEmail.split('@')[0];
+        const companyId = await getOrCreateUserCompany(sbUser.id, meta.organization, cleanEmail);
+
+        const profile: UserProfile = {
+          id: sbUser.id,
+          companyId,
+          name: fullName,
+          firstName: meta.firstName || fullName,
+          lastName: meta.lastName || '',
+          email: cleanEmail,
+          organization: meta.organization || 'Mon Entreprise',
+          role: 'Administrateur / Gérant',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
+          emailVerified: true,
+        };
+
+        setCurrentUser(profile);
+        setIsAuthenticated(true);
+        saveUserToRegistry(profile);
+        await loadUserData(profile);
+
+        try {
+          localStorage.removeItem('facturo:v1:is_logged_out');
+          localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: profile }));
+          localStorage.setItem('facturo:v1:last_email', cleanEmail);
+        } catch (e) {}
+
+        return { success: true, user: profile };
+      }
+
+      if (sbError && sbError.message.toLowerCase().includes('email not confirmed')) {
+        return {
+          success: false,
+          error: "Votre adresse email n'a pas encore été confirmée. Veuillez valider le lien reçu dans votre messagerie.",
+          requiresEmailVerification: true,
+        };
+      }
+    } catch (e) {
+      console.warn('[login] Supabase auth attempt catch:', e);
+    }
+
+    // 2. Vérification dans le registre persistant
+    const registry = getUserRegistry();
+    const regUser = registry[cleanEmail];
+
+    if (!regUser) {
+      return {
+        success: false,
+        error: "Aucun compte n'existe avec cette adresse email. Veuillez d'abord vous inscrire.",
       };
     }
 
-    // 4. Fallback if extra properties were passed explicitly (e.g. from 1-click demo button or tests)
-    if (extra?.firstName || extra?.organization) {
-      const fn = extra.firstName || matchedUser?.firstName || 'MONROY';
-      const ln = extra.lastName || matchedUser?.lastName || '';
-      const org = extra.organization || matchedUser?.organization || 'MONROY Business Solutions';
-      matchedUser = {
-        ...DEFAULT_USER,
-        ...(matchedUser || {}),
-        email: cleanEmail || DEFAULT_USER.email,
-        firstName: fn,
-        lastName: ln,
-        name: `${fn} ${ln}`.trim() || fn,
-        organization: org,
-        avatar: extra?.avatar || matchedUser?.avatar || DEFAULT_USER.avatar,
-        emailVerified: true,
+    if (regUser.password && regUser.password !== password) {
+      return {
+        success: false,
+        error: "Mot de passe incorrect. Veuillez vérifier votre saisie.",
       };
     }
 
-    // 5. Final fallback if completely unknown new email
-    if (!matchedUser) {
-      const emailHandle = cleanEmail.split('@')[0] || 'Utilisateur';
-      const capitalized = emailHandle.charAt(0).toUpperCase() + emailHandle.slice(1);
-      matchedUser = {
-        ...DEFAULT_USER,
-        email: cleanEmail || DEFAULT_USER.email,
-        firstName: capitalized,
-        lastName: '',
-        name: capitalized,
-        organization: 'Entreprise Professionnelle',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(capitalized)}&background=2563eb&color=fff&size=160&bold=true`,
-        emailVerified: true,
+    if (!regUser.emailVerified) {
+      return {
+        success: false,
+        error: "Votre adresse email n'a pas encore été validée. Veuillez cliquer sur le lien de confirmation reçu.",
+        requiresEmailVerification: true,
       };
     }
 
-    const finalUser: UserProfile = {
-      ...DEFAULT_USER,
-      ...matchedUser,
-      email: cleanEmail || matchedUser.email || DEFAULT_USER.email,
+    // Connexion réussie via le registre vérifié
+    const companyId = regUser.companyId || await getOrCreateUserCompany(regUser.id, regUser.organization, cleanEmail);
+    const validUser: UserProfile = {
+      ...regUser,
+      companyId,
       emailVerified: true,
     };
 
-    setCurrentUser(finalUser);
+    setCurrentUser(validUser);
     setIsAuthenticated(true);
-    saveUserToRegistry(finalUser);
+    saveUserToRegistry(validUser);
+    await loadUserData(validUser);
 
     try {
-      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: finalUser }));
-      if (cleanEmail) {
-        localStorage.setItem('facturo:v1:last_email', cleanEmail);
-      }
+      localStorage.removeItem('facturo:v1:is_logged_out');
+      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: validUser }));
+      localStorage.setItem('facturo:v1:last_email', cleanEmail);
     } catch (e) {}
 
-    return { success: true, user: finalUser };
+    return { success: true, user: validUser };
   };
 
   const register = async (userData: {
@@ -1102,11 +992,53 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // 1. IMMÉDIAT & SYNCHRONE : marquer comme déconnecté dans le localStorage
+    try {
+      localStorage.setItem('facturo:v1:is_logged_out', 'true');
+      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: false, currentUser: null }));
+      if (typeof window !== 'undefined') {
+        // Supprimer toutes les clés de session Supabase stockées en localStorage
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('sb-') || key.includes('-auth-token') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+        // Supprimer tous les cookies de session Supabase (sb-*)
+        document.cookie.split(';').forEach((cookie) => {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+          if (name.startsWith('sb-') || name.includes('auth-token') || name.includes('supabase')) {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+            if (window.location.hostname) {
+              document.cookie = `${name}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; SameSite=Lax`;
+            }
+          }
+        });
+      }
+    } catch (e) {}
+
+    // 2. Réinitialiser les états React en mémoire
     setCurrentUser(null);
     setIsAuthenticated(false);
+    setInvoices([]);
+    setClients([]);
+    setProducts([]);
+    setPayments([]);
+    setNotifications([]);
+
+    // 3. Déconnexion Supabase client (global scope) avec timeout strict
     try {
-      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: false, currentUser: null }));
+      const supabase = createClient();
+      await Promise.race([
+        supabase.auth.signOut({ scope: 'global' }),
+        new Promise((resolve) => setTimeout(resolve, 800)),
+      ]).catch(() => {});
+    } catch (e) {}
+
+    // 4. Déconnexion serveur via route API (purge des cookies de session HTTP)
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     } catch (e) {}
   };
 
@@ -1134,13 +1066,27 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const unreadNotificationCount = notifications.filter((n) => n.unread).length;
 
+  // Toast notifications temporaires (émissions, sauvegardes, validations)
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const showToast = useCallback((options: Omit<ToastMessage, 'id'>) => {
+    setToast({
+      id: `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      ...options,
+    });
+  }, []);
+
+  const hideToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
   // Add a new invoice
   const addInvoice = (invoice: Invoice) => {
     const updated = [invoice, ...invoices];
     saveInvoices(updated);
 
-    // Persistance asynchrone dans Supabase
-    supabaseAddInvoice(invoice).catch((err) => {
+    // Persistance asynchrone dans Supabase avec isolation par société
+    supabaseAddInvoice(invoice, currentUser?.companyId).catch((err) => {
       console.warn('[InvoiceContext] Échec enregistrement facture Supabase :', err);
     });
 
@@ -1166,18 +1112,43 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateInvoice = (id: string, updatedFields: Partial<Invoice>) => {
     const updated = invoices.map((inv) => (inv.id === id ? { ...inv, ...updatedFields } : inv));
     saveInvoices(updated);
+
+    // Synchronisation Supabase
+    supabaseUpdateInvoice(id, updatedFields).catch((err) => {
+      console.warn("[InvoiceContext] Échec mise à jour facture Supabase :", err);
+    });
   };
 
   // Delete an invoice or quote
   const deleteInvoice = (id: string) => {
+    const target = invoices.find((inv) => inv.id === id);
     const updated = invoices.filter((inv) => inv.id !== id);
     saveInvoices(updated);
     const updatedNotifs = notifications.filter((n) => n.invoiceId !== id);
     saveNotifications(updatedNotifs);
+
+    // Nettoyer du registre de conversion si supprimé
+    try {
+      const rawConv = localStorage.getItem('facturo:v1:converted_quotes');
+      if (rawConv) {
+        const convMap = JSON.parse(rawConv);
+        delete convMap[id];
+        localStorage.setItem('facturo:v1:converted_quotes', JSON.stringify(convMap));
+      }
+    } catch (e) {}
+
+    // Synchronisation Supabase
+    supabaseDeleteInvoice(id, target?.number).catch((err) => {
+      console.warn("[InvoiceContext] Échec suppression facture Supabase :", err);
+    });
   };
 
-  // Convert a quote to an invoice (e.g. into status 'sent')
-  const convertQuoteToInvoice = (quoteId: string, targetStatus: InvoiceStatus = 'sent'): Invoice | null => {
+  // Convert a quote to an invoice (e.g. into status 'sent') et persister immédiatement dans Supabase
+  const convertQuoteToInvoice = (
+    quoteId: string,
+    targetStatus: InvoiceStatus = 'sent',
+    extraFields?: Partial<Invoice>
+  ): Invoice | null => {
     const quote = invoices.find((inv) => inv.id === quoteId);
     if (!quote) return null;
 
@@ -1188,28 +1159,59 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return m ? parseInt(m[1], 10) : 0;
       })
       .filter((n) => !isNaN(n));
-    const maxNum = numbers.length > 0 ? Math.max(...numbers) : 44;
+    const maxNum = numbers.length > 0 ? Math.max(...numbers) : 0;
     const nextInvoiceNum = `FAC-2026-${String(maxNum + 1).padStart(4, '0')}`;
+
+    const originalQuoteNum = quote.number;
+    const convertedNotes = extraFields?.notes || (quote.notes
+      ? `${quote.notes} (Facturé d'après le devis ${originalQuoteNum})`
+      : `Facturé d'après le devis ${originalQuoteNum}`);
 
     const convertedInvoice: Invoice = {
       ...quote,
+      ...(extraFields || {}),
       documentKind: 'invoice',
       number: nextInvoiceNum,
       status: targetStatus,
-      notes: quote.notes
-        ? `${quote.notes} (Facturé d'après le devis ${quote.number})`
-        : `Facturé d'après le devis ${quote.number}`,
+      type: 'standard',
+      notes: convertedNotes,
     };
 
     const updated = invoices.map((inv) => (inv.id === quoteId ? convertedInvoice : inv));
     saveInvoices(updated);
 
+    // Enregistrement dans le registre persistant inviolable des conversions
+    try {
+      const rawConv = localStorage.getItem('facturo:v1:converted_quotes');
+      const convMap = rawConv ? JSON.parse(rawConv) : {};
+      convMap[quoteId] = { number: nextInvoiceNum, convertedAt: new Date().toISOString() };
+      localStorage.setItem('facturo:v1:converted_quotes', JSON.stringify(convMap));
+    } catch (e) {}
+
+    // Synchronisation Supabase immédiate et persistante (garantit qu'aucun rechargement ne repasse la facture en devis)
+    supabaseUpdateInvoice(
+      quoteId,
+      {
+        ...convertedInvoice,
+        number: nextInvoiceNum,
+        documentKind: 'invoice',
+        type: 'standard',
+        status: targetStatus,
+        notes: convertedNotes,
+      },
+      originalQuoteNum
+    ).catch((err) => {
+      console.warn("[InvoiceContext] Échec conversion devis en facture Supabase :", err);
+    });
+
     return convertedInvoice;
   };
 
   // Add client
-  const addClient = (clientData: Omit<Client, 'id'>): Client => {
-    const tempId = `cli-${Date.now()}`;
+  const addClient = (clientData: Omit<Client, 'id'> & { id?: string }): Client => {
+    const tempId = clientData.id && clientData.id.length === 36
+      ? clientData.id
+      : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cli-${Date.now()}`);
     const newClient: Client = {
       ...clientData,
       id: tempId,
@@ -1218,8 +1220,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveClients(updated);
 
     // Persistance dans Supabase et mise à jour avec le véritable UUID Supabase
-    supabaseAddClient(clientData).then((persisted) => {
-      if (persisted) {
+    supabaseAddClient(newClient, currentUser?.companyId).then((persisted) => {
+      if (persisted && persisted.id !== tempId) {
         setClients((prev) => prev.map((c) => (c.id === tempId ? persisted : c)));
       }
     });
@@ -1242,11 +1244,26 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         : inv
     );
     saveInvoices(updatedInvoices);
+
+    // Synchronisation Supabase
+    supabaseUpdateClient(id, updatedFields).catch((err) => {
+      console.warn("[InvoiceContext] Échec mise à jour client Supabase :", err);
+    });
+  };
+
+  const deleteClient = (id: string) => {
+    const updated = clients.filter((c) => c.id !== id);
+    saveClients(updated);
+    supabaseDeleteClient(id).catch((err) => {
+      console.warn("[InvoiceContext] Échec suppression client Supabase :", err);
+    });
   };
 
   // Add product
-  const addProduct = (prodData: Omit<Product, 'id'>): Product => {
-    const tempId = `prod-${Date.now()}`;
+  const addProduct = (prodData: Omit<Product, 'id'> & { id?: string }): Product => {
+    const tempId = prodData.id && prodData.id.length === 36
+      ? prodData.id
+      : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `prod-${Date.now()}`);
     const newProd: Product = {
       ...prodData,
       id: tempId,
@@ -1255,8 +1272,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     saveProducts(updated);
 
     // Persistance dans Supabase
-    supabaseAddProduct(prodData).then((persisted) => {
-      if (persisted) {
+    supabaseAddProduct(newProd, currentUser?.companyId).then((persisted) => {
+      if (persisted && persisted.id !== tempId) {
         setProducts((prev) => prev.map((p) => (p.id === tempId ? persisted : p)));
       }
     });
@@ -1264,17 +1281,28 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return newProd;
   };
 
+  const deleteProduct = (id: string) => {
+    const updated = products.filter((p) => p.id !== id);
+    saveProducts(updated);
+    supabaseDeleteProduct(id).catch((err) => {
+      console.warn('[InvoiceContext] Échec suppression produit Supabase :', err);
+    });
+  };
+
   // Add payment
-  const addPayment = (payData: Omit<PaymentRecord, 'id'>) => {
+  const addPayment = (payData: Omit<PaymentRecord, 'id'> & { id?: string }) => {
+    const newId = payData.id && payData.id.length === 36
+      ? payData.id
+      : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `pay-${Date.now()}`);
     const newPay: PaymentRecord = {
       ...payData,
-      id: `pay-${Date.now()}`,
+      id: newId,
     };
     const updatedPayments = [newPay, ...payments];
     savePayments(updatedPayments);
 
     // Persistance dans Supabase
-    supabaseAddPayment(payData).catch((err) => {
+    supabaseAddPayment(newPay, currentUser?.companyId).catch((err) => {
       console.warn('[InvoiceContext] Échec enregistrement paiement Supabase :', err);
     });
 
@@ -1427,14 +1455,17 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return payments.filter((p) => p.date.startsWith(cleanMonth));
   }, [payments, selectedPeriod]);
 
-  // Recalculate KPIs for the active period (uniquement sur les factures, hors devis)
+  // Recalculate KPIs for the active period (factures réelles pour le CA, inclut tous les règlements et acomptes encaissés)
   const isRealInvoice = (i: Invoice) => (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-');
 
   const periodKPIs: DashboardKPIs = React.useMemo(() => {
     const realInvoices = periodInvoices.filter(isRealInvoice);
     const activeInvoices = realInvoices.filter((i) => i.status !== 'draft');
     const totalInvoiced = activeInvoices.reduce((acc, i) => acc + i.total, 0);
-    const totalPaid = realInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+
+    // Montant encaissé au tableau de bord : cumule les règlements des factures ainsi que les acomptes perçus (y compris acomptes sur devis/commandes)
+    const totalPaid = periodInvoices.reduce((acc, i) => acc + (i.amountPaid || 0), 0);
+
     const totalPending = realInvoices
       .filter((i) => i.status === 'sent')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
@@ -1442,10 +1473,10 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .filter((i) => i.status === 'overdue')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
 
-    let paidTrend = 16.8;
-    let invoicedTrend = 12.4;
-    let pendingTrend = -4.2;
-    let overdueTrend = 3.1;
+    let paidTrend = 0;
+    let invoicedTrend = 0;
+    let pendingTrend = 0;
+    let overdueTrend = 0;
 
     if (selectedPeriod === '2026-09') {
       paidTrend = -14.2;
@@ -1482,12 +1513,15 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [periodInvoices, selectedPeriod]);
 
-  // Overall KPIs (full year, uniquement sur les factures, hors devis)
+  // Overall KPIs (full year, uniquement sur les factures pour le CA, inclut tous les règlements et acomptes reçus)
   const kpis: DashboardKPIs = React.useMemo(() => {
     const realInvoices = invoices.filter(isRealInvoice);
     const activeInvoices = realInvoices.filter((i) => i.status !== 'draft');
     const totalInvoiced = activeInvoices.reduce((acc, i) => acc + i.total, 0);
-    const totalPaid = realInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
+
+    // Montant encaissé : total des factures soldées et de tous les acomptes perçus
+    const totalPaid = invoices.reduce((acc, i) => acc + (i.amountPaid || 0), 0);
+
     const totalPending = realInvoices
       .filter((i) => i.status === 'sent')
       .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
@@ -1501,10 +1535,10 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       totalPending,
       totalOverdue,
       invoicesCount: realInvoices.length,
-      paidTrend: 16.8,
-      invoicedTrend: 12.4,
-      pendingTrend: -4.2,
-      overdueTrend: 3.1,
+      paidTrend: 0,
+      invoicedTrend: 0,
+      pendingTrend: 0,
+      overdueTrend: 0,
     };
   }, [invoices]);
 
@@ -1528,17 +1562,29 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         markAllNotificationsAsRead,
         dismissNotification,
         unreadNotificationCount,
+        toast,
+        showToast,
+        hideToast,
         addInvoice,
         updateInvoice,
         deleteInvoice,
         convertQuoteToInvoice,
         addClient,
         updateClient,
+        deleteClient,
         addProduct,
+        deleteProduct,
         addPayment,
         getInvoice,
         currentUser,
         isAuthenticated,
+        authLoading,
+        isDataLoading,
+        refreshData: async () => {
+          if (currentUser) {
+            await loadUserData(currentUser);
+          }
+        },
         pendingVerificationUser,
         login,
         register,
@@ -1549,6 +1595,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }}
     >
       {children}
+      <ToastNotification toast={toast} onClose={hideToast} />
     </InvoiceContext.Provider>
   );
 };

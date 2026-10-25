@@ -20,7 +20,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   clientToEdit,
   onSuccess,
 }) => {
-  const { addClient, updateClient } = useInvoices();
+  const { addClient, updateClient, showToast } = useInvoices();
 
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
@@ -78,7 +78,12 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !company.trim()) {
-      alert('Veuillez renseigner le nom du contact et la société.');
+      showToast({
+        title: 'Champs requis',
+        message: 'Veuillez renseigner le nom du contact et la société.',
+        kind: 'warning',
+        duration: 4000,
+      });
       return;
     }
 
@@ -92,6 +97,12 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
         country: country.trim() || 'Bénin',
         taxId: taxId.trim() ? `IFU ${taxId.trim()}` : undefined,
         avatar: avatar.trim() || undefined,
+      });
+      showToast({
+        title: 'Client modifié avec succès',
+        message: `Fiche de ${company.trim()} (${name.trim()}) mise à jour.`,
+        kind: 'update',
+        duration: 4000,
       });
       onSuccess?.('Modification enregistrée');
       onClose();
@@ -109,6 +120,12 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
       avatar: avatar.trim() || undefined,
     });
 
+    showToast({
+      title: 'Nouveau client enregistré avec succès',
+      message: `${company.trim()} (${name.trim()}) ajouté au carnet d’adresses.`,
+      kind: 'success',
+      duration: 4000,
+    });
     onClientCreated?.(created);
     onSuccess?.('Nouveau client enregistré avec succès !');
     onClose();

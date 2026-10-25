@@ -64,6 +64,8 @@ export default function LoginPage() {
       const res = await login(cleanEmail, cleanPassword);
       if (res.success) {
         router.push('/');
+      } else if (res.requiresEmailVerification) {
+        router.push(`/verify-email?email=${encodeURIComponent(cleanEmail)}`);
       } else {
         setError(res.error || 'Identifiants incorrects ou compte introuvable.');
       }
@@ -198,23 +200,7 @@ export default function LoginPage() {
                 </div>
               </form>
 
-              {/* 1-Click Demo */}
-              <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
-                <span className="text-[11px] text-slate-400 block mb-2 font-medium">
-                  Ou connexion de démonstration :
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    login('jobovog@gmail.com', 'MONROY Business', { firstName: 'MONROY', organization: 'MONROY Business Solutions' });
-                    router.push('/');
-                  }}
-                  className="w-full py-2 px-3 rounded-xl border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 text-xs font-semibold hover:bg-brand-100 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Connexion rapide (MONROY Business)</span>
-                </button>
-              </div>
+
 
               {/* Switch to Register */}
               <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">

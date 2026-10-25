@@ -17,6 +17,7 @@ import {
   X,
   FileCheck2,
   FileText,
+  RotateCcw,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
@@ -52,6 +53,18 @@ function calculateMonthOffset(baseDate: string, months: number): string {
   }
 }
 
+function getTodayDate(): string {
+  try {
+    const now = new Date();
+    const yy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  } catch {
+    return '2026-10-24';
+  }
+}
+
 export interface CreateInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -65,7 +78,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   initialKind = 'invoice',
   onSuccess,
 }) => {
-  const { invoices, clients, products, addInvoice, addClient, currentUser } = useInvoices();
+  const { invoices, clients, products, addInvoice, addClient, addPayment, currentUser, showToast } = useInvoices();
 
   const [showPreview, setShowPreview] = useState(true);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
@@ -77,40 +90,10 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [sellerEmail, setSellerEmail] = useState(currentUser?.email || 'contact@monroy-agency.bj');
   const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
 
-  // Sync document kind and current user profile when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setDocumentKind(initialKind);
-      if (initialKind === 'quote') {
-        setInvoiceType('standard');
-      }
-      if (currentUser?.organization) setSellerName(currentUser.organization);
-      if (currentUser?.email) setSellerEmail(currentUser.email);
-    }
-  }, [isOpen, initialKind, currentUser]);
-
-  // Close on Escape key press
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  const handleDocumentKindChange = (kind: DocumentKind) => {
-    setDocumentKind(kind);
-    if (kind === 'quote') {
-      setInvoiceType('standard');
-    }
-  };
-
   // Split / Acompte state
   const [splitPreset, setSplitPreset] = useState<'30-70' | '40-30-30' | '50-50' | '4x25' | 'custom'>('30-70');
   const [depositPercent, setDepositPercent] = useState(30);
+  const [depositPaidAtIssue, setDepositPaidAtIssue] = useState<boolean>(true);
 
   // Recurrence state
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<'monthly' | 'quarterly' | 'semiannual' | 'yearly'>('monthly');
@@ -130,35 +113,10 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [newClientCountry, setNewClientCountry] = useState<string>('Bénin');
   const [newClientTaxId, setNewClientTaxId] = useState<string>('');
 
-  const [issueDate, setIssueDate] = useState('2026-10-18');
-  const [dueDate, setDueDate] = useState('2026-11-02');
-  const [invoiceNumber, setInvoiceNumber] = useState('FAC-2026-0044');
+  const [issueDate, setIssueDate] = useState(() => getTodayDate());
+  const [dueDate, setDueDate] = useState(() => calculateDateOffset(getTodayDate(), initialKind === 'quote' ? 30 : 15));
+  const [invoiceNumber, setInvoiceNumber] = useState('FAC-2026-0001');
   const [currency, setCurrency] = useState('FCFA');
-
-  // Sequential invoice / quote number
-  useEffect(() => {
-    if (invoices && invoices.length > 0) {
-      if (documentKind === 'quote') {
-        const numbers = invoices
-          .map((inv) => {
-            const m = inv.number.match(/DEV-\d+-(\d+)/);
-            return m ? parseInt(m[1], 10) : 0;
-          })
-          .filter((n) => !isNaN(n));
-        const maxNum = numbers.length > 0 ? Math.max(...numbers) : 12;
-        setInvoiceNumber(`DEV-2026-${String(maxNum + 1).padStart(4, '0')}`);
-      } else {
-        const numbers = invoices
-          .map((inv) => {
-            const m = inv.number.match(/FAC-\d+-(\d+)/);
-            return m ? parseInt(m[1], 10) : 0;
-          })
-          .filter((n) => !isNaN(n));
-        const maxNum = numbers.length > 0 ? Math.max(...numbers) : 43;
-        setInvoiceNumber(`FAC-2026-${String(maxNum + 1).padStart(4, '0')}`);
-      }
-    }
-  }, [invoices, documentKind]);
 
   // Line items state - clean and empty on start
   const [items, setItems] = useState<LineItemInput[]>([
@@ -174,6 +132,142 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   // Discount - unchecked by default, 0 FCFA
   const [hasDiscount, setHasDiscount] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  /**
+   * Réinitialisation intégrale du formulaire : garantit qu'à chaque ouverture
+   * ou création, le formulaire est 100% vierge, sans réutiliser les données précédentes.
+   */
+  const resetFormToBlank = React.useCallback(
+    (targetKind: DocumentKind = initialKind) => {
+      const today = getTodayDate();
+      const defaultDue = calculateDateOffset(today, targetKind === 'quote' ? 30 : 15);
+
+      setDocumentKind(targetKind);
+      setInvoiceType('standard');
+
+      // 1. Articles : strictement 1 seule ligne vide sans montant imposé
+      setItems([
+        {
+          description: '',
+          quantity: 1,
+          unitPrice: 0,
+          discountPct: 0,
+          vatRate: 18,
+        },
+      ]);
+
+      // 2. Client : aucun client sélectionné, champs neufs
+      setClientMode('existing');
+      setSelectedClientId('');
+      setNewClientName('');
+      setNewClientCompany('');
+      setNewClientEmail('');
+      setNewClientPhone('');
+      setNewClientCity('Cotonou');
+      setNewClientCountry('Bénin');
+      setNewClientTaxId('');
+
+      // 3. Remise commerciale réinitialisée
+      setHasDiscount(false);
+      setDiscountAmount(0);
+
+      // 4. Modalités de paiement réinitialisées
+      setSplitPreset('30-70');
+      setDepositPercent(30);
+      setDepositPaidAtIssue(true);
+      setRecurrenceFrequency('monthly');
+      setRecurrenceDuration(12);
+      setAutoSend(true);
+
+      // 5. Dates du jour et échéance standard
+      setIssueDate(today);
+      setDueDate(defaultDue);
+      setCurrency('FCFA');
+
+      // 6. Numérotation automatique recalculée
+      if (targetKind === 'quote') {
+        const numbers = (invoices || [])
+          .map((inv) => {
+            const m = inv.number.match(/DEV-\d+-(\d+)/);
+            return m ? parseInt(m[1], 10) : 0;
+          })
+          .filter((n) => !isNaN(n));
+        const maxNum = numbers.length > 0 ? Math.max(...numbers) : 0;
+        setInvoiceNumber(`DEV-2026-${String(maxNum + 1).padStart(4, '0')}`);
+      } else {
+        const numbers = (invoices || [])
+          .map((inv) => {
+            const m = inv.number.match(/FAC-\d+-(\d+)/);
+            return m ? parseInt(m[1], 10) : 0;
+          })
+          .filter((n) => !isNaN(n));
+        const maxNum = numbers.length > 0 ? Math.max(...numbers) : 0;
+        setInvoiceNumber(`FAC-2026-${String(maxNum + 1).padStart(4, '0')}`);
+      }
+
+      // 7. Émetteur issu du profil de l'utilisateur connecté
+      if (currentUser?.organization) setSellerName(currentUser.organization);
+      if (currentUser?.email) setSellerEmail(currentUser.email);
+    },
+    [initialKind, invoices, currentUser]
+  );
+
+  // Réinitialiser systématiquement à chaque ouverture de la modale
+  useEffect(() => {
+    if (isOpen) {
+      resetFormToBlank(initialKind);
+    }
+  }, [isOpen, initialKind, resetFormToBlank]);
+
+  const handleClose = () => {
+    resetFormToBlank(initialKind);
+    onClose();
+  };
+
+  // Close on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  const handleDocumentKindChange = (kind: DocumentKind) => {
+    setDocumentKind(kind);
+    if (kind === 'quote') {
+      setInvoiceType('standard');
+      setDueDate(calculateDateOffset(issueDate, 30));
+    } else {
+      setDueDate(calculateDateOffset(issueDate, 15));
+    }
+  };
+
+  // Sequential invoice / quote number
+  useEffect(() => {
+    if (documentKind === 'quote') {
+      const numbers = (invoices || [])
+        .map((inv) => {
+          const m = inv.number.match(/DEV-\d+-(\d+)/);
+          return m ? parseInt(m[1], 10) : 0;
+        })
+        .filter((n) => !isNaN(n));
+      const maxNum = numbers.length > 0 ? Math.max(...numbers) : 0;
+      setInvoiceNumber(`DEV-2026-${String(maxNum + 1).padStart(4, '0')}`);
+    } else {
+      const numbers = (invoices || [])
+        .map((inv) => {
+          const m = inv.number.match(/FAC-\d+-(\d+)/);
+          return m ? parseInt(m[1], 10) : 0;
+        })
+        .filter((n) => !isNaN(n));
+      const maxNum = numbers.length > 0 ? Math.max(...numbers) : 0;
+      setInvoiceNumber(`FAC-2026-${String(maxNum + 1).padStart(4, '0')}`);
+    }
+  }, [invoices, documentKind, isOpen]);
 
   // Selected client object
   const currentClient = useMemo(() => {
@@ -317,7 +411,12 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     let finalClientId = selectedClientId;
 
     if (!finalClient) {
-      alert('Veuillez sélectionner ou renseigner un client avant d’émettre le document.');
+      showToast({
+        title: 'Client obligatoire',
+        message: 'Veuillez sélectionner ou renseigner un client avant d’émettre le document.',
+        kind: 'warning',
+        duration: 4000,
+      });
       return;
     }
 
@@ -337,8 +436,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 
     const clientToUse: import('@/lib/types').Client = finalClient as import('@/lib/types').Client;
 
+    const newInvId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`;
     const newInv: Invoice = {
-      id: `inv-${Date.now()}`,
+      id: newInvId,
       number: invoiceNumber,
       documentKind,
       clientId: finalClientId || clientToUse.id,
@@ -351,7 +451,10 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
       discount: totals.discountAmount,
       vatAmount: totals.vatAmount,
       total: totals.totalTTC,
-      amountPaid: 0,
+      amountPaid:
+        documentKind === 'invoice' && invoiceType === 'split' && depositPaidAtIssue && splitSchedule.length > 0
+          ? splitSchedule[0].amount
+          : 0,
       type: documentKind === 'quote' ? 'standard' : invoiceType,
       splitSchedule: documentKind === 'quote' ? undefined : (invoiceType === 'split' ? splitSchedule : undefined),
       recurrence:
@@ -384,6 +487,19 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 
     addInvoice(newInv);
 
+    // Enregistrement synchrone de l'acompte encaissé à la commande
+    if (documentKind === 'invoice' && invoiceType === 'split' && depositPaidAtIssue && splitSchedule.length > 0) {
+      addPayment({
+        invoiceId: newInvId,
+        invoiceNumber: invoiceNumber,
+        clientName: clientToUse.company || clientToUse.name,
+        amount: splitSchedule[0].amount,
+        method: 'mobile_money',
+        reference: `ACOMPTE-${Date.now().toString().slice(-6)}`,
+        date: issueDate,
+      });
+    }
+
     const docKindLabel =
       documentKind === 'quote'
         ? 'Devis Estimatif'
@@ -393,7 +509,18 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         ? `Facture Récurrente (${recurrenceFrequency})`
         : 'Facture';
 
-    alert(`${docKindLabel} ${invoiceNumber} d'un montant de ${formatFCFA(totals.totalTTC)} émis avec succès !`);
+    const isQuote = documentKind === 'quote';
+    showToast({
+      title: isQuote ? 'Devis émis avec succès' : 'Facture émise avec succès',
+      message: isQuote
+        ? `Devis généré pour ${clientToUse.company || clientToUse.name} • Offre valable 30 jours`
+        : `${docKindLabel} générée pour ${clientToUse.company || clientToUse.name}`,
+      kind: isQuote ? 'quote' : 'invoice',
+      number: invoiceNumber,
+      amount: totals.totalTTC,
+      duration: 4500,
+    });
+    resetFormToBlank(initialKind);
     onClose();
     if (onSuccess) onSuccess(newInv);
   };
@@ -403,7 +530,12 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     let finalClientId = selectedClientId;
 
     if (!finalClient) {
-      alert('Veuillez sélectionner ou renseigner un client avant d’enregistrer le brouillon.');
+      showToast({
+        title: 'Client obligatoire',
+        message: 'Veuillez sélectionner ou renseigner un client avant d’enregistrer le brouillon.',
+        kind: 'warning',
+        duration: 4000,
+      });
       return;
     }
 
@@ -423,8 +555,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 
     const clientToUse: import('@/lib/types').Client = finalClient as import('@/lib/types').Client;
 
+    const newDraftId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`;
     const newDraft: Invoice = {
-      id: `inv-${Date.now()}`,
+      id: newDraftId,
       number: invoiceNumber,
       documentKind,
       clientId: finalClientId || clientToUse.id,
@@ -479,7 +612,16 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         ? `Brouillon récurrent (${recurrenceFrequency})`
         : 'Brouillon standard';
 
-    alert(`${draftKindLabel} ${invoiceNumber} enregistré avec succès ! Vous pourrez le modifier à tout moment.`);
+    const isQuote = documentKind === 'quote';
+    showToast({
+      title: isQuote ? 'Brouillon de devis enregistré' : 'Brouillon de facture enregistré',
+      message: `${draftKindLabel} ${invoiceNumber} sauvegardé. Vous pourrez le finaliser à tout moment.`,
+      kind: 'draft',
+      number: invoiceNumber,
+      amount: totals.totalTTC,
+      duration: 4000,
+    });
+    resetFormToBlank(initialKind);
     onClose();
     if (onSuccess) onSuccess(newDraft);
   };
@@ -492,7 +634,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
       onClick={(e) => {
         // En cliquant en dehors de la boîte de dialogue (sur le fond du dashboard), la modale se ferme automatiquement
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -533,7 +675,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             </div>
           </div>
 
-          {/* Center/Right Controls: Kind Switcher, Preview Toggle & Close */}
+          {/* Center/Right Controls: Kind Switcher, Clear, Preview Toggle & Close */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Document Type Switcher (Facture / Devis) */}
             <div className="bg-slate-200/80 dark:bg-slate-800/80 p-1 rounded-xl flex items-center gap-1">
@@ -563,6 +705,17 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
               </button>
             </div>
 
+            {/* Clear / Reset Document button */}
+            <button
+              type="button"
+              onClick={() => resetFormToBlank(documentKind)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95"
+              title="Vider et réinitialiser tous les champs pour repartir d'un document 100% vierge"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-600" />
+              <span className="hidden sm:inline">Vider</span>
+            </button>
+
             {/* Toggle Live Preview switch */}
             <div className="hidden lg:flex items-center gap-2 pl-1 border-l border-slate-200 dark:border-slate-800">
               <span className="text-xs font-medium text-slate-500">Aperçu</span>
@@ -587,7 +740,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             {/* Close Button - also accessible via outside click on dashboard */}
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="min-w-[40px] min-h-[40px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-200 dark:border-slate-700 transition-all cursor-pointer touch-manipulation active:scale-95"
               title="Fermer (ou cliquer n'importe où sur le tableau de bord)"
               aria-label="Fermer"
@@ -757,6 +910,24 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Option Encaisser l'acompte immédiatement */}
+                  <div className="pt-2">
+                    <label className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-700/80 cursor-pointer text-xs font-bold text-amber-950 dark:text-amber-200">
+                      <input
+                        type="checkbox"
+                        checked={depositPaidAtIssue}
+                        onChange={(e) => setDepositPaidAtIssue(e.target.checked)}
+                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer accent-amber-600 shrink-0"
+                      />
+                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <span>Encaisser l'acompte initial ({formatFCFA(splitSchedule[0]?.amount || 0)}) dès l'émission</span>
+                        <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold">
+                          {depositPaidAtIssue ? '✓ Inclus dans "Montant encaissé"' : 'En attente de paiement'}
+                        </span>
+                      </div>
+                    </label>
                   </div>
                 </div>
               )}

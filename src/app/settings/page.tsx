@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { Settings, Building, ShieldCheck, CreditCard, Save, Check } from 'lucide-react';
+import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { currentUser, updateUserProfile } = useInvoices();
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const { currentUser, updateUserProfile, showToast } = useInvoices();
 
   // Settings form states
   const [companyName, setCompanyName] = useState(currentUser?.organization || 'MONROY Business Solutions');
@@ -24,11 +25,34 @@ export default function SettingsPage() {
   const [momoNumber, setMomoNumber] = useState('+229 01 95 44 44 30');
 
   React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('facturo:v1:settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.companyName) setCompanyName(parsed.companyName);
+        if (parsed.ifu) setIfu(parsed.ifu);
+        if (parsed.rccm) setRccm(parsed.rccm);
+        if (parsed.email) setEmail(parsed.email);
+        if (parsed.phone) setPhone(parsed.phone);
+        if (parsed.address) setAddress(parsed.address);
+        if (parsed.defaultVat !== undefined) setDefaultVat(parsed.defaultVat);
+        if (parsed.invoicePrefix) setInvoicePrefix(parsed.invoicePrefix);
+        if (parsed.paymentTerms !== undefined) setPaymentTerms(parsed.paymentTerms);
+        if (parsed.momoNumber) setMomoNumber(parsed.momoNumber);
+      }
+    } catch (e) {}
+
     if (currentUser) {
       if (currentUser.organization) setCompanyName(currentUser.organization);
       if (currentUser.email) setEmail(currentUser.email);
     }
   }, [currentUser]);
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +60,37 @@ export default function SettingsPage() {
       organization: companyName,
       email: email,
     });
+    try {
+      localStorage.setItem(
+        'facturo:v1:settings',
+        JSON.stringify({
+          companyName,
+          ifu,
+          rccm,
+          email,
+          phone,
+          address,
+          defaultVat,
+          invoicePrefix,
+          paymentTerms,
+          momoNumber,
+        })
+      );
+    } catch (e) {}
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    showToast({
+      title: 'Paramètres enregistrés avec succès !',
+      message: 'Vos informations d’entreprise et mentions fiscales ont été mises à jour.',
+      kind: 'success',
+      duration: 3500,
+    });
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    timerRef.current = setTimeout(() => {
+      setSaved(false);
+    }, 3200);
   };
 
   return (
@@ -204,13 +257,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Save Button */}
-            <div className="flex items-center justify-end gap-3">
-              {saved && (
-                <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                  <Check className="w-4 h-4" />
-                  Paramètres enregistrés avec succès !
-                </span>
-              )}
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="submit"
                 className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-brand-500/20 active:scale-95 transition-all"
@@ -222,6 +269,63 @@ export default function SettingsPage() {
           </form>
         </main>
       </div>
+
+      {/* ============================================================== */}
+      {/* NOTIFICATION MODALE CENTRÉE AU MILIEU DE L'ÉCRAN              */}
+      {/* ============================================================== */}
+      {saved && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-sm transition-all"
+          onClick={() => setSaved(false)}
+        >
+          <div 
+            className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-[#111622] border border-emerald-500/30 dark:border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-emerald-500/20 text-center animate-pop-in overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Halo lumineux décoratif */}
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-emerald-500/20 dark:bg-emerald-500/30 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Bouton de fermeture d'urgence (X) */}
+            <button
+              type="button"
+              onClick={() => setSaved(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Fermer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Badge circulaire émeraude avec check icon */}
+            <div className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-4 sm:mb-5">
+              <Check className="w-8 h-8 sm:w-10 sm:h-10 text-white stroke-[2.5]" />
+            </div>
+
+            {/* Titre & Message demandés par l'utilisateur */}
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+              Paramètres enregistrés avec succès !
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              Vos modifications ont été sauvegardées et sont immédiatement prises en compte sur l'ensemble de vos factures et devis.
+            </p>
+
+            {/* Bouton de confirmation manuelle */}
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setSaved(false)}
+                className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs sm:text-sm font-bold shadow-md hover:opacity-90 active:scale-95 transition-all"
+              >
+                Parfait, merci
+              </button>
+            </div>
+
+            {/* Barre de défilement dégressive (compte à rebours automatique ~3s) */}
+            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-emerald-100 dark:bg-emerald-950/60">
+              <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 animate-progress-shrink" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

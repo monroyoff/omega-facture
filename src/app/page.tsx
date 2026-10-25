@@ -15,16 +15,36 @@ import { Invoice } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
 import { Sparkles, ArrowRight, ShieldCheck, Calendar, Plus, FileCheck2 } from 'lucide-react';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
+import {
+  Skeleton,
+  KPICardsSkeleton,
+  RevenueChartSkeleton,
+  TableSkeleton,
+} from '@/components/ui/Skeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [createModalKind, setCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
+  const [createModalKey, setCreateModalKey] = useState<number>(0);
+
+  const openCreateModal = (kind: 'invoice' | 'quote') => {
+    setCreateModalKey((prev) => prev + 1);
+    setCreateModalKind(kind);
+  };
+
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
   const [activeKind, setActiveKind] = useState<'all' | 'invoice' | 'quote'>('invoice');
-  const { periodInvoices, periodKPIs, periodLabel, currentUser, pendingVerificationUser } = useInvoices();
-  const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'Mari-ella';
+  const {
+    periodInvoices,
+    periodKPIs,
+    periodLabel,
+    currentUser,
+    pendingVerificationUser,
+    isDataLoading,
+  } = useInvoices();
+  const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'Utilisateur';
 
   // Si une inscription est en attente de confirmation d'email, rediriger vers la page d'instructions de confirmation
   React.useEffect(() => {
@@ -39,9 +59,9 @@ export default function DashboardPage() {
       const params = new URLSearchParams(window.location.search);
       const create = params.get('create');
       if (create === 'quote' || create === 'devis') {
-        setCreateModalKind('quote');
+        openCreateModal('quote');
       } else if (create === 'invoice' || create === 'facture') {
-        setCreateModalKind('invoice');
+        openCreateModal('invoice');
       }
     }
   }, []);
@@ -93,7 +113,7 @@ export default function DashboardPage() {
         {/* Top Header */}
         <Header
           onOpenSidebar={() => setSidebarOpen(true)}
-          onNewInvoice={(kind) => setCreateModalKind(kind || 'invoice')}
+          onNewInvoice={(kind) => openCreateModal(kind || 'invoice')}
         />
 
         {/* Dashboard Main Body */}
@@ -109,26 +129,34 @@ export default function DashboardPage() {
                 <Sparkles className="w-3 h-3 text-amber-300" />
                 <span>Espace de Facturation Professionnelle — Zone UEMOA</span>
               </div>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
+              <h1 suppressHydrationWarning className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
                 Bonjour, {userFirstName} 👋
               </h1>
               <p className="text-xs sm:text-sm text-blue-100 font-normal leading-relaxed">
                 Votre entreprise a généré{' '}
-                <button
-                  type="button"
-                  onClick={() => handleCardClick('invoiced')}
-                  className="text-white font-bold underline underline-offset-2 hover:text-amber-200 transition-colors cursor-pointer"
-                >
-                  {formatFCFA(periodKPIs.totalInvoiced)}
-                </button>{' '}
+                {isDataLoading ? (
+                  <span className="inline-block w-24 h-4 bg-white/20 rounded-md skeleton-shimmer align-middle mx-1" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleCardClick('invoiced')}
+                    className="text-white font-bold underline underline-offset-2 hover:text-amber-200 transition-colors cursor-pointer"
+                  >
+                    {formatFCFA(periodKPIs.totalInvoiced)}
+                  </button>
+                )}{' '}
                 de facturations pour <strong className="text-white font-semibold">{periodLabel}</strong>, dont{' '}
-                <button
-                  type="button"
-                  onClick={() => handleCardClick('paid')}
-                  className="text-emerald-300 font-bold underline underline-offset-2 hover:text-emerald-100 transition-colors cursor-pointer"
-                >
-                  {formatFCFA(periodKPIs.totalPaid)}
-                </button>{' '}
+                {isDataLoading ? (
+                  <span className="inline-block w-24 h-4 bg-white/20 rounded-md skeleton-shimmer align-middle mx-1" />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleCardClick('paid')}
+                    className="text-emerald-300 font-bold underline underline-offset-2 hover:text-emerald-100 transition-colors cursor-pointer"
+                  >
+                    {formatFCFA(periodKPIs.totalPaid)}
+                  </button>
+                )}{' '}
                 déjà encaissés.
               </p>
             </div>
@@ -137,7 +165,7 @@ export default function DashboardPage() {
             <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto pt-1 sm:pt-0">
               <button
                 type="button"
-                onClick={() => setCreateModalKind('invoice')}
+                onClick={() => openCreateModal('invoice')}
                 className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white text-slate-900 font-bold text-xs sm:text-sm hover:bg-blue-50 active:scale-95 transition-all shadow-md flex items-center justify-center gap-1.5 group whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-brand-600" />
@@ -147,7 +175,7 @@ export default function DashboardPage() {
               
               <button
                 type="button"
-                onClick={() => setCreateModalKind('quote')}
+                onClick={() => openCreateModal('quote')}
                 className="px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm transition-all shadow-2xs backdrop-blur-sm flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                 title="Créer un nouveau devis estimatif"
               >
@@ -182,31 +210,43 @@ export default function DashboardPage() {
 
           {/* 4 Financial KPI Cards */}
           <section aria-label="Indicateurs clés">
-            <StatCards
-              kpis={periodKPIs}
-              onCardClick={handleCardClick}
-            />
+            {isDataLoading ? (
+              <KPICardsSkeleton />
+            ) : (
+              <StatCards
+                kpis={periodKPIs}
+                onCardClick={handleCardClick}
+              />
+            )}
           </section>
 
           {/* Charts: Monthly Revenue & Distribution */}
           <section aria-label="Graphiques financiers">
-            <RevenueOverview
-              onStatusClick={handleStatusClick}
-              onTotalClick={() => handleCardClick('invoiced')}
-            />
+            {isDataLoading ? (
+              <RevenueChartSkeleton />
+            ) : (
+              <RevenueOverview
+                onStatusClick={handleStatusClick}
+                onTotalClick={() => handleCardClick('invoiced')}
+              />
+            )}
           </section>
 
           {/* Recent Invoices Data Table */}
           <section aria-label="Dernières factures">
-            <RecentInvoicesTable
-              id="invoices-section"
-              invoices={periodInvoices}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              activeKind={activeKind}
-              onKindChange={setActiveKind}
-              onSelectInvoice={(inv) => setSelectedInvoice(inv)}
-            />
+            {isDataLoading ? (
+              <TableSkeleton rowsCount={5} showHeaderTabs={false} />
+            ) : (
+              <RecentInvoicesTable
+                id="invoices-section"
+                invoices={periodInvoices}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                activeKind={activeKind}
+                onKindChange={setActiveKind}
+                onSelectInvoice={(inv) => setSelectedInvoice(inv)}
+              />
+            )}
           </section>
 
           {/* Legal / Security badge footer */}
@@ -222,6 +262,7 @@ export default function DashboardPage() {
 
       {/* Creation Modal for Invoice & Quote with click-outside on dashboard to exit */}
       <CreateInvoiceModal
+        key={`create-modal-${createModalKey}`}
         isOpen={!!createModalKind}
         initialKind={createModalKind || 'invoice'}
         onClose={() => {

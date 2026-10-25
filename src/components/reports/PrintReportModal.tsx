@@ -33,6 +33,32 @@ import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { useInvoices } from '@/lib/store/invoice-context';
 import jsPDF from 'jspdf';
 import { Invoice } from '@/lib/types';
+import { downloadCSV } from '@/lib/export/csv-export';
+
+function safeRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, width, height, radius);
+  } else {
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+  }
+  ctx.closePath();
+}
 
 interface PrintReportModalProps {
   isOpen: boolean;
@@ -109,26 +135,32 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     }
   };
 
-  // Filter invoices for selected period
+  // Helper pour exclure formellement les devis estimatifs du bilan et des états financiers
+  const isRealInvoice = (i: Invoice) =>
+    (!i.documentKind || i.documentKind === 'invoice') && !i.number.startsWith('DEV-');
+
+  // Filter invoices for selected period (strictement les factures réelles, hors devis)
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
-      const d = inv.issueDate;
-      return d >= startDate && d <= endDate;
-    });
+    return (invoices || [])
+      .filter(isRealInvoice)
+      .filter((inv) => {
+        const d = inv.issueDate;
+        return d >= startDate && d <= endDate;
+      });
   }, [invoices, startDate, endDate]);
 
-  // Recalculated dynamic metrics for the chosen period
+  // Recalculated dynamic metrics for the chosen period (uniquement factures validées, hors devis)
   const periodInvoiced = useMemo(() => {
     const val = filteredInvoices
       .filter((i) => i.status !== 'draft')
       .reduce((acc, i) => acc + i.total, 0);
-    return val > 0 ? val : propTotalInvoiced || 0;
-  }, [filteredInvoices, propTotalInvoiced]);
+    return val > 0 ? val : (selectedPreset === 'ALL_2026' ? propTotalInvoiced || 0 : 0);
+  }, [filteredInvoices, propTotalInvoiced, selectedPreset]);
 
   const periodPaid = useMemo(() => {
-    const val = filteredInvoices.reduce((acc, i) => acc + i.amountPaid, 0);
-    return val > 0 ? val : propTotalPaid || 0;
-  }, [filteredInvoices, propTotalPaid]);
+    const val = filteredInvoices.reduce((acc, i) => acc + (i.amountPaid || 0), 0);
+    return val > 0 ? val : (selectedPreset === 'ALL_2026' ? propTotalPaid || 0 : 0);
+  }, [filteredInvoices, propTotalPaid, selectedPreset]);
 
   const periodRemaining = Math.max(0, periodInvoiced - periodPaid);
 
@@ -186,7 +218,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     // Logo icon box
     ctx.fillStyle = '#2563eb';
     ctx.beginPath();
-    ctx.roundRect(60, 35, 65, 65, 14);
+    safeRoundRect(ctx, 60, 35, 65, 65, 14);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
@@ -222,7 +254,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 18);
+      safeRoundRect(ctx, x, y, w, h, 18);
       ctx.fill();
       ctx.stroke();
 
@@ -253,7 +285,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
       ctx.strokeStyle = border;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(x, y, w, h, 14);
+      safeRoundRect(ctx, x, y, w, h, 14);
       ctx.fill();
       ctx.stroke();
 
@@ -416,60 +448,54 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
       }, 'image/png');
     } catch (e) {
       console.error('[Export PNG] Erreur :', e);
-      alert('Erreur lors de la génération de l’image.');
+      showToast('Erreur lors de la génération de l’image.');
     }
   };
 
   // 4. Clean UTF-8 CSV / Excel Export with BOM
   const handleExportCSV = () => {
-    const csvRows = [
-      ['RAPPORT FINANCIER & KPI - OMEGA FACTURE'],
-      ['Periode', periodLabel],
-      ['Date debut', startDate],
-      ['Date fin', endDate],
-      ['Date edition', new Date().toLocaleDateString('fr-FR')],
-      ['Societe', 'MONROY Business Solutions'],
-      ['Devise', 'FCFA (XOF)'],
-      [],
-      ['INDICATEURS GLOBAUX DE LA PERIODE'],
-      ['Chiffre d Affaires Emis (FCFA)', periodInvoiced],
-      ['Total Encaisse Reel (FCFA)', periodPaid],
-      ['Creances Restantes (FCFA)', periodRemaining],
-      ['Taux de Recouvrement (%)', `${periodRecoveryRate}%`],
-      ['Nombre de factures', filteredInvoices.length],
-      [],
-      ['DETAIL DES FACTURES DE LA PERIODE'],
-      ['Numero', 'Client', 'Societe', 'Date_Emission', 'Date_Echeance', 'Statut', 'Sous_Total_HT', 'TVA', 'Total_TTC', 'Montant_Paye', 'Solde_Du'],
+    const csvRows: (string | number)[][] = [
+      [
+        'Numero_Facture',
+        'Client',
+        'Societe',
+        'Date_Emission',
+        'Date_Echeance',
+        'Statut',
+        'Sous_Total_HT_FCFA',
+        'TVA_FCFA',
+        'Total_TTC_FCFA',
+        'Montant_Paye_FCFA',
+        'Solde_Restant_FCFA',
+      ],
+      ...filteredInvoices.map((inv) => {
+        const statusLabel =
+          inv.status === 'paid'
+            ? 'Soldée'
+            : inv.status === 'sent'
+            ? 'Envoyée'
+            : inv.status === 'overdue'
+            ? 'En retard'
+            : 'Brouillon';
+        return [
+          inv.number,
+          inv.client?.name || '',
+          inv.client?.company || '',
+          inv.issueDate,
+          inv.dueDate,
+          statusLabel,
+          inv.subtotal,
+          inv.vatAmount,
+          inv.total,
+          inv.amountPaid,
+          inv.total - inv.amountPaid,
+        ];
+      }),
     ];
 
-    filteredInvoices.forEach((inv) => {
-      csvRows.push([
-        inv.number,
-        `"${inv.client?.name || ''}"`,
-        `"${inv.client?.company || ''}"`,
-        inv.issueDate,
-        inv.dueDate,
-        inv.status,
-        inv.subtotal,
-        inv.vatAmount,
-        inv.total,
-        inv.amountPaid,
-        inv.total - inv.amountPaid,
-      ]);
-    });
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
-      csvRows.map((e) => e.join(';')).join('\n');
-
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
     const safePeriod = selectedPreset.toLowerCase().replace(/_/g, '-');
-    link.setAttribute('download', `bilan_financier_omega_${safePeriod}_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Fichier Excel / CSV téléchargé avec succès !');
+    downloadCSV(`bilan_financier_omega_${safePeriod}_${Date.now()}.csv`, csvRows);
+    showToast('Fichier Excel / CSV téléchargé avec succès (100% lisible) !');
   };
 
   return (

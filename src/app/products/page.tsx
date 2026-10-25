@@ -7,13 +7,14 @@ import { Package, Plus, Search, Tag, Sparkles } from 'lucide-react';
 import { formatFCFA } from '@/lib/money/format';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { NewProductModal } from '@/components/products/NewProductModal';
+import { ProductsTableSkeleton } from '@/components/ui/Skeleton';
 
 export default function ProductsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { products } = useInvoices();
+  const { products, isDataLoading } = useInvoices();
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -64,7 +65,35 @@ export default function ProductsPage() {
             />
           </div>
 
-          <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-card overflow-hidden">
+          {/* Products Table, Skeleton or Empty State */}
+          {isDataLoading ? (
+            <ProductsTableSkeleton rowsCount={6} />
+          ) : filtered.length === 0 ? (
+            <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 sm:p-12 text-center shadow-card max-w-xl mx-auto space-y-4 my-8">
+              <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 mx-auto flex items-center justify-center">
+                <Package className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  {searchQuery ? 'Aucun article trouvé' : 'Catalogue de produits vide'}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                  {searchQuery
+                    ? `Aucune prestation ne correspond à "${searchQuery}".`
+                    : 'Enregistrez vos produits et services réels pour pré-remplir automatiquement vos devis et factures.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ajouter un article</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
@@ -110,8 +139,9 @@ export default function ProductsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
 

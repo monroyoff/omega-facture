@@ -7,15 +7,15 @@ import { useInvoices } from '@/lib/store/invoice-context';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { Plus, Search, Building2, Phone, Mail, MapPin, ExternalLink, ShieldCheck, Pencil, Check, X } from 'lucide-react';
 import { Client } from '@/lib/types';
+import { ClientsGridSkeleton } from '@/components/ui/Skeleton';
 
 export default function ClientsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const { clients } = useInvoices();
+  const { clients, isDataLoading } = useInvoices();
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -38,13 +38,6 @@ export default function ClientsPage() {
   const handleOpenEdit = (client: Client) => {
     setEditingClient(client);
     setIsModalOpen(true);
-  };
-
-  const handleSuccess = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage((current) => (current === msg ? null : current));
-    }, 4500);
   };
 
   return (
@@ -91,8 +84,35 @@ export default function ClientsPage() {
             />
           </div>
 
-          {/* Clients Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Clients Grid, Skeleton or Empty State */}
+          {isDataLoading ? (
+            <ClientsGridSkeleton />
+          ) : filtered.length === 0 ? (
+            <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 sm:p-12 text-center shadow-card max-w-xl mx-auto space-y-4 my-8">
+              <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 mx-auto flex items-center justify-center">
+                <Building2 className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  {searchQuery ? 'Aucun client trouvé' : 'Aucun client enregistré'}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                  {searchQuery
+                    ? `Aucun contact ne correspond à "${searchQuery}".`
+                    : 'Votre répertoire client est actuellement vide. Enregistrez vos clients réels pour émettre des factures et devis.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-semibold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ajouter votre premier client</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((cli) => (
               <div
                 key={cli.id}
@@ -176,6 +196,7 @@ export default function ClientsPage() {
               </div>
             ))}
           </div>
+        )}
         </main>
       </div>
 
@@ -186,48 +207,7 @@ export default function ClientsPage() {
           setEditingClient(null);
         }}
         clientToEdit={editingClient}
-        onSuccess={handleSuccess}
       />
-
-      {/* Centered Notification "Modification enregistrée" */}
-      {toastMessage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="relative w-full max-w-sm bg-white dark:bg-[#111622] rounded-3xl p-6 text-center shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200 flex flex-col items-center">
-            {/* Top Close Button */}
-            <button
-              type="button"
-              onClick={() => setToastMessage(null)}
-              className="absolute top-3 right-3 min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-600 active:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 active:bg-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 transition-all active:scale-95 cursor-pointer touch-manipulation"
-              title="Fermer"
-              aria-label="Fermer"
-            >
-              <X className="w-5 h-5 pointer-events-none" />
-            </button>
-
-            {/* Glowing Success Badge */}
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center mb-4 ring-8 ring-emerald-500/10">
-              <Check className="w-8 h-8 stroke-[2.5]" />
-            </div>
-
-            {/* Title & Message */}
-            <h3 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {toastMessage}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 max-w-xs leading-relaxed">
-              Le dossier client et ses factures associées ont été actualisés avec succès.
-            </p>
-
-            {/* Confirm button */}
-            <button
-              type="button"
-              onClick={() => setToastMessage(null)}
-              className="mt-5 w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
-            >
-              D'accord
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

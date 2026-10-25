@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -26,7 +26,6 @@ import { useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA } from '@/lib/money/format';
 import { NewPaymentModal } from '@/components/payments/NewPaymentModal';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
-import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
 import { Invoice } from '@/lib/types';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 
@@ -41,10 +40,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
   const pathname = usePathname();
   const isDashboard = pathname === '/' || pathname === '/dashboard';
 
+  const [mounted, setMounted] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [headerCreateModalKind, setHeaderCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Dynamic section title based on route
   const getSectionTitle = (path: string) => {
@@ -156,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
               aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
-              {unreadNotificationCount > 0 && (
+              {mounted && unreadNotificationCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#0c1017] animate-pulse" />
               )}
             </button>
@@ -175,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                       <span className="font-bold text-slate-900 dark:text-white text-sm">
                         Notifications & Alertes
                       </span>
-                      {unreadNotificationCount > 0 && (
+                      {mounted && unreadNotificationCount > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-600">
                           {unreadNotificationCount} nouvelle{unreadNotificationCount > 1 ? 's' : ''}
                         </span>
@@ -422,13 +425,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
       </header>
 
 
-
-      {/* Global Quick Action Modals reachable from the Header */}
-      <CreateInvoiceModal
-        isOpen={!!headerCreateModalKind}
-        initialKind={headerCreateModalKind || 'invoice'}
-        onClose={() => setHeaderCreateModalKind(null)}
-      />
 
       <NewPaymentModal
         isOpen={!!paymentInvoiceId}
