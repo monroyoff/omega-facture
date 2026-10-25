@@ -1,0 +1,204 @@
+/* ==========================================================================
+   OMEGA FACTURE — Landing Page Stylesheet
+   Design System, Micro-Animations & Responsive Mobile-First Utilities
+   ========================================================================== */
+
+:root {
+  --landing-red: #FF3838;
+  --landing-red-hover: #E02828;
+  --landing-soft-red: #FFF0F0;
+  --landing-accent-red: #FFE5E5;
+  --landing-dark: #111113;
+  --landing-card-bg: #FAFAF9;
+  --landing-light-gray: #F4F4F6;
+  --landing-shadow-glow: 0 10px 25px -5px rgba(255, 56, 56, 0.35);
+  --landing-shadow-float: 0 20px 40px -15px rgba(255, 56, 56, 0.12), 0 0 25px rgba(0, 0, 0, 0.05);
+  --landing-shadow-subtle: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+/* Base Landing Scope */
+.landing-page {
+  font-family: var(--font-inter), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--landing-card-bg);
+  color: var(--landing-dark);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.landing-page ::selection {
+  background-color: var(--landing-red);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Micro-Animations
+   ========================================================================== */
+
+/* 1. Value Pulse Highlight (Triggers when invoice total or tax changes) */
+@keyframes pulseHighlight {
+  0% {
+    transform: scale(1.05);
+    color: var(--landing-red);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.value-pulse {
+  animation: pulseHighlight 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 2. Floating Badges Micro-Animation (Hero Section) */
+@keyframes floatBadgeTop {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-0.5deg);
+  }
+}
+
+@keyframes floatBadgeBottom {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(7px) rotate(0.5deg);
+  }
+}
+
+.animate-float-top {
+  animation: floatBadgeTop 4.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-float-bottom {
+  animation: floatBadgeBottom 5s ease-in-out infinite;
+  animation-delay: 0.8s;
+  will-change: transform;
+}
+
+/* 3. Hero CTA Principal Animation (Hover Shimmer & Click Bounce) */
+@keyframes ctaAuraPulse {
+  0%, 100% {
+    box-shadow: 0 10px 25px -5px rgba(255, 56, 56, 0.4), 0 0 0 0 rgba(255, 56, 56, 0.2);
+  }
+  50% {
+    box-shadow: 0 16px 35px -5px rgba(255, 56, 56, 0.55), 0 0 0 6px rgba(255, 56, 56, 0.08);
+  }
+}
+
+.hero-cta-button {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--landing-red);
+  color: #ffffff;
+  box-shadow: var(--landing-shadow-glow);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: ctaAuraPulse 3s infinite ease-in-out;
+}
+
+.hero-cta-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  transition: left 0.75s ease-in-out;
+}
+
+.hero-cta-button:hover {
+  background-color: var(--landing-red-hover);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 20px 35px -5px rgba(255, 56, 56, 0.5), 0 0 15px rgba(255, 56, 56, 0.3);
+}
+
+.hero-cta-button:hover::before {
+  left: 140%;
+}
+
+.hero-cta-button:active {
+  transform: translateY(1px) scale(0.97) !important;
+  box-shadow: 0 6px 15px -3px rgba(255, 56, 56, 0.4) !important;
+  transition: transform 0.08s ease;
+}
+
+/* Secondary CTA Button */
+.secondary-cta-button {
+  background-color: #ffffff;
+  color: var(--landing-dark);
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.secondary-cta-button:hover {
+  background-color: #F9FAFB;
+  border-color: #D1D5DB;
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.08);
+}
+
+.secondary-cta-button:active {
+  transform: translateY(0.5px) scale(0.98);
+}
+
+/* 4. Scroll Reveal Transitions */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 5. Mobile Navigation Drawer Animation */
+.mobile-nav-backdrop {
+  background-color: rgba(17, 17, 19, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 0.3s ease;
+}
+
+.mobile-nav-drawer {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 6. Card Hover States */
+.landing-card {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+
+.landing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--landing-shadow-subtle);
+  border-color: rgba(255, 56, 56, 0.3);
+}
+
+/* 7. Pill Tag Glow */
+.pill-tag-red {
+  background-color: var(--landing-soft-red);
+  border: 1px solid rgba(255, 56, 56, 0.2);
+  color: var(--landing-red);
+}
+
+/* 8. Glowing Blobs */
+.hero-glow-blob {
+  background: radial-gradient(circle, rgba(255, 56, 56, 0.16) 0%, rgba(255, 240, 240, 0.4) 50%, transparent 70%);
+  filter: blur(50px);
+}

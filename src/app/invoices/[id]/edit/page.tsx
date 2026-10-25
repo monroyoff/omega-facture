@@ -259,7 +259,7 @@ export default function EditInvoicePage() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <Link href="/" className="text-slate-400 hover:text-slate-600 font-medium shrink-0">Dashboard</Link>
+            <Link href="/dashboard" className="text-slate-400 hover:text-slate-600 font-medium shrink-0">Dashboard</Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
             <Link href="/invoices" className="text-slate-400 hover:text-slate-600 font-medium shrink-0">Factures</Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0 hidden sm:inline" />

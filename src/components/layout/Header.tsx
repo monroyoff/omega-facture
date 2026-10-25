@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
             ) : (
               <>
                 <Link
-                  href="/"
+                  href="/dashboard"
                   className="text-slate-400 hover:text-brand-600 font-medium transition-colors"
                 >
                   Dashboard

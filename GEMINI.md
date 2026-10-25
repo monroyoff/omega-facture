@@ -428,6 +428,30 @@ Afin de garantir la confidentialité absolue et l'indépendance de chaque utilis
 3. **Protection Anti-Autofill des Navigateurs** :
    - Les formulaires d'inscription et de connexion intègrent obligatoirement `autoComplete="off"`, `autoComplete="new-password"` pour les mots de passe de création, ainsi que les drapeaux de neutralisation des gestionnaires de mots de passe (`data-lpignore="true"`, `data-1p-ignore="true"`, `data-form-type="other"`).
 
+---
+
+## 7. VITRINE PUBLIQUE & LANDING PAGE OFFICIELLE (`/`)
+
+Pour accueillir les visiteurs, convertir les prospects et présenter les atouts d'**OMEGA FACTURE** :
+1. **Point d'Entrée Public (`/`)** :
+   - La racine `/` constitue la Landing Page officielle accessible à tout visiteur sans obligation d'authentification préalable.
+   - Les utilisateurs déjà authentifiés disposent d'un accès direct `Mon Espace` menant à `/dashboard`.
+   - Le tableau de bord financier de facturation est accessible sur `/dashboard`.
+2. **Architecture Modulaire Réutilisable (`src/components/landing/`)** :
+   - `LandingNavbar` : Barre de navigation sticky avec logo vectoriel Ω, liens avec défilement fluide, tiroir de navigation mobile responsive (< 768px).
+   - `HeroSection` : Section d'accueil avec badges de réassurance, bouton CTA principal micro-animé (`hero-cta-button` avec halo lumineux, balayage shimmer et rebond au clic), et bouton de démo rapide.
+   - `HeroInvoiceSimulator` : Simulateur interactif de factures et devis en temps réel en monnaie FCFA avec bascule Devis/Facture, calcul de TVA 18% automatique, retenue BRS, badges flottants animés (`animate-float-top`, `animate-float-bottom`), et rétroactions de téléchargement PDF et partage WhatsApp.
+   - `ProblemSection` : Cartes explicatives des freins de la facturation manuelle sur Word/Excel.
+   - `FeaturesSection` & `TaxSimulator` : Fonctionnalités clés UEMOA avec simulateur de TVA 18% en direct.
+   - `HowItWorksSection` : Les 3 étapes d'adhésion en 3 minutes chrono.
+   - `TestimonialsSection` : Avis vérifiés d'entrepreneurs africains (Sénégal, Côte d'Ivoire, Cameroun).
+   - `PricingSection` : Grille tarifaire claire en FCFA (*Plan Gratuit 0 F, Plan Pro 5 000 F, Plan Business 15 000 F*).
+   - `FinalCTASection` : Appel à l'action immersif à fond sombre avec halo rouge et CTA pulsant.
+   - `LandingFooter` : Pied de page complet avec colonnes, mentions régionales et contact.
+3. **Styles Séparés & Mobile-First (`src/styles/landing.css`)** :
+   - Éradication des styles inline au profit de règles CSS déclaratives, de variables de couleurs et de micro-animations GPU-accélérées.
+
+
 
 
 

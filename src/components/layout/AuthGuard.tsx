@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useInvoices } from '@/lib/store/invoice-context';
 
 const PUBLIC_PATHS = [
+  '/',
   '/login',
   '/register',
   '/verify-email',
@@ -23,9 +24,11 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     setMounted(true);
   }, []);
 
-  const isPublic = PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p + '?')
-  );
+  const isPublic =
+    pathname === '/' ||
+    PUBLIC_PATHS.some(
+      (p) => p !== '/' && (pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p + '?'))
+    );
 
   useEffect(() => {
     if (!mounted || authLoading) return;
@@ -33,7 +36,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     // 1. Sur une route publique (/login, /register) alors qu'on est déjà connecté
     if (isPublic) {
       if (isAuthenticated && currentUser?.emailVerified && (pathname === '/login' || pathname === '/register')) {
-        router.replace('/');
+        router.replace('/dashboard');
       }
       return;
     }
