@@ -29,7 +29,7 @@ export const ProblemSection: React.FC = () => {
     <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-gray-100 dark:border-gray-800" id="problemes">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-red mb-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-3">
             Pourquoi changer ?
           </p>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark dark:text-white tracking-tight">
@@ -46,9 +46,9 @@ export const ProblemSection: React.FC = () => {
             return (
               <div
                 key={idx}
-                className="landing-card bg-[#FAFAF9] dark:bg-[#111622] rounded-3xl p-8 border border-gray-200/70 dark:border-gray-800 hover:border-brand-red/30 transition-all duration-300 group reveal-on-scroll"
+                className="landing-card bg-[#FAFAF9] dark:bg-[#111622] rounded-3xl p-8 border border-gray-200/70 dark:border-gray-800 hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-600/5 transition-all duration-300 group reveal-on-scroll"
               >
-                <div className="w-14 h-14 rounded-2xl bg-brand-softRed dark:bg-rose-950/40 flex items-center justify-center text-brand-red mb-6 transition-transform duration-300 group-hover:scale-110">
+                <div className="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950/50 border border-brand-200/60 dark:border-brand-800/60 flex items-center justify-center text-brand-600 dark:text-brand-400 mb-6 transition-transform duration-300 group-hover:scale-110">
                   <Icon className="w-7 h-7 stroke-[1.8]" />
                 </div>
                 <h3 className="text-xl font-bold text-brand-dark dark:text-white mb-3">

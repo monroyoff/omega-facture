@@ -19,12 +19,20 @@ export function useScrollReveal() {
         });
       },
       {
-        threshold: 0.12,
-        rootMargin: '0px 0px -40px 0px',
+        threshold: 0.02,
+        rootMargin: '0px 0px 100px 0px',
       }
     );
 
-    elements.forEach((el) => observer.observe(el));
+    elements.forEach((el) => {
+      // Check if already in viewport
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 100) {
+        el.classList.add('revealed');
+      } else {
+        observer.observe(el);
+      }
+    });
 
     return () => {
       elements.forEach((el) => observer.unobserve(el));

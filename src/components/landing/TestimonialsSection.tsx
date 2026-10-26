@@ -35,7 +35,7 @@ export const TestimonialsSection: React.FC = () => {
     <section className="py-24 bg-[#FAFAF9] dark:bg-[#070a0f]" id="temoignages">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-red mb-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-3">
             Ils nous font confiance
           </p>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark dark:text-white tracking-tight">
@@ -65,7 +65,7 @@ export const TestimonialsSection: React.FC = () => {
               </div>
 
               <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-brand-softRed dark:bg-rose-950/50 text-brand-red font-bold flex items-center justify-center text-sm border border-brand-red/20 shrink-0">
+                <div className="w-11 h-11 rounded-full bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 font-bold flex items-center justify-center text-sm border border-brand-200/60 dark:border-brand-800/60 shrink-0">
                   {t.initials}
                 </div>
                 <div>

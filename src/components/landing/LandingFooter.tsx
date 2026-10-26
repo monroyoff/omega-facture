@@ -11,11 +11,11 @@ export const LandingFooter: React.FC = () => {
           {/* Brand Summary Column */}
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
-              <div className="w-8 h-8 rounded-lg bg-brand-red flex items-center justify-center text-white font-extrabold text-base shadow-glow-red transition-transform group-hover:scale-105">
+              <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-extrabold text-base shadow-lg shadow-brand-600/30 transition-transform group-hover:scale-105">
                 Ω
               </div>
               <span className="text-xl font-extrabold text-white">
-                Omega<span className="text-brand-red">Facture</span>
+                Omega<span className="text-brand-400">Facture</span>
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm mb-6">
@@ -101,7 +101,7 @@ export const LandingFooter: React.FC = () => {
               </li>
               <li>
                 <a
-                  className="hover:text-brand-red transition-colors text-brand-red font-medium"
+                  className="hover:text-brand-300 transition-colors text-brand-400 font-medium"
                   href="mailto:contact@omegafacture.com"
                 >
                   contact@omegafacture.com

@@ -14,7 +14,7 @@ export const TaxSimulator: React.FC = () => {
     <div className="mt-12 bg-white dark:bg-[#111622] rounded-3xl p-6 sm:p-8 border border-gray-200/80 dark:border-gray-800 shadow-card-subtle reveal-on-scroll">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 sm:gap-8">
         <div className="max-w-md">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-softRed dark:bg-rose-950/40 text-brand-red text-xs font-bold uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-950/50 border border-brand-200/60 dark:border-brand-800/60 text-brand-600 dark:text-brand-400 text-xs font-bold uppercase tracking-wider mb-2">
             <Calculator className="w-3.5 h-3.5" />
             <span>Simulateur interactif</span>
           </div>
@@ -38,7 +38,7 @@ export const TaxSimulator: React.FC = () => {
               value={htAmount}
               onChange={(e) => setHtAmount(Math.max(0, parseInt(e.target.value) || 0))}
               placeholder="ex: 500000"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#151c2c] text-brand-dark dark:text-white focus:ring-2 focus:ring-brand-red focus:border-brand-red font-mono text-sm font-semibold"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#151c2c] text-brand-dark dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono text-sm font-semibold"
             />
           </div>
 
@@ -46,13 +46,13 @@ export const TaxSimulator: React.FC = () => {
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium block">
               TVA calculée (18%)
             </span>
-            <span className="text-sm font-bold text-brand-red font-mono">
+            <span className="text-sm font-bold text-brand-600 dark:text-brand-400 font-mono">
               {formatFCFA(tvaAmount)}
             </span>
           </div>
 
-          <div className="bg-brand-softRed dark:bg-rose-950/40 px-5 sm:px-6 py-3 rounded-xl border border-brand-red/20 text-left shrink-0">
-            <span className="text-xs text-brand-red font-semibold block">
+          <div className="bg-brand-50 dark:bg-brand-950/60 px-5 sm:px-6 py-3 rounded-xl border border-brand-200 dark:border-brand-800 text-left shrink-0">
+            <span className="text-xs text-brand-600 dark:text-brand-400 font-semibold block">
               Total TTC à facturer
             </span>
             <span className="text-base font-extrabold text-brand-dark dark:text-white font-mono">

@@ -1,26 +1,29 @@
 /* ==========================================================================
    OMEGA FACTURE — Landing Page Stylesheet
-   Design System, Micro-Animations & Responsive Mobile-First Utilities
+   Harmonisé avec les Codes Couleurs Officiels de l'Application (Royal Blue / Indigo)
    ========================================================================== */
 
 :root {
-  --landing-red: #FF3838;
-  --landing-red-hover: #E02828;
-  --landing-soft-red: #FFF0F0;
-  --landing-accent-red: #FFE5E5;
-  --landing-dark: #111113;
-  --landing-card-bg: #FAFAF9;
-  --landing-light-gray: #F4F4F6;
-  --landing-shadow-glow: 0 10px 25px -5px rgba(255, 56, 56, 0.35);
-  --landing-shadow-float: 0 20px 40px -15px rgba(255, 56, 56, 0.12), 0 0 25px rgba(0, 0, 0, 0.05);
+  --brand-primary: #1D4ED8;        /* brand-600 */
+  --brand-primary-hover: #1E40AF;  /* brand-700 */
+  --brand-primary-light: #2563EB;  /* brand-500 */
+  --brand-soft: #EFF6FF;           /* brand-50 */
+  --brand-accent: #DBEAFE;         /* brand-100 */
+  --brand-border: #BFDBFE;         /* brand-200 */
+  --app-bg: #F8F9FA;
+  --app-dark: #0F172A;
+  --app-dark-card: #111622;
+  --app-dark-surface: #070A0F;
+  --landing-shadow-glow: 0 10px 25px -5px rgba(29, 78, 216, 0.40);
+  --landing-shadow-float: 0 20px 40px -15px rgba(29, 78, 216, 0.15), 0 0 25px rgba(0, 0, 0, 0.05);
   --landing-shadow-subtle: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
 }
 
 /* Base Landing Scope */
 .landing-page {
-  font-family: var(--font-inter), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: var(--landing-card-bg);
-  color: var(--landing-dark);
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--app-bg);
+  color: var(--app-dark);
   scroll-behavior: smooth;
   overflow-x: hidden;
   position: relative;
@@ -28,7 +31,7 @@
 }
 
 .landing-page ::selection {
-  background-color: var(--landing-red);
+  background-color: var(--brand-primary);
   color: #ffffff;
 }
 
@@ -40,7 +43,7 @@
 @keyframes pulseHighlight {
   0% {
     transform: scale(1.05);
-    color: var(--landing-red);
+    color: var(--brand-primary);
   }
   100% {
     transform: scale(1);
@@ -84,17 +87,17 @@
 /* 3. Hero CTA Principal Animation (Hover Shimmer & Click Bounce) */
 @keyframes ctaAuraPulse {
   0%, 100% {
-    box-shadow: 0 10px 25px -5px rgba(255, 56, 56, 0.4), 0 0 0 0 rgba(255, 56, 56, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(29, 78, 216, 0.4), 0 0 0 0 rgba(29, 78, 216, 0.2);
   }
   50% {
-    box-shadow: 0 16px 35px -5px rgba(255, 56, 56, 0.55), 0 0 0 6px rgba(255, 56, 56, 0.08);
+    box-shadow: 0 16px 35px -5px rgba(29, 78, 216, 0.6), 0 0 0 6px rgba(29, 78, 216, 0.1);
   }
 }
 
 .hero-cta-button {
   position: relative;
   overflow: hidden;
-  background-color: var(--landing-red);
+  background-color: var(--brand-primary);
   color: #ffffff;
   box-shadow: var(--landing-shadow-glow);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -119,9 +122,9 @@
 }
 
 .hero-cta-button:hover {
-  background-color: var(--landing-red-hover);
+  background-color: var(--brand-primary-hover);
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 20px 35px -5px rgba(255, 56, 56, 0.5), 0 0 15px rgba(255, 56, 56, 0.3);
+  box-shadow: 0 20px 35px -5px rgba(29, 78, 216, 0.55), 0 0 15px rgba(37, 99, 235, 0.35);
 }
 
 .hero-cta-button:hover::before {
@@ -130,22 +133,22 @@
 
 .hero-cta-button:active {
   transform: translateY(1px) scale(0.97) !important;
-  box-shadow: 0 6px 15px -3px rgba(255, 56, 56, 0.4) !important;
+  box-shadow: 0 6px 15px -3px rgba(29, 78, 216, 0.45) !important;
   transition: transform 0.08s ease;
 }
 
 /* Secondary CTA Button */
 .secondary-cta-button {
   background-color: #ffffff;
-  color: var(--landing-dark);
-  border: 1px solid #E5E7EB;
+  color: var(--app-dark);
+  border: 1px solid #E2E8F0;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .secondary-cta-button:hover {
-  background-color: #F9FAFB;
-  border-color: #D1D5DB;
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
   transform: translateY(-1.5px);
   box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.08);
 }
@@ -169,7 +172,7 @@
 
 /* 5. Mobile Navigation Drawer Animation */
 .mobile-nav-backdrop {
-  background-color: rgba(17, 17, 19, 0.6);
+  background-color: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: opacity 0.3s ease;
@@ -187,18 +190,18 @@
 .landing-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--landing-shadow-subtle);
-  border-color: rgba(255, 56, 56, 0.3);
+  border-color: rgba(29, 78, 216, 0.3);
 }
 
 /* 7. Pill Tag Glow */
-.pill-tag-red {
-  background-color: var(--landing-soft-red);
-  border: 1px solid rgba(255, 56, 56, 0.2);
-  color: var(--landing-red);
+.pill-tag-brand {
+  background-color: var(--brand-soft);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  color: var(--brand-primary);
 }
 
 /* 8. Glowing Blobs */
 .hero-glow-blob {
-  background: radial-gradient(circle, rgba(255, 56, 56, 0.16) 0%, rgba(255, 240, 240, 0.4) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(239, 246, 255, 0.4) 50%, transparent 70%);
   filter: blur(50px);
 }

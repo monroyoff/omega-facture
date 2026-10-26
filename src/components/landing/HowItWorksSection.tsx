@@ -35,7 +35,7 @@ export const HowItWorksSection: React.FC = () => {
     <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-gray-100 dark:border-gray-800" id="comment-ca-marche">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-20 reveal-on-scroll">
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-red mb-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-3">
             Comment ça marche
           </p>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark dark:text-white tracking-tight">
@@ -53,7 +53,7 @@ export const HowItWorksSection: React.FC = () => {
               className="relative bg-[#FAFAF9] dark:bg-[#111622] rounded-3xl p-8 border border-gray-200/80 dark:border-gray-800 reveal-on-scroll flex flex-col justify-between"
             >
               <div>
-                <span className="text-5xl font-black text-brand-red/20 dark:text-brand-red/30 block mb-4">
+                <span className="text-5xl font-black text-brand-600/20 dark:text-brand-400/20 block mb-4">
                   {st.num}
                 </span>
                 <h3 className="text-xl font-bold text-brand-dark dark:text-white mb-2">
@@ -64,7 +64,7 @@ export const HowItWorksSection: React.FC = () => {
                 </p>
               </div>
 
-              <div className="text-xs font-semibold text-brand-red flex items-center gap-1.5 pt-2">
+              <div className="text-xs font-semibold text-brand-600 dark:text-brand-400 flex items-center gap-1.5 pt-2">
                 <span>{st.badge}</span>
                 {st.arrow ? <ArrowRight className="w-3.5 h-3.5" /> : <Check className="w-4 h-4 stroke-[3]" />}
               </div>

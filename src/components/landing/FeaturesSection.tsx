@@ -48,7 +48,7 @@ export const FeaturesSection: React.FC = () => {
     <section className="py-24 bg-[#FAFAF9] dark:bg-[#070a0f]" id="fonctionnalites">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
-          <p className="text-xs font-bold uppercase tracking-widest text-brand-red mb-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-3">
             Fonctionnalités Clés
           </p>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-brand-dark dark:text-white tracking-tight">
@@ -68,7 +68,7 @@ export const FeaturesSection: React.FC = () => {
                 className="bg-white dark:bg-[#111622] rounded-3xl p-8 sm:p-10 border border-gray-200/80 dark:border-gray-800 hover:shadow-card-subtle transition-all duration-300 reveal-on-scroll flex flex-col justify-between"
               >
                 <div>
-                  <div className="w-12 h-12 rounded-2xl bg-brand-softRed dark:bg-rose-950/40 text-brand-red flex items-center justify-center mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/50 border border-brand-200/60 dark:border-brand-800/60 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-6">
                     <Icon className="w-6 h-6 stroke-[2]" />
                   </div>
                   <h3 className="text-2xl font-bold text-brand-dark dark:text-white mb-3">
@@ -83,7 +83,7 @@ export const FeaturesSection: React.FC = () => {
                   <span>{feat.tagLeft}</span>
                   <span
                     className={`font-semibold ${
-                      feat.emeraldRight ? 'text-emerald-600' : 'text-brand-red'
+                      feat.emeraldRight ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'
                     }`}
                   >
                     {feat.tagRight}
