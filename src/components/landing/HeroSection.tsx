@@ -66,16 +66,16 @@ export const HeroSection: React.FC = () => {
         {/* Magnetic Headline */}
         <div className="max-w-5xl mx-auto mb-8">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.08] mb-6">
-            Facturez en{' '}
+            Facturez en toute{' '}
             <span className="bg-gradient-to-r from-brand-600 via-indigo-600 to-blue-500 bg-clip-text text-transparent">
-              FCFA
+              simplicité
             </span>
-            .<br className="hidden sm:inline" />{' '}
-            Encaissez par{' '}
-            <span className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 bg-clip-text text-transparent">
-              Mobile Money
-            </span>{' '}
-            en 2 clics.
+            <br className="hidden sm:inline" />{' '}
+            et encaissez en{' '}
+            <span className="bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+              2 clics
+            </span>
+            .
           </h1>
 
           <p className="mt-6 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
