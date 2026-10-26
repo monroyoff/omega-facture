@@ -3,14 +3,14 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X } from 'lucide-react';
+import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X, Sparkles } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-  const { currentUser, updateUserProfile, showToast } = useInvoices();
+  const { currentUser, updateUserProfile, showToast, userPlan, realInvoicesCount, openUpgradeModal } = useInvoices();
 
   // Settings form states
   const [companyName, setCompanyName] = useState(currentUser?.organization || 'MONROY Business Solutions');
@@ -110,6 +110,87 @@ export default function SettingsPage() {
           </div>
 
           <form onSubmit={handleSave} className="space-y-6">
+            {/* Subscription & Plan Status Card */}
+            <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-card space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-brand-500/25">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                      Formule d’Abonnement
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Gérez votre forfait, quota de facturation et options d’équipe.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                    userPlan === 'business'
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800'
+                      : userPlan === 'pro'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                  }`}>
+                    {userPlan === 'business' ? 'Plan Business (15 000 F)' : userPlan === 'pro' ? 'Plan Pro (5 000 F)' : 'Plan Gratuit (0 F)'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quota Progress Bar for Free Plan */}
+              {userPlan === 'free' ? (
+                <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
+                    <span>Consommation du quota mensuel</span>
+                    <span className="text-amber-700 dark:text-amber-400 font-extrabold">{realInvoicesCount} / 5 factures</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-amber-100 dark:bg-amber-950/80 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (realInvoicesCount / 5) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {5 - realInvoicesCount > 0
+                        ? `Il vous reste ${5 - realInvoicesCount} facture(s) gratuite(s).`
+                        : 'Limite atteinte (5/5). Mettez à niveau pour facturer sans restriction.'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openUpgradeModal('pro')}
+                      className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-brand-500/20 transition-all cursor-pointer self-start sm:self-auto"
+                    >
+                      Mettre à niveau (5 000 FCFA/mois)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-white">
+                      {userPlan === 'pro' ? 'Abonnement Pro Actif' : 'Abonnement Business Actif'}
+                    </div>
+                    <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+                      {userPlan === 'pro'
+                        ? 'Factures & devis illimités, jusqu’à 3 utilisateurs, relances WhatsApp & exports comptables.'
+                        : 'Illimité total, jusqu’à 10 utilisateurs, rôles comptables avancés et intégration API.'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openUpgradeModal(userPlan === 'pro' ? 'business' : 'pro')}
+                    className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white hover:opacity-90 active:scale-95 text-white dark:text-slate-900 font-bold text-xs shadow-sm transition-all cursor-pointer self-start sm:self-auto shrink-0"
+                  >
+                    {userPlan === 'pro' ? 'Passer au Business (15 000 F)' : 'Gérer la formule'}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Identity & Fiscal */}
             <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-card space-y-4">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">

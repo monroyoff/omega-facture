@@ -31,6 +31,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { GlobalUpgradeModal } from '@/components/subscription/GlobalUpgradeModal';
+
 export default function RootLayout({
   children,
 }: {
@@ -72,6 +74,7 @@ export default function RootLayout({
       >
         <InvoiceProvider>
           <AuthGuard>{children}</AuthGuard>
+          <GlobalUpgradeModal />
         </InvoiceProvider>
       </body>
     </html>

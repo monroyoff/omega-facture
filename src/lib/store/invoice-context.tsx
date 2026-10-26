@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Client, Invoice, InvoiceStatus, InvoiceItem, DashboardKPIs } from '@/lib/types';
+import { Client, Invoice, InvoiceStatus, InvoiceItem, DashboardKPIs, SubscriptionPlan } from '@/lib/types';
 import { mockClients, mockInvoices } from '@/lib/mock-data';
 import { ToastNotification, type ToastMessage } from '@/components/ui/ToastNotification';
 import {
@@ -157,7 +157,70 @@ export interface UserProfile {
   avatar: string;
   emailVerified?: boolean;
   password?: string;
+  plan?: SubscriptionPlan;
 }
+
+export interface PlanConfig {
+  id: SubscriptionPlan;
+  name: string;
+  priceFCFA: number;
+  period: string;
+  maxInvoices: number;
+  maxUsers: number;
+  description: string;
+  features: string[];
+}
+
+export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, PlanConfig> = {
+  free: {
+    id: 'free',
+    name: 'Plan Gratuit',
+    priceFCFA: 0,
+    period: '/ mois',
+    maxInvoices: 5,
+    maxUsers: 1,
+    description: 'Idéal pour tester ou démarrer son activité.',
+    features: [
+      "Jusqu'à 5 factures / mois",
+      '1 utilisateur',
+      'Modèles de factures standards',
+      'Calcul automatique de TVA 18%',
+    ],
+  },
+  pro: {
+    id: 'pro',
+    name: 'Plan Pro',
+    priceFCFA: 5000,
+    period: '/ mois',
+    maxInvoices: Infinity,
+    maxUsers: 3,
+    description: 'Pour les indépendants et freelances établis.',
+    features: [
+      'Factures & devis illimités',
+      'Jusqu’à 3 utilisateurs',
+      'Relances automatiques par WhatsApp & Email',
+      'Calcul automatique TVA 18% & retenues',
+      'Export comptable Excel / PDF',
+      'Personnalisation complète avec logo',
+    ],
+  },
+  business: {
+    id: 'business',
+    name: 'Plan Business',
+    priceFCFA: 15000,
+    period: '/ mois',
+    maxInvoices: Infinity,
+    maxUsers: 10,
+    description: 'Pour les PME et entreprises en pleine croissance.',
+    features: [
+      'Tout le Plan Pro en illimité',
+      'Multi-utilisateurs (jusqu’à 10 membres)',
+      'Rôles et permissions comptables avancés',
+      'Support prioritaire WhatsApp 24/7 dédié',
+      'Accès API & intégration comptable',
+    ],
+  },
+};
 
 export const DEFAULT_USER: UserProfile = {
   id: 'fc1ff9e5-80d6-4bcf-8794-c4bb463e148d',
@@ -170,6 +233,7 @@ export const DEFAULT_USER: UserProfile = {
   organization: 'MONROY AGENCY',
   avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
   emailVerified: true,
+  plan: 'free',
 };
 
 export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
@@ -292,6 +356,14 @@ interface InvoiceContextType {
   resendVerificationEmail: (targetEmail?: string) => Promise<boolean>;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   logout: () => Promise<void>;
+  userPlan: SubscriptionPlan;
+  realInvoicesCount: number;
+  canCreateInvoice: boolean;
+  upgradePlan: (plan: SubscriptionPlan) => Promise<void>;
+  isUpgradeModalOpen: boolean;
+  setIsUpgradeModalOpen: (open: boolean) => void;
+  openUpgradeModal: (defaultPlan?: SubscriptionPlan) => void;
+  upgradeModalDefaultPlan: SubscriptionPlan;
 }
 
 const initialProducts: Product[] = [];
@@ -1092,8 +1164,53 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setToast(null);
   }, []);
 
+  // Subscription Plan & Gating
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
+  const [upgradeModalDefaultPlan, setUpgradeModalDefaultPlan] = useState<SubscriptionPlan>('pro');
+
+  const openUpgradeModal = useCallback((defaultPlan: SubscriptionPlan = 'pro') => {
+    setUpgradeModalDefaultPlan(defaultPlan);
+    setIsUpgradeModalOpen(true);
+  }, []);
+
+  const userPlan: SubscriptionPlan = currentUser?.plan || 'free';
+  const realInvoicesCount = invoices.filter((i) => i.documentKind !== 'quote').length;
+  const canCreateInvoice = userPlan !== 'free' || realInvoicesCount < 5;
+
+  const upgradePlan = async (newPlan: SubscriptionPlan) => {
+    if (!currentUser) return;
+    const updatedUser: UserProfile = { ...currentUser, plan: newPlan };
+    setCurrentUser(updatedUser);
+    saveUserToRegistry(updatedUser);
+    try {
+      localStorage.setItem(
+        'facturo:v1:auth',
+        JSON.stringify({ isAuthenticated: true, currentUser: updatedUser })
+      );
+    } catch (e) {}
+
+    showToast({
+      title: `Passage au ${SUBSCRIPTION_PLANS[newPlan].name} activé ! 🎉`,
+      message: `Votre abonnement est maintenant actif. Profitez de toutes les fonctionnalités avancées.`,
+      kind: 'success',
+      duration: 5000,
+    });
+  };
+
   // Add a new invoice
   const addInvoice = (invoice: Invoice) => {
+    // Gating : Si c'est une facture réelle (hors devis) et que le quota du plan gratuit (5) est atteint
+    if (invoice.documentKind !== 'quote' && userPlan === 'free' && realInvoicesCount >= 5) {
+      openUpgradeModal('pro');
+      showToast({
+        title: 'Limite du Plan Gratuit atteinte (5/5 factures)',
+        message: 'Vous avez utilisé vos 5 factures gratuites. Passez au Plan Pro pour facturer en illimité.',
+        kind: 'warning',
+        duration: 5000,
+      });
+      return;
+    }
+
     const updated = [invoice, ...invoices];
     saveInvoices(updated);
 
@@ -1163,6 +1280,18 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   ): Invoice | null => {
     const quote = invoices.find((inv) => inv.id === quoteId);
     if (!quote) return null;
+
+    // Gating : conversion d'un devis en facture compte pour une facture réelle
+    if (userPlan === 'free' && realInvoicesCount >= 5) {
+      openUpgradeModal('pro');
+      showToast({
+        title: 'Limite du Plan Gratuit atteinte (5/5 factures)',
+        message: 'Pour convertir ce devis en facture officielle, passez au Plan Pro.',
+        kind: 'warning',
+        duration: 5000,
+      });
+      return null;
+    }
 
     // Determine the next sequential invoice number FAC-2026-XXXX
     const numbers = invoices
@@ -1604,6 +1733,14 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         resendVerificationEmail,
         updateUserProfile,
         logout,
+        userPlan,
+        realInvoicesCount,
+        canCreateInvoice,
+        upgradePlan,
+        isUpgradeModalOpen,
+        setIsUpgradeModalOpen,
+        openUpgradeModal,
+        upgradeModalDefaultPlan,
       }}
     >
       {children}

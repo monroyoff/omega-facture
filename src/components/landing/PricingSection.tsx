@@ -3,8 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { Check, ArrowRight, Sparkles } from 'lucide-react';
+import { useInvoices } from '@/lib/store/invoice-context';
 
 export const PricingSection: React.FC = () => {
+  const { isAuthenticated, openUpgradeModal } = useInvoices();
+
   return (
     <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-gray-100 dark:border-gray-800" id="tarifs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -16,7 +19,7 @@ export const PricingSection: React.FC = () => {
             Investissez dans la clarté de votre entreprise
           </h2>
           <p className="mt-4 text-base sm:text-lg text-gray-600 dark:text-gray-400">
-            Payez en FCFA en toute flexibilité avec Mobile Money (Wave, Orange Money) ou Carte Bancaire.
+            Payez en FCFA en toute flexibilité avec Mobile Money (Wave, Orange Money, MTN MoMo, Moov) ou Carte Bancaire.
           </p>
         </div>
 
@@ -44,7 +47,7 @@ export const PricingSection: React.FC = () => {
               <ul className="space-y-3.5 text-sm text-gray-600 dark:text-gray-300 mb-8">
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-500 stroke-[2.5] shrink-0" />
-                  <span>Jusqu'à 5 factures / mois</span>
+                  <span>Jusqu'à 5 factures gratuites</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-500 stroke-[2.5] shrink-0" />
@@ -61,12 +64,21 @@ export const PricingSection: React.FC = () => {
               </ul>
             </div>
 
-            <Link
-              href="/register"
-              className="w-full text-center py-3.5 px-6 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-brand-dark dark:hover:border-white font-bold text-sm text-brand-dark dark:text-white transition-all duration-200 cursor-pointer block"
-            >
-              Démarrer gratuitement
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/dashboard"
+                className="w-full text-center py-3.5 px-6 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-brand-dark dark:hover:border-white font-bold text-sm text-brand-dark dark:text-white transition-all duration-200 cursor-pointer block"
+              >
+                Accéder à mon espace
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="w-full text-center py-3.5 px-6 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-brand-dark dark:hover:border-white font-bold text-sm text-brand-dark dark:text-white transition-all duration-200 cursor-pointer block"
+              >
+                Démarrer gratuitement
+              </Link>
+            )}
           </div>
 
           {/* Plan Pro (Featured) */}
@@ -100,6 +112,10 @@ export const PricingSection: React.FC = () => {
                   <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />
                   <span>Factures &amp; devis illimités</span>
                 </li>
+                <li className="flex items-center gap-2.5 font-medium">
+                  <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />
+                  <span>Jusqu’à 3 utilisateurs</span>
+                </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />
                   <span>Relances automatiques par WhatsApp &amp; Email</span>
@@ -119,12 +135,22 @@ export const PricingSection: React.FC = () => {
               </ul>
             </div>
 
-            <Link
-              href="/register?plan=pro"
-              className="w-full text-center py-3.5 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 font-bold text-sm text-white shadow-lg shadow-brand-600/30 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer block"
-            >
-              Choisir le Plan Pro
-            </Link>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => openUpgradeModal('pro')}
+                className="w-full text-center py-3.5 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 font-bold text-sm text-white shadow-lg shadow-brand-600/30 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer block"
+              >
+                Choisir le Plan Pro
+              </button>
+            ) : (
+              <Link
+                href="/register?plan=pro"
+                className="w-full text-center py-3.5 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 font-bold text-sm text-white shadow-lg shadow-brand-600/30 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer block"
+              >
+                Choisir le Plan Pro
+              </Link>
+            )}
           </div>
 
           {/* Plan Business */}
@@ -171,15 +197,26 @@ export const PricingSection: React.FC = () => {
               </ul>
             </div>
 
-            <Link
-              href="/register?plan=business"
-              className="w-full text-center py-3.5 px-6 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-brand-dark dark:hover:border-white font-bold text-sm text-brand-dark dark:text-white transition-all duration-200 cursor-pointer block"
-            >
-              Passer au Business
-            </Link>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => openUpgradeModal('business')}
+                className="w-full text-center py-3.5 px-6 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-brand-dark dark:hover:border-white font-bold text-sm text-brand-dark dark:text-white transition-all duration-200 cursor-pointer block"
+              >
+                Passer au Business
+              </button>
+            ) : (
+              <Link
+                href="/register?plan=business"
+                className="w-full text-center py-3.5 px-6 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-brand-dark dark:hover:border-white font-bold text-sm text-brand-dark dark:text-white transition-all duration-200 cursor-pointer block"
+              >
+                Passer au Business
+              </Link>
+            )}
           </div>
         </div>
       </div>
     </section>
   );
 };
+

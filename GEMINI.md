@@ -242,6 +242,36 @@
   3. **Vérification Stricte du Compte** : Seuls les comptes réels dûment confirmés par email et dont le mot de passe correspond exactement aux données enregistrées (Supabase Auth / Registre sécurisé) peuvent ouvrir une session.
   4. **Protection Globale (`AuthGuard`)** : Toute tentative d'accès à une page protégée sans être authentifié par son identifiant et mot de passe est immédiatement redirigée vers `/login`.
 
+### O. Modèle d'Abonnement Échelonné & Système de Quotas UEMOA (`UpgradePlanModal`, `invoice-context.tsx`)
+- **Structure des 3 Formules Tarifaires** :
+  1. **Plan Gratuit (0 FCFA/mois)** :
+     - Quota strict de **5 factures par mois calendaire** (les devis estimatifs restent illimités).
+     - Accès mono-utilisateur (1 utilisateur).
+     - Modèle de facture et devis standard OHADA.
+     - Calcul automatique de la TVA (18% ou exonéré).
+     - Export PDF et partages WhatsApp / Email.
+  2. **Plan Pro (5 000 FCFA/mois)** :
+     - **Factures et devis 100% illimités**.
+     - Jusqu'à **3 utilisateurs / collaborateurs**.
+     - Relances automatiques personnalisées (WhatsApp & Email).
+     - Rapports financiers avancés, Balance Âgée et exports comptables certifiés (CSV avec BOM UTF-8, PDF officiel, PNG).
+     - Logo d'entreprise personnalisé et mentions fiscales sur-mesure.
+  3. **Plan Business (15 000 FCFA/mois)** :
+     - Tout ce qui est inclus dans le Plan Pro.
+     - Équipe jusqu'à **10 membres**.
+     - Rôles comptables et permissions d'accès multi-agences.
+     - **Support prioritaire 24/7 dédié sur WhatsApp**.
+     - Accès API et intégrations logicielles sur-mesure.
+- **Mécanisme de Gating & Déclenchement Automatique de la Modale d'Upgrade** :
+  - **Comptage Mensuel Dynamique (`invoicesThisMonthCount`)** : Dénombrement en temps réel des factures réelles émises au cours du mois en cours (`inv.date` dans le mois courant).
+  - **Blocage Préventif à la 6ème Facture** : Dès qu'un utilisateur sur le Plan Gratuit tente de créer une 6ème facture (`!canCreateInvoice`), la modale `UpgradePlanModal` s'ouvre automatiquement avec message d'avertissement toast et mise en avant des avantages du Plan Pro.
+  - **Paiements Mobiles UEMOA Intégrés** : Sélection directe du moyen de règlement régional (**Wave, Orange Money, MTN MoMo, Moov Money, Carte bancaire**) avec simulation d'activation instantanée.
+  - **Indicateurs Visuels Omniprésents** :
+    - *Bannière Dashboard* : Badge de quota (`Plan Gratuit • 0/5 factures ce mois`) avec barre de progression et bouton direct `Passer à Pro (5 000 F)`.
+    - *Sidebar & Session Utilisateur* : Badge d'état du plan (`Gratuit`, `Pro`, `Business`) et bouton d'upgrade.
+    - *Paramètres (`/settings`)* : Volet dédié « Formule d’Abonnement » avec jauge de quota en temps réel, récapitulatif des avantages et gestion de formule.
+    - *Landing Page (`/#tarifs`)* : Grille tarifaire publique harmonisée avec les spécifications régionales UEMOA.
+
 ---
 
 ## 4. STRUCTURE DES DOSSIERS & FICHIERS

@@ -54,7 +54,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [authToast, setAuthToast] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const { currentUser, isAuthenticated, login, logout, invoices } = useInvoices();
+  const {
+    currentUser,
+    isAuthenticated,
+    login,
+    logout,
+    invoices,
+    userPlan,
+    realInvoicesCount,
+    openUpgradeModal,
+  } = useInvoices();
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -370,6 +379,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="text-[10px] text-rose-400 dark:text-rose-500 font-normal">Quitter</span>
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Subscription status if Free plan */}
+            {mounted && isAuthenticated && userPlan === 'free' && (
+              <div className="mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-orange-500/10 border border-amber-300/40 dark:border-amber-800/40 text-left">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Plan Gratuit
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                    {realInvoicesCount}/5 factures
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-amber-200/60 dark:bg-amber-950/80 rounded-full overflow-hidden mb-2">
+                  <div
+                    className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (realInvoicesCount / 5) * 100)}%` }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openUpgradeModal('pro')}
+                  className="w-full py-1 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-bold text-[10px] shadow-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Passer à Pro (5 000 F)</span>
+                </button>
               </div>
             )}
 

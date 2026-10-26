@@ -27,14 +27,9 @@ export default function DashboardPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [createModalKind, setCreateModalKind] = useState<'invoice' | 'quote' | null>(null);
   const [createModalKey, setCreateModalKey] = useState<number>(0);
-
-  const openCreateModal = (kind: 'invoice' | 'quote') => {
-    setCreateModalKey((prev) => prev + 1);
-    setCreateModalKind(kind);
-  };
-
   const [activeTab, setActiveTab] = useState<DashboardTableTab>('all');
   const [activeKind, setActiveKind] = useState<'all' | 'invoice' | 'quote'>('invoice');
+
   const {
     periodInvoices,
     periodKPIs,
@@ -42,7 +37,20 @@ export default function DashboardPage() {
     currentUser,
     pendingVerificationUser,
     isDataLoading,
+    userPlan,
+    realInvoicesCount,
+    canCreateInvoice,
+    openUpgradeModal,
   } = useInvoices();
+
+  const openCreateModal = (kind: 'invoice' | 'quote') => {
+    if (kind === 'invoice' && !canCreateInvoice) {
+      openUpgradeModal('pro');
+      return;
+    }
+    setCreateModalKey((prev) => prev + 1);
+    setCreateModalKind(kind);
+  };
   const userFirstName = currentUser?.firstName || currentUser?.name?.split(' ')[0] || 'Utilisateur';
 
   // Si une inscription est en attente de confirmation d'email, rediriger vers la page d'instructions de confirmation
@@ -158,6 +166,33 @@ export default function DashboardPage() {
                 )}{' '}
                 déjà encaissés.
               </p>
+
+              {/* Subscription Plan & Quota Pill */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {userPlan === 'free' ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] text-white">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                    <span>Plan Gratuit : <strong className="text-white">{realInvoicesCount}/5</strong> factures</span>
+                    <button
+                      type="button"
+                      onClick={() => openUpgradeModal('pro')}
+                      className="ml-1 px-2.5 py-0.5 rounded-full bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-[10px] tracking-wide transition-all shadow-xs cursor-pointer"
+                    >
+                      Passer à Pro (5 000 F) ⚡
+                    </button>
+                  </div>
+                ) : userPlan === 'pro' ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] text-white">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                    <span>Plan Pro : <strong className="text-emerald-300">Factures & Devis illimités</strong></span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] text-white">
+                    <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                    <span>Plan Business : <strong className="text-purple-200">Multi-utilisateurs & API</strong></span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Action buttons (Web & Mobile responsive) */}

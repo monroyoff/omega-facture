@@ -16,6 +16,7 @@ import {
   ExternalLink,
   HelpCircle,
   Hash,
+  Crown,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
@@ -35,7 +36,7 @@ const PRESET_AVATARS = [
 ];
 
 export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onClose, anchor = 'center' }) => {
-  const { currentUser, logout, updateUserProfile } = useInvoices();
+  const { currentUser, logout, updateUserProfile, userPlan, realInvoicesCount, openUpgradeModal } = useInvoices();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPresets, setShowPresets] = useState(false);
   const [photoUpdated, setPhotoUpdated] = useState(false);
@@ -213,6 +214,34 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
               </div>
             </div>
           )}
+
+          {/* Subscription Tier & Quota Card */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-brand-50 to-indigo-50 dark:from-brand-950/40 dark:to-indigo-950/40 border border-brand-200/60 dark:border-brand-800/60 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-2xs font-bold text-xs">
+                <Crown className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                  {userPlan === 'business' ? 'Plan Business' : userPlan === 'pro' ? 'Plan Pro' : 'Plan Gratuit'}
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                  {userPlan === 'free' ? `${realInvoicesCount}/5 factures émises` : 'Factures & devis illimités'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                openUpgradeModal(userPlan === 'pro' ? 'business' : 'pro');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-[11px] shadow-xs transition-all cursor-pointer shrink-0"
+            >
+              {userPlan === 'free' ? 'Passer à Pro' : 'Gérer'}
+            </button>
+          </div>
 
           {/* Detailed User Information Grid */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-3 text-xs">
