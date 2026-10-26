@@ -704,11 +704,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         setCurrentUser(profile);
         setIsAuthenticated(true);
+        setPendingVerificationUser(null);
         saveUserToRegistry(profile);
         await loadUserData(profile);
 
         try {
           localStorage.removeItem('facturo:v1:is_logged_out');
+          localStorage.removeItem('facturo:v1:pending_verification');
           localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: profile }));
           localStorage.removeItem('facturo:v1:last_email');
           localStorage.removeItem('facturo:v1:last_registered_email');
@@ -764,11 +766,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setCurrentUser(validUser);
     setIsAuthenticated(true);
+    setPendingVerificationUser(null);
     saveUserToRegistry(validUser);
     await loadUserData(validUser);
 
     try {
       localStorage.removeItem('facturo:v1:is_logged_out');
+      localStorage.removeItem('facturo:v1:pending_verification');
       localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: validUser }));
       localStorage.removeItem('facturo:v1:last_email');
       localStorage.removeItem('facturo:v1:last_registered_email');

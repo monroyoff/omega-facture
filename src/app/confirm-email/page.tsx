@@ -52,7 +52,7 @@ function ConfirmEmailContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          router.push('/');
+          router.push('/dashboard');
           return 0;
         }
         return prev - 1;
@@ -153,7 +153,7 @@ function ConfirmEmailContent() {
               <div className="space-y-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => router.push('/')}
+                  onClick={() => router.push('/dashboard')}
                   className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-brand-600 hover:from-emerald-700 hover:to-brand-700 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/25 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>Accéder à mon tableau de bord</span>

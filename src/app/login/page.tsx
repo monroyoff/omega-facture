@@ -61,7 +61,7 @@ export default function LoginPage() {
     try {
       const res = await login(cleanEmail, cleanPassword);
       if (res.success) {
-        router.push('/');
+        router.replace('/dashboard');
       } else if (res.requiresEmailVerification) {
         router.push(`/verify-email?email=${encodeURIComponent(cleanEmail)}`);
       } else {

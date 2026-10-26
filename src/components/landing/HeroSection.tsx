@@ -17,8 +17,10 @@ import {
   MessageSquare,
   Zap,
 } from 'lucide-react';
+import { useInvoices } from '@/lib/store/invoice-context';
 
 export const HeroSection: React.FC = () => {
+  const { isAuthenticated } = useInvoices();
   const [viewMode, setViewMode] = useState<'preview' | 'simulator'>('preview');
 
   const scrollToVisite = (e: React.MouseEvent) => {
@@ -89,10 +91,10 @@ export const HeroSection: React.FC = () => {
         {/* Call To Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
           <Link
-            href="/register"
+            href={isAuthenticated ? '/dashboard' : '/register'}
             className="hero-cta-button w-full sm:w-auto inline-flex items-center justify-center gap-3 px-9 py-4 rounded-full font-extrabold text-base cursor-pointer group bg-brand-600 hover:bg-brand-700 text-white shadow-xl shadow-brand-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            <span>Créer ma première facture gratuite</span>
+            <span>{isAuthenticated ? 'Accéder à mon tableau de bord' : 'Créer ma première facture gratuite'}</span>
             <ArrowRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
           </Link>
 

@@ -603,7 +603,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                           onClick={() => {
                             setNavMenuOpen(false);
                             onClose();
-                            router.push('/?create=invoice');
+                            router.push('/dashboard?create=invoice');
                           }}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold hover:bg-brand-100 transition-colors cursor-pointer text-left"
                         >

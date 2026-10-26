@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardPage from '@/app/page';
+import DashboardPage from '@/app/dashboard/page';
 
 export default function CreateInvoicePage() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function CreateInvoicePage() {
       const params = new URLSearchParams(window.location.search);
       const k = params.get('kind') || params.get('type');
       const createKind = k === 'quote' || k === 'devis' ? 'quote' : 'invoice';
-      router.replace(`/?create=${createKind}`);
+      router.replace(`/dashboard?create=${createKind}`);
     }
   }, [router]);
 

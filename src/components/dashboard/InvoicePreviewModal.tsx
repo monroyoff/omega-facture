@@ -198,7 +198,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                         onClick={() => {
                           setNavMenuOpen(false);
                           onClose();
-                          router.push('/?create=invoice');
+                          router.push('/dashboard?create=invoice');
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold hover:bg-brand-100 transition-colors cursor-pointer text-left text-xs"
                       >
@@ -210,7 +210,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                         onClick={() => {
                           setNavMenuOpen(false);
                           onClose();
-                          router.push('/?create=quote');
+                          router.push('/dashboard?create=quote');
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-semibold hover:bg-purple-100 transition-colors cursor-pointer text-left text-xs"
                       >
