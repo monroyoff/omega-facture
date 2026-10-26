@@ -14,8 +14,8 @@ export const LandingFooter: React.FC = () => {
               <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-extrabold text-base shadow-lg shadow-brand-600/30 transition-transform group-hover:scale-105">
                 Ω
               </div>
-              <span className="text-xl font-extrabold text-white">
-                Omega<span className="text-brand-400">Facture</span>
+              <span className="text-xl font-black text-brand-400">
+                OmegaFacture
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm mb-6">
@@ -48,8 +48,8 @@ export const LandingFooter: React.FC = () => {
                 </a>
               </li>
               <li>
-                <a className="hover:text-white transition-colors" href="#demo">
-                  Calculateur TVA
+                <a className="hover:text-white transition-colors" href="#fonctionnalites">
+                  Suivi des encaissements
                 </a>
               </li>
             </ul>

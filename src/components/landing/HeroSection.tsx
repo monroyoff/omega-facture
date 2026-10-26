@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { HeroInvoiceSimulator } from './HeroInvoiceSimulator';
-import { ArrowRight, Play, Check, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Play, Check, ShieldCheck, Sparkles, Star } from 'lucide-react';
 
 export const HeroSection: React.FC = () => {
   const scrollToDemo = (e: React.MouseEvent) => {
@@ -40,7 +40,7 @@ export const HeroSection: React.FC = () => {
             <span className="text-brand-600 dark:text-brand-400">Facturez comme un pro en 2 clics.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            OmegaFacture permet aux entrepreneurs et PME en Afrique de créer des factures conformes en{' '}
+            <strong className="text-brand-600 dark:text-brand-400 font-extrabold">OmegaFacture</strong> permet aux entrepreneurs et PME en Afrique de créer des factures conformes en{' '}
             <strong className="text-slate-900 dark:text-white font-semibold">FCFA</strong> avec{' '}
             <strong className="text-slate-900 dark:text-white font-semibold">TVA 18% automatique</strong> et
             encaissement suivi en temps réel.
@@ -68,7 +68,7 @@ export const HeroSection: React.FC = () => {
         </div>
 
         {/* Reassurance Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mb-12">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">
           <span className="flex items-center gap-1.5">
             <Check className="w-4 h-4 text-emerald-500 stroke-[3]" />
             <span>Gratuit sans carte bancaire</span>
@@ -78,6 +78,43 @@ export const HeroSection: React.FC = () => {
             <ShieldCheck className="w-4 h-4 text-emerald-500 stroke-[2.5]" />
             <span>Conforme OHADA &amp; UEMOA</span>
           </span>
+        </div>
+
+        {/* Social Proof with Real African Professional Avatars */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-12">
+          <div className="flex items-center -space-x-3">
+            <img
+              src="/images/professionals/aminata-kone.jpg"
+              alt="Aminata Koné"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-sm"
+            />
+            <img
+              src="/images/professionals/cheikh-ndiaye.jpg"
+              alt="Cheikh Ndiaye"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-sm"
+            />
+            <img
+              src="/images/professionals/fatima-diop.jpg"
+              alt="Fatima Diop"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-sm"
+            />
+            <img
+              src="/images/professionals/paul-etoo.jpg"
+              alt="Paul-Alain Eto'o"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-sm"
+            />
+          </div>
+          <div className="flex flex-col sm:items-start text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-1 text-amber-400">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              ))}
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 ml-1">4.9/5</span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Rejoint par <strong className="text-slate-900 dark:text-white font-semibold">+2 500 entrepreneurs</strong> en Afrique de l'Ouest
+            </p>
+          </div>
         </div>
 
         {/* Interactive Simulator Component */}

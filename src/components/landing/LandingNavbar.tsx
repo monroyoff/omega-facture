@@ -43,8 +43,7 @@ export const LandingNavbar: React.FC = () => {
             Ω
           </div>
           <div className="flex items-baseline">
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">Omega</span>
-            <span className="text-xl font-extrabold tracking-tight text-brand-600 dark:text-brand-400">Facture</span>
+            <span className="text-xl font-black tracking-tight text-brand-600 dark:text-brand-400">OmegaFacture</span>
           </div>
         </Link>
 

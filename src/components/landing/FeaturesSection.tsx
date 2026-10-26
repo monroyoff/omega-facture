@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { TaxSimulator } from './TaxSimulator';
 import { Zap, Calculator, BellRing, Users, Check } from 'lucide-react';
 
 export const FeaturesSection: React.FC = () => {
@@ -93,9 +92,6 @@ export const FeaturesSection: React.FC = () => {
             );
           })}
         </div>
-
-        {/* Interactive Tax Simulator Box */}
-        <TaxSimulator />
       </div>
     </section>
   );
