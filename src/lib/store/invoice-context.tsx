@@ -826,9 +826,10 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {}
 
     // 1. Envoi via notre passerelle d'emailing de production (/api/auth/send-verification)
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const defaultOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://omegafacture.site';
+    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : defaultOrigin;
     const confirmUrl = `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
-    const networkUrl = `http://192.168.100.25:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+    const networkUrl = process.env.NODE_ENV === 'development' ? `http://192.168.100.25:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}` : undefined;
 
     try {
       fetch('/api/auth/send-verification', {
@@ -944,7 +945,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } catch (e) {}
     }
 
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const defaultOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://omegafacture.site';
+    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : defaultOrigin;
     const token = pendingVerificationUser?.token || 'resend-token';
     const confirmUrl = `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(emailToUse)}`;
 

@@ -102,9 +102,9 @@ export const LandingFooter: React.FC = () => {
               <li>
                 <a
                   className="hover:text-brand-300 transition-colors text-brand-400 font-medium"
-                  href="mailto:contact@omegafacture.com"
+                  href="mailto:contact@omegafacture.site"
                 >
-                  contact@omegafacture.com
+                  contact@omegafacture.site
                 </a>
               </li>
             </ul>

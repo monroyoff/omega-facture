@@ -3,10 +3,32 @@ import './globals.css';
 import { InvoiceProvider } from '@/lib/store/invoice-context';
 import { AuthGuard } from '@/components/layout/AuthGuard';
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://omegafacture.site';
+
 export const metadata: Metadata = {
-  title: 'OMEGA FACTURE — SaaS de Facturation & Devis UEMOA',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'OMEGA FACTURE — SaaS de Facturation, Devis & Pilotage Financier UEMOA',
+    template: '%s | OMEGA FACTURE',
+  },
   description:
-    "Solution de facturation professionnelle pour l'Afrique francophone. Conforme UEMOA, montants en FCFA, devis, TVA et partage WhatsApp.",
+    "Solution de facturation professionnelle pour l'Afrique francophone. Conforme UEMOA, montants en FCFA, devis, TVA, acomptes et partage WhatsApp.",
+  alternates: {
+    canonical: siteUrl,
+  },
+  openGraph: {
+    title: 'OMEGA FACTURE — SaaS de Facturation & Devis UEMOA',
+    description: "Solution de facturation professionnelle pour l'Afrique francophone. Conforme UEMOA, montants en FCFA, devis, TVA et partage WhatsApp.",
+    url: siteUrl,
+    siteName: 'OMEGA FACTURE',
+    locale: 'fr_FR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OMEGA FACTURE — SaaS de Facturation & Devis UEMOA',
+    description: "Solution de facturation professionnelle pour l'Afrique francophone. Conforme UEMOA, montants en FCFA, devis, TVA et partage WhatsApp.",
+  },
 };
 
 export default function RootLayout({

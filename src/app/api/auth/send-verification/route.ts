@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userDisplayName = firstName || email.split('@')[0];
-    const targetUrl = confirmUrl || `http://localhost:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+    const defaultBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://omegafacture.site';
+    const targetUrl = confirmUrl || `${defaultBaseUrl}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
     const otpCode = code || (token ? token.substring(0, 6).toUpperCase() : '849201');
 
     const emailHtml = `
