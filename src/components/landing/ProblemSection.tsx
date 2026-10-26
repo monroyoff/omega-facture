@@ -34,13 +34,13 @@ export const ProblemSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-semibold mb-4">
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-4">
+            <AlertTriangle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>Le coût caché des tableurs</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
             La facturation traditionnelle freine votre{' '}
-            <span className="text-rose-600 dark:text-rose-400">croissance</span>
+            <span className="text-brand-600 dark:text-brand-400">croissance</span>
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
             Perdre son temps avec des tableurs obsolètes coûte des millions de FCFA chaque année aux créateurs d’entreprises et cabinets en Afrique de l’Ouest.
@@ -59,7 +59,7 @@ export const ProblemSection: React.FC = () => {
                   className="bg-[#FAFAF9] dark:bg-[#111622] rounded-2xl p-6 border border-slate-200/70 dark:border-slate-800 hover:border-brand-500/40 hover:shadow-md transition-all duration-300 group reveal-on-scroll"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200/60 dark:border-rose-900/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 group-hover:border-blue-400 transition-all">
                       <Icon className="w-6 h-6 stroke-[1.8]" />
                     </div>
                     <div>
@@ -69,8 +69,9 @@ export const ProblemSection: React.FC = () => {
                       <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed mb-3">
                         {prob.description}
                       </p>
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-md">
-                        <span>⚠️ {prob.impact}</span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 px-2.5 py-1 rounded-md">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                        <span>{prob.impact}</span>
                       </span>
                     </div>
                   </div>
