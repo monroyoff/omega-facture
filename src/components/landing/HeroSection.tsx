@@ -80,8 +80,9 @@ export const HeroSection: React.FC = () => {
 
           <p className="mt-6 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
             Adieu aux factures bricolées sur Excel et aux retards de paiement. <strong className="text-brand-600 dark:text-brand-400 font-black">OmegaFacture</strong> calcule automatiquement votre{' '}
-            <strong className="text-slate-900 dark:text-white font-bold">TVA 18%</strong>, génère vos reçus officiels OHADA et permet à vos clients de régler instantanément par{' '}
-            <strong className="text-slate-900 dark:text-white font-bold">Wave, Orange Money ou Virement</strong>.
+            <strong className="text-slate-900 dark:text-white font-bold">TVA 18%</strong>, génère vos{' '}
+            <strong className="text-slate-900 dark:text-white font-bold">Devis et Factures officiels OHADA</strong>, permet à vos clients de régler instantanément par{' '}
+            <strong className="text-slate-900 dark:text-white font-bold">Mobile Money, Wave, Virement...</strong>
           </p>
         </div>
 
