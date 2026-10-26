@@ -22,6 +22,7 @@ export const LandingNavbar: React.FC = () => {
 
   const navLinks = [
     { label: 'Pourquoi changer', href: '#problemes' },
+    { label: 'En images', href: '#visite' },
     { label: 'Fonctionnalités', href: '#fonctionnalites' },
     { label: 'Comment ça marche', href: '#comment-ca-marche' },
     { label: 'Tarifs', href: '#tarifs' },

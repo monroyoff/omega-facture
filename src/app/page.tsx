@@ -4,6 +4,8 @@ import React from 'react';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { ProblemSection } from '@/components/landing/ProblemSection';
+import { ProductTourSection } from '@/components/landing/ProductTourSection';
+import { RoiCalculator } from '@/components/landing/RoiCalculator';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
@@ -21,29 +23,35 @@ export default function LandingPage() {
       <LandingNavbar />
 
       <main>
-        {/* 2. Hero Section with Interactive Live Invoice Simulator */}
+        {/* 2. Hero Section with Interactive Live Invoice Simulator & Live Dashboard Switcher */}
         <HeroSection />
 
-        {/* 3. Problem Section ("Pourquoi changer") */}
+        {/* 3. Problem Section ("Pourquoi changer" with Visual Comparison Mockup) */}
         <ProblemSection />
 
-        {/* 4. Features Section with Interactive Tax Simulator ("Fonctionnalités") */}
+        {/* 4. Product Tour Section (4 Visual Pillars with High Definition Mockups) */}
+        <ProductTourSection />
+
+        {/* 5. Interactive ROI & Savings Calculator */}
+        <RoiCalculator />
+
+        {/* 6. Features Section ("Fonctionnalités") */}
         <FeaturesSection />
 
-        {/* 5. How It Works Section ("Comment ça marche") */}
+        {/* 7. How It Works Section ("Comment ça marche") */}
         <HowItWorksSection />
 
-        {/* 6. Testimonials Section ("Témoignages") */}
+        {/* 8. Testimonials Section ("Témoignages" with Country Flags & Verified Badges) */}
         <TestimonialsSection />
 
-        {/* 7. Pricing Section ("Tarifs") */}
+        {/* 9. Pricing Section ("Tarifs") */}
         <PricingSection />
 
-        {/* 8. Final Call to Action */}
+        {/* 10. Final Call to Action */}
         <FinalCTASection />
       </main>
 
-      {/* 9. Site Footer */}
+      {/* 11. Site Footer */}
       <LandingFooter />
     </div>
   );
