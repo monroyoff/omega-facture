@@ -75,8 +75,17 @@ export async function createPayDunyaInvoice(
       };
     }
 
-    const returnUrl = params.returnUrl || `${config.appUrl}/payments/callback`;
-    const cancelUrl = params.cancelUrl || `${config.appUrl}/payments/cancel`;
+    const queryParams = new URLSearchParams();
+    if (params.plan) queryParams.set('plan', params.plan);
+    if (params.amount) queryParams.set('amount', String(params.amount));
+    if (params.companyId) queryParams.set('companyId', params.companyId);
+    if (params.userId) queryParams.set('userId', params.userId);
+    if (params.invoiceId) queryParams.set('invoiceId', params.invoiceId);
+    if (params.invoiceNumber) queryParams.set('invoiceNumber', params.invoiceNumber);
+
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const returnUrl = params.returnUrl || `${config.appUrl}/payments/callback${queryString}`;
+    const cancelUrl = params.cancelUrl || `${config.appUrl}/payments/cancel${queryString}`;
     const callbackUrl = params.callbackUrl || `${config.appUrl}/api/payments/paydunya/ipn`;
 
     const payload = {
@@ -141,6 +150,60 @@ export async function createPayDunyaInvoice(
     return {
       success: false,
       error: error.message || 'Erreur de connexion avec PayDunya',
+    };
+  }
+}
+
+/**
+ * Interroge l'API officielle PayDunya pour vérifier et confirmer l'état d'un paiement par son token
+ */
+export async function confirmPayDunyaInvoice(token: string): Promise<{
+  success: boolean;
+  status: string; // 'completed' | 'pending' | 'cancelled'
+  amount?: number;
+  customData?: Record<string, any>;
+  receiptUrl?: string;
+  error?: string;
+}> {
+  try {
+    const config = getPayDunyaConfig();
+    if (!token) {
+      return { success: false, status: 'unknown', error: 'Token de transaction manquant' };
+    }
+
+    const response = await fetch(`${config.apiBaseUrl}/checkout-invoice/confirm/${token}`, {
+      method: 'GET',
+      headers: {
+        'PAYDUNYA-MASTER-KEY': config.masterKey,
+        'PAYDUNYA-PRIVATE-KEY': config.privateKey,
+        'PAYDUNYA-TOKEN': config.token,
+      },
+      cache: 'no-store',
+    });
+
+    const data = await response.json();
+    if (data.response_code === '00') {
+      const isCompleted = data.status === 'completed' || (config.isTest && (data.status === 'completed' || data.status === 'success'));
+      return {
+        success: isCompleted,
+        status: (data.status || 'pending').toLowerCase(),
+        amount: Number(data.invoice?.total_amount || 0),
+        customData: data.custom_data || {},
+        receiptUrl: data.receipt_url,
+      };
+    }
+
+    return {
+      success: false,
+      status: (data.status || 'unknown').toLowerCase(),
+      error: data.response_text || 'Transaction non trouvée',
+    };
+  } catch (error: any) {
+    console.error('[PayDunya] Erreur confirmPayDunyaInvoice :', error);
+    return {
+      success: false,
+      status: 'error',
+      error: error.message || 'Erreur réseau confirmation',
     };
   }
 }

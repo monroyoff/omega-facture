@@ -539,6 +539,23 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setProducts(remote.products);
         setInvoices(reconciledInvoices);
         setPayments(remote.payments);
+
+        // Synchronisation automatique de l'abonnement SaaS de la société
+        if (remote.subscriptionPlan && user.plan !== remote.subscriptionPlan) {
+          console.log(`[InvoiceContext] Synchronisation plan distant : ${remote.subscriptionPlan}`);
+          user.plan = remote.subscriptionPlan;
+          setCurrentUser((prev) => (prev ? { ...prev, plan: remote.subscriptionPlan } : prev));
+          saveUserToRegistry(user);
+          try {
+            const currentAuth = localStorage.getItem('facturo:v1:auth');
+            if (currentAuth) {
+              const parsed = JSON.parse(currentAuth);
+              parsed.currentUser = { ...parsed.currentUser, plan: remote.subscriptionPlan };
+              localStorage.setItem('facturo:v1:auth', JSON.stringify(parsed));
+            }
+          } catch (e) {}
+        }
+
         try {
           localStorage.setItem(`${cacheKey}:clients`, JSON.stringify(remote.clients));
           localStorage.setItem(`${cacheKey}:products`, JSON.stringify(remote.products));

@@ -85,6 +85,9 @@ export type Database = {
           payment_terms: number
           phone: string | null
           rccm: string | null
+          subscription_plan: string | null
+          subscription_status: string | null
+          subscription_updated_at: string | null
           updated_at: string
           user_id: string | null
         }
@@ -105,6 +108,9 @@ export type Database = {
           payment_terms?: number
           phone?: string | null
           rccm?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          subscription_updated_at?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -125,6 +131,9 @@ export type Database = {
           payment_terms?: number
           phone?: string | null
           rccm?: string | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          subscription_updated_at?: string | null
           updated_at?: string
           user_id?: string | null
         }

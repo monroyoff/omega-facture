@@ -1,5 +1,5 @@
 import { createClient } from './client';
-import { Client, Invoice, InvoiceItem, InvoiceBillingType } from '@/lib/types';
+import { Client, Invoice, InvoiceItem, InvoiceBillingType, SubscriptionPlan } from '@/lib/types';
 import { Product, PaymentRecord } from '@/lib/store/invoice-context';
 
 export const DEFAULT_COMPANY_ID = 'c0000000-0000-0000-0000-000000000001';
@@ -87,6 +87,7 @@ export async function fetchSupabaseData(companyId?: string): Promise<{
   products: Product[];
   invoices: Invoice[];
   payments: PaymentRecord[];
+  subscriptionPlan?: SubscriptionPlan;
 } | null> {
   try {
     const targetCompanyId = companyId || DEFAULT_COMPANY_ID;
@@ -229,7 +230,20 @@ export async function fetchSupabaseData(companyId?: string): Promise<{
       };
     });
 
-    return { clients, products, invoices, payments };
+    // 5. Fetch Company subscription plan
+    let subscriptionPlan: SubscriptionPlan | undefined = undefined;
+    try {
+      const { data: comp } = await supabase
+        .from('companies')
+        .select('subscription_plan')
+        .eq('id', targetCompanyId)
+        .maybeSingle();
+      if (comp?.subscription_plan) {
+        subscriptionPlan = comp.subscription_plan as SubscriptionPlan;
+      }
+    } catch (e) {}
+
+    return { clients, products, invoices, payments, subscriptionPlan };
   } catch (err) {
     console.warn('[Supabase Services] Échec du chargement distant, bascule sur cache/mock :', err);
     return null;

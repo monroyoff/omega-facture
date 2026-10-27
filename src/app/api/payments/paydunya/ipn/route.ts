@@ -99,11 +99,62 @@ export async function POST(req: NextRequest) {
       const invoiceId = customData.invoice_id || customData.invoiceId || '';
       const invoiceNumber = customData.invoice_number || customData.invoiceNumber || '';
       const companyId = customData.company_id || customData.companyId || 'c0000000-0000-0000-0000-000000000001';
+      const plan = (customData.plan || '').toLowerCase();
+      const userId = customData.user_id || customData.userId || '';
 
-      console.log(`[PayDunya IPN] Validation du paiement de ${amountPaid} FCFA pour la facture ${invoiceNumber || invoiceId}`);
+      console.log(`[PayDunya IPN] Validation du paiement de ${amountPaid} FCFA (Plan: ${plan || 'N/A'}, Facture: ${invoiceNumber || invoiceId || 'N/A'})`);
 
       const supabase = getSupabaseServerClient();
 
+      // Cas 1 : Paiement d'un abonnement SaaS (Plan Pro ou Plan Business)
+      if (plan && (plan === 'pro' || plan === 'business' || plan === 'enterprise')) {
+        console.log(`[PayDunya IPN] Activation immédiate de l'abonnement ${plan.toUpperCase()} pour la société ${companyId}`);
+        if (companyId && companyId.length === 36) {
+          await supabase
+            .from('companies')
+            .update({
+              subscription_plan: plan,
+              subscription_status: 'active',
+              subscription_updated_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq('id', companyId);
+        } else if (userId && userId.length === 36) {
+          await supabase
+            .from('companies')
+            .update({
+              subscription_plan: plan,
+              subscription_status: 'active',
+              subscription_updated_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq('user_id', userId);
+        } else {
+          await supabase
+            .from('companies')
+            .update({
+              subscription_plan: plan,
+              subscription_status: 'active',
+              subscription_updated_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq('id', 'c0000000-0000-0000-0000-000000000001');
+        }
+
+        // Journalisation dans payments
+        await supabase.from('payments').insert({
+          company_id: companyId || 'c0000000-0000-0000-0000-000000000001',
+          amount: amountPaid,
+          method: 'mobile_money',
+          reference: `PayDunya: ${transactionId} (Abonnement ${plan.toUpperCase()})`,
+          payment_date: new Date().toISOString().split('T')[0],
+          notes: `Abonnement ${plan.toUpperCase()} validé par IPN • Client: ${customerName} • Tél: ${customerPhone}`,
+        } as any);
+
+        return new NextResponse('OK', { status: 200, headers: { 'Content-Type': 'text/plain' } });
+      }
+
+      // Cas 2 : Règlement d'une facture client
       // A. Recherche de la facture correspondante dans Supabase
       let targetInvoice: any = null;
       if (invoiceId && invoiceId.length === 36) {

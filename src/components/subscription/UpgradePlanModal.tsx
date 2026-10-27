@@ -83,6 +83,18 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
       const data = await res.json();
 
       if (data.success && data.checkoutUrl) {
+        try {
+          localStorage.setItem(
+            'facturo:v1:pending_upgrade',
+            JSON.stringify({
+              plan: selectedPlan,
+              userId: currentUser?.id,
+              companyId: currentUser?.companyId,
+              timestamp: Date.now(),
+            })
+          );
+        } catch (e) {}
+
         showToast({
           kind: 'info',
           title: 'Redirection vers PayDunya',
