@@ -5,6 +5,7 @@ import { X, Package, Tag, Percent, Check, Image as ImageIcon, Upload, Trash2 } f
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Product } from '@/lib/store/invoice-context';
 import { formatFCFA } from '@/lib/money/format';
+import { UEMOA_ALL_VAT_OPTIONS } from '@/lib/tax/uemoa-tax';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -176,7 +177,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({
                 onChange={(e) => setVat(parseInt(e.target.value, 10))}
                 className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold cursor-pointer"
               >
-                {availableVatRates.map((opt) => (
+                {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
                   <option key={opt.rate} value={opt.rate}>
                     {opt.label}
                   </option>

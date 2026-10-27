@@ -30,6 +30,7 @@ import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { DocumentKind } from '@/lib/types';
+import { UEMOA_ALL_VAT_OPTIONS } from '@/lib/tax/uemoa-tax';
 
 export default function EditInvoicePage() {
   const router = useRouter();
@@ -69,6 +70,7 @@ export default function EditInvoicePage() {
   const [currency, setCurrency] = useState('FCFA');
 
   const [items, setItems] = useState<LineItemInput[]>([]);
+  const [globalVatRate, setGlobalVatRate] = useState<number>(defaultVatRate || 18);
   const [hasDiscount, setHasDiscount] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
 
@@ -90,6 +92,10 @@ export default function EditInvoicePage() {
       setDueDate(inv.dueDate);
       setInvoiceNumber(inv.number);
       setCurrency(inv.currency === 'XOF' ? 'FCFA' : inv.currency);
+      const activeVat = inv.items.find((it) => (it.vatRate || 0) > 0)?.vatRate;
+      if (activeVat) {
+        setGlobalVatRate(activeVat);
+      }
       setItems(
         inv.items.map((it) => ({
           description: it.description,
@@ -122,7 +128,7 @@ export default function EditInvoicePage() {
         quantity: 1,
         unitPrice: 0,
         discountPct: 0,
-        vatRate: defaultVatRate || 18,
+        vatRate: globalVatRate || defaultVatRate || 18,
       },
     ]);
   };
@@ -514,12 +520,12 @@ export default function EditInvoicePage() {
                               }
                               className="w-full px-2 py-1.5 text-xs font-semibold bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer"
                             >
-                              {availableVatRates.map((opt) => (
+                              {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
                                 <option key={opt.rate} value={opt.rate}>
                                   {opt.label}
                                 </option>
                               ))}
-                              {!availableVatRates.some((opt) => opt.rate === item.vatRate) && (
+                              {!UEMOA_ALL_VAT_OPTIONS.some((opt) => opt.rate === item.vatRate) && (
                                 <option value={item.vatRate}>{item.vatRate}%</option>
                               )}
                             </select>
@@ -556,26 +562,74 @@ export default function EditInvoicePage() {
                   <span>Ajouter une ligne</span>
                 </button>
 
-                {/* Discount */}
-                <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
-                  <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasDiscount}
-                      onChange={(e) => setHasDiscount(e.target.checked)}
-                      className="rounded border-slate-300 text-brand-600"
-                    />
-                    <span>Remise commerciale</span>
-                  </label>
-                  {hasDiscount && (
-                    <input
-                      type="number"
-                      step="1"
-                      value={discountAmount}
-                      onChange={(e) => setDiscountAmount(parseInt(e.target.value, 10) || 0)}
-                      className="w-36 px-2.5 py-1 text-xs text-right font-bold text-rose-600 border border-slate-200 dark:border-slate-800 rounded-xl"
-                    />
-                  )}
+                {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS (Reproduit fidèlement selon la capture) */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Options fiscales &amp; Déductions
+                    </span>
+                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/60 px-2.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60">
+                      Zone UEMOA
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* TVA selon pays (exact style de la capture) */}
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        TVA selon pays
+                      </span>
+                      <select
+                        value={globalVatRate}
+                        onChange={(e) => {
+                          const newRate = parseInt(e.target.value, 10);
+                          setGlobalVatRate(newRate);
+                          setItems((prev) =>
+                            prev.map((it) => ({
+                              ...it,
+                              vatRate: newRate,
+                            }))
+                          );
+                        }}
+                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer"
+                      >
+                        {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
+                          <option key={opt.rate} value={opt.rate}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Remise commerciale */}
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={hasDiscount}
+                          onChange={(e) => setHasDiscount(e.target.checked)}
+                          className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
+                        />
+                        <span>Remise commerciale</span>
+                      </label>
+
+                      {hasDiscount && (
+                        <div className="relative w-28">
+                          <input
+                            type="number"
+                            step="1"
+                            min="0"
+                            value={discountAmount === 0 ? '' : discountAmount}
+                            placeholder="0 FCFA"
+                            onChange={(e) =>
+                              setDiscountAmount(parseInt(e.target.value, 10) || 0)
+                            }
+                            className="w-full px-2 py-0.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-right font-bold text-rose-600 focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

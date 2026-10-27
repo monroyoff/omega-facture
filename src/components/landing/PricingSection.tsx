@@ -114,7 +114,7 @@ export const PricingSection: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-2.5 font-medium">
                   <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />
-                  <span>Jusqu’à 3 utilisateurs</span>
+                  <span>1 utilisateur inclus</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />

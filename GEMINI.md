@@ -252,7 +252,7 @@
      - Export PDF et partages WhatsApp / Email.
   2. **Plan Pro (5 000 FCFA/mois)** :
      - **Factures et devis 100% illimités**.
-     - Jusqu'à **3 utilisateurs / collaborateurs**.
+     - **1 utilisateur inclus**.
      - Relances automatiques personnalisées (WhatsApp & Email).
      - Rapports financiers avancés, Balance Âgée et exports comptables certifiés (CSV avec BOM UTF-8, PDF officiel, PNG).
      - Logo d'entreprise personnalisé et mentions fiscales sur-mesure.

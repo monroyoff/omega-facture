@@ -202,3 +202,41 @@ export function getCountryVatRates(countryOrCode?: string): VatRateOption[] {
 
   return list;
 }
+
+/**
+ * Liste exhaustive et standardisée de toutes les options de TVA applicables dans la zone UEMOA.
+ * Reproduite fidèlement selon les directives pour sélection directe sur les documents de facturation.
+ */
+export const UEMOA_ALL_VAT_OPTIONS: VatRateOption[] = [
+  {
+    rate: 18,
+    label: '18% (Standard UEMOA)',
+    isStandard: true,
+    description: 'Bénin, Côte d\'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Guinée-Bissau',
+  },
+  {
+    rate: 19,
+    label: '19% (Niger)',
+    description: 'Taux normal spécifique en vigueur au Niger',
+  },
+  {
+    rate: 10,
+    label: '10% (Tourisme SN)',
+    description: 'Taux réduit tourisme & hébergement au Sénégal',
+  },
+  {
+    rate: 9,
+    label: '9% (Réduit CI)',
+    description: 'Taux réduit produits de première nécessité en Côte d\'Ivoire',
+  },
+  {
+    rate: 5,
+    label: '5% (Solaire ML/NE)',
+    description: 'Taux particulier énergie solaire au Mali et au Niger',
+  },
+  {
+    rate: 0,
+    label: '0% (Exonéré)',
+    description: 'Exonération légale / régimes dérogatoires',
+  },
+];

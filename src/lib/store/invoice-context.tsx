@@ -204,11 +204,11 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, PlanConfig> = {
     priceFCFA: 5000,
     period: '/ mois',
     maxInvoices: Infinity,
-    maxUsers: 3,
+    maxUsers: 1,
     description: 'Pour les indépendants et freelances établis.',
     features: [
       'Factures & devis illimités',
-      'Jusqu’à 3 utilisateurs',
+      '1 utilisateur inclus',
       'Relances automatiques par WhatsApp & Email',
       'Calcul automatique TVA (18% ou 19%) & retenues',
       'Export comptable Excel / PDF',
