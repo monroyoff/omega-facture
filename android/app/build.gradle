@@ -1,8 +1,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "site.omegafacture.app"
-    compileSdk = rootProject.ext.compileSdkVersion
+    namespace "site.omegafacture.app"
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "site.omegafacture.app"
         minSdkVersion rootProject.ext.minSdkVersion
