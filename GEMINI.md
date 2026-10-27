@@ -162,7 +162,8 @@
 - **Passerelle de Paiement Mobile Money & Webhooks IPN (`/api/payments/paydunya/ipn`)** :
   - **Endpoint IPN Officiel PayDunya** : `https://www.omegafacture.site/api/payments/paydunya/ipn` (ou `https://omegafacture.site/api/payments/paydunya/ipn`).
   - **Endpoint IPN Universel** : `https://www.omegafacture.site/api/payments/ipn` pour l'intégration de toute passerelle de paiement (PayDunya, Wave, FedaPay, CinetPay).
-  - **Traitement Automatique en Temps Réel** : Réception des notifications asynchrones instantanées (`completed`), vérification de la signature cryptographique SHA-512 PayDunya, rapprochement de la facture (`invoices.amount_paid`, bascule automatique à `paid`), et enregistrement dans la table `payments`.
+  - **Endpoint d'Initialisation de Paiement (`/api/payments/paydunya/create-checkout`)** : Génère en direct une session de paiement officielle PayDunya (Sandbox / Live) et renvoie le lien de redirection vers le guichet multi-opérateurs (MTN, Orange, Moov, Wave, Carte).
+  - **Traitement Automatique en Temps Réel** : Réception des notifications asynchrones instantanées (`completed`), vérification de la signature cryptographique SHA-512 PayDunya avec la Clé Principale (`PAYDUNYA_MASTER_KEY`), rapprochement de la facture (`invoices.amount_paid`, bascule automatique à `paid`), et enregistrement dans la table `payments`.
   - **URLs de Redirection Associées** :
     - *Callback / Retour après paiement* : `https://www.omegafacture.site/payments/callback`
     - *Annulation* : `https://www.omegafacture.site/payments/cancel`

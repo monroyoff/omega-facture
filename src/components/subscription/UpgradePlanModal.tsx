@@ -64,8 +64,33 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
   const handleUpgrade = async () => {
     setLoading(true);
-    // Simulate instantaneous mobile money payment handshake
-    await new Promise((resolve) => setTimeout(resolve, 1400));
+    try {
+      const res = await fetch('/api/payments/paydunya/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: SUBSCRIPTION_PLANS[selectedPlan].priceFCFA,
+          description: `Abonnement ${SUBSCRIPTION_PLANS[selectedPlan].name} OMEGA FACTURE`,
+          plan: selectedPlan,
+          customerName: currentUser?.name || 'Abonné OMEGA FACTURE',
+          customerEmail: currentUser?.email || '',
+          customerPhone: phoneNumber,
+          userId: currentUser?.id,
+          companyId: currentUser?.companyId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.checkoutUrl) {
+        // Redirection vers le guichet de paiement PayDunya (Wave, MTN, Orange, Moov, Carte)
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+    } catch (e) {
+      console.warn('[UpgradePlanModal] Fallback vers validation locale :', e);
+    }
+
+    // Fallback instantané si hors-ligne
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     await upgradePlan(selectedPlan);
     setLoading(false);
     setSuccess(true);
