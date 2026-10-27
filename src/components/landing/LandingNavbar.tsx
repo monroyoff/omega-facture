@@ -21,9 +21,14 @@ import {
 } from 'lucide-react';
 
 export const LandingNavbar: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated, currentUser } = useInvoices();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,31 +73,33 @@ export const LandingNavbar: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Navigation fluide avec déblocage immédiat du scroll sur mobile
+  // Navigation fluide instantanée et infaillible vers chaque section
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith('#')) {
       e.preventDefault();
       const targetId = href.substring(1);
 
-      // Fermer le menu et rétablir le scroll immédiatement
+      // Fermer le menu mobile s'il était ouvert et débloquer le scroll
       setMobileMenuOpen(false);
-      document.body.style.overflow = '';
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
 
-      // Défiler après le déblocage du DOM
-      setTimeout(() => {
-        const element = document.getElementById(targetId);
-        if (element) {
-          const headerOffset = 80;
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth',
-          });
-        } else {
+      // Défiler de manière fluide vers la section ciblée
+      const targetElement = document.getElementById(targetId) || document.querySelector(href);
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+        if (typeof window !== 'undefined' && window.history?.pushState) {
+          window.history.pushState(null, '', href);
+        }
+      } else {
+        if (typeof window !== 'undefined') {
           window.location.hash = href;
         }
-      }, 60);
+      }
     }
   };
 
@@ -192,8 +199,8 @@ export const LandingNavbar: React.FC = () => {
           </nav>
 
           {/* Desktop Direct CTA Buttons */}
-          <div className="hidden md:flex items-center gap-3">
-            {isAuthenticated && currentUser ? (
+          <div className="hidden md:flex items-center gap-3" suppressHydrationWarning>
+            {mounted && isAuthenticated && currentUser ? (
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-md shadow-brand-600/25 transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
@@ -202,7 +209,7 @@ export const LandingNavbar: React.FC = () => {
                 <span>Mon Espace ({currentUser.firstName || 'Dashboard'})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-            ) : (
+            ) : mounted ? (
               <>
                 <Link
                   href="/login"
@@ -217,12 +224,14 @@ export const LandingNavbar: React.FC = () => {
                   Commencer gratuitement
                 </Link>
               </>
+            ) : (
+              <div className="w-32 h-9" />
             )}
           </div>
 
           {/* BOUTON MENU HAMBURGER MOBILE UNIQUEMENT (< md) */}
-          <div className="flex md:hidden items-center gap-2">
-            {isAuthenticated && (
+          <div className="flex md:hidden items-center gap-2" suppressHydrationWarning>
+            {mounted && isAuthenticated && (
               <Link
                 href="/dashboard"
                 className="p-2 rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/60 dark:text-brand-400 font-bold text-xs flex items-center gap-1"
@@ -350,8 +359,8 @@ export const LandingNavbar: React.FC = () => {
             </div>
 
             {/* Boutons d'Action Mobile */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
-              {isAuthenticated && currentUser ? (
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5" suppressHydrationWarning>
+              {mounted && isAuthenticated && currentUser ? (
                 <Link
                   href="/dashboard"
                   onClick={() => {
@@ -363,7 +372,7 @@ export const LandingNavbar: React.FC = () => {
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Accéder à mon tableau de bord</span>
                 </Link>
-              ) : (
+              ) : mounted ? (
                 <>
                   <Link
                     href="/register"
@@ -387,6 +396,8 @@ export const LandingNavbar: React.FC = () => {
                     Se connecter à mon compte
                   </Link>
                 </>
+              ) : (
+                <div className="w-full h-11" />
               )}
             </div>
           </div>
