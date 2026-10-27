@@ -29,6 +29,7 @@
 | **Gestion d'État** | **React Context** (`useInvoices`) | Source unique de vérité partagée, synchronisation instantanée inter-composants. |
 | **Persistance locale** | **LocalStorage (versionné `facturo:v1:*`)** | Fonctionnement autonome hors-ligne et persistance immédiate des données démo. |
 | **Formatage financier** | Utilitaires dédiés (`@/lib/money/format`) | Formatage monétaire `formatFCFA` avec espaces insécables et dates `formatDateFR`. |
+| **Conteneur Android** | **Capacitor 6 (@capacitor/android)** + **PWA** | Architecture native Android (`/android`), Google Play Store (`site.omegafacture.app`), Service Worker et Digital Asset Links. |
 
 ---
 
@@ -297,6 +298,22 @@
   - Dès qu'un utilisateur sélectionne son pays (ex: **Niger**), le système affiche un encadré d'information fiscale contextuelle et configure automatiquement son espace avec le taux de TVA légal correspondant (**19% pour le Niger**, **18% pour les autres pays**).
   - Les métadonnées fiscales sont sauvegardées dans le profil utilisateur, transmises à Supabase (`country`, `default_vat`) et stockées dans les préférences locales (`facturo:v1:settings`).
 - **Application Immédiate lors de la Création de Documents (`CreateInvoiceModal.tsx`, `/invoices/[id]/edit`)** :
+
+### Q. Application Mobile Android & Publication Google Play Store Ready
+- **Architecture Hybride Native Capacitor (`site.omegafacture.app`)** :
+  - Dossier natif Android Studio complet `/android` avec Gradle, AndroidManifest et activités natives.
+  - Configuration `capacitor.config.ts` connectée en direct à l'URL de production `https://www.omegafacture.site`, garantissant que toute évolution de fonctionnalités ou mise à jour déployée sur le cloud est immédiatement active sur l'application mobile des utilisateurs sans nécessiter de nouvelle validation Play Store.
+- **PWA & Service Worker Intégré (`public/sw.js`, `public/manifest.json`, `src/app/manifest.ts`)** :
+  - Support hors-ligne, mise en cache prédictive des assets, conformité stricte aux critères d'installabilité Google Play.
+- **Digital Asset Links Certifié (`public/.well-known/assetlinks.json`)** :
+  - Permet la vérification du domaine par Google Play et l'exécution en plein écran natif sans barre d'adresse de navigateur (Trusted Web Activity).
+  - Prise en charge des App Links (liens profonds `https://www.omegafacture.site/*` ouvrant directement l'application installée).
+- **Iconographie Mipmap Multi-Densités** :
+  - Pack d'icônes généré pour Android (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi) et icônes PWA 192px / 512px avec le logo Ω officiel.
+- **Pipeline CI/CD GitHub Actions (`.github/workflows/android-build.yml`)** :
+  - Compilation automatique à chaque commit dans le cloud (Ubuntu + Java 17 + Android SDK) pour générer :
+    1. **APK de Test** pour installation directe sur smartphone (`omega-facture-debug-apk`).
+    2. **AAB de Production (Android App Bundle)** prêt pour l'importation sur la Google Play Console (`omega-facture-playstore-aab`).
   - Toute nouvelle ligne d'article s'initialise rigoureusement avec le taux de TVA du pays du compte (**19% au Niger**, **18% au Bénin/CI/Sénégal/etc.**).
   - Le sélecteur de TVA de chaque ligne propose dynamiquement les taux propres au pays (taux normal, taux réduits sectoriels et exonération 0%).
   - L'étiquette de synthèse dans l'aperçu, les totaux et les factures s'adapte en direct (`TVA (19% Niger) :`, `TVA (18% Côte d'Ivoire) :`).
