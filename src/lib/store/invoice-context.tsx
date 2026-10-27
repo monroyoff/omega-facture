@@ -19,12 +19,21 @@ import {
   supabaseAddPayment,
 } from '@/lib/supabase/services';
 import { createClient } from '@/lib/supabase/client';
+import {
+  UEMOA_COUNTRIES,
+  findUemoaCountry,
+  getCountryStandardVatRate,
+  getCountryVatRates,
+  type VatRateOption,
+} from '@/lib/tax/uemoa-tax';
 
 export interface PendingVerificationUser {
   email: string;
   firstName: string;
   lastName: string;
   organization: string;
+  country?: string;
+  defaultVatRate?: number;
   token: string;
   code?: string;
   sentAt: string;
@@ -155,6 +164,8 @@ export interface UserProfile {
   role: string;
   organization: string;
   avatar: string;
+  country?: string;
+  defaultVatRate?: number;
   emailVerified?: boolean;
   password?: string;
   plan?: SubscriptionPlan;
@@ -184,7 +195,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, PlanConfig> = {
       "Jusqu'à 5 factures / mois",
       '1 utilisateur',
       'Modèles de factures standards',
-      'Calcul automatique de TVA 18%',
+      'Calcul automatique de TVA UEMOA (18% ou 19%)',
     ],
   },
   pro: {
@@ -199,7 +210,7 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, PlanConfig> = {
       'Factures & devis illimités',
       'Jusqu’à 3 utilisateurs',
       'Relances automatiques par WhatsApp & Email',
-      'Calcul automatique TVA 18% & retenues',
+      'Calcul automatique TVA (18% ou 19%) & retenues',
       'Export comptable Excel / PDF',
       'Personnalisation complète avec logo',
     ],
@@ -232,6 +243,8 @@ export const DEFAULT_USER: UserProfile = {
   role: 'Administrateur / Gérante',
   organization: 'MONROY AGENCY',
   avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
+  country: 'Bénin',
+  defaultVatRate: 18,
   emailVerified: true,
   plan: 'free',
 };
@@ -344,6 +357,7 @@ interface InvoiceContextType {
     lastName: string;
     email: string;
     organization: string;
+    country?: string;
     password?: string;
   }) => Promise<{
     success: boolean;
@@ -364,6 +378,10 @@ interface InvoiceContextType {
   setIsUpgradeModalOpen: (open: boolean) => void;
   openUpgradeModal: (defaultPlan?: SubscriptionPlan) => void;
   upgradeModalDefaultPlan: SubscriptionPlan;
+  userCountry: string;
+  defaultVatRate: number;
+  availableVatRates: VatRateOption[];
+  setUserCountry: (country: string) => void;
 }
 
 const initialProducts: Product[] = [];
@@ -405,7 +423,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsDataLoading(true);
     let companyId = user.companyId;
     if (!companyId) {
-      companyId = await getOrCreateUserCompany(user.id, user.organization, user.email);
+      companyId = await getOrCreateUserCompany(
+        user.id,
+        user.organization,
+        user.email,
+        user.country,
+        user.defaultVatRate
+      );
       user.companyId = companyId;
       saveUserToRegistry(user);
     }
@@ -604,7 +628,9 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             const isVerified = Boolean(sbUser.confirmed_at || sbUser.email_confirmed_at || meta.email_verified);
             if (isVerified) {
               const fullName = `${meta.firstName || ''} ${meta.lastName || ''}`.trim() || meta.organization || sbUser.email?.split('@')[0] || 'Utilisateur';
-              const companyId = await getOrCreateUserCompany(sbUser.id, meta.organization, sbUser.email);
+              const userCountry = meta.country || 'Bénin';
+              const userVat = meta.defaultVatRate !== undefined ? meta.defaultVatRate : getCountryStandardVatRate(userCountry);
+              const companyId = await getOrCreateUserCompany(sbUser.id, meta.organization, sbUser.email, userCountry, userVat);
               const userProfile: UserProfile = {
                 id: sbUser.id,
                 companyId,
@@ -613,6 +639,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 lastName: meta.lastName || '',
                 email: sbUser.email || '',
                 organization: meta.organization || 'Mon Entreprise',
+                country: userCountry,
+                defaultVatRate: userVat,
                 role: 'Administrateur / Gérant',
                 avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
                 emailVerified: true,
@@ -858,12 +886,15 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     lastName: string;
     email: string;
     organization: string;
+    country?: string;
     password?: string;
   }) => {
     const firstName = userData.firstName.trim();
     const lastName = userData.lastName.trim();
     const email = userData.email.trim();
     const organization = userData.organization.trim();
+    const country = userData.country ? findUemoaCountry(userData.country).name : 'Bénin';
+    const defaultVatRate = getCountryStandardVatRate(country);
     const token = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const fullName = `${firstName} ${lastName}`.trim();
@@ -873,6 +904,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastName,
       email,
       organization,
+      country,
+      defaultVatRate,
       token,
       code,
       sentAt: new Date().toISOString(),
@@ -883,6 +916,21 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
     } catch (e) {}
 
+    // Pré-enregistrer les paramètres avec le pays et son taux de TVA officiel
+    try {
+      const storedSettings = localStorage.getItem('facturo:v1:settings');
+      const prev = storedSettings ? JSON.parse(storedSettings) : {};
+      localStorage.setItem(
+        'facturo:v1:settings',
+        JSON.stringify({
+          ...prev,
+          country,
+          defaultVat: defaultVatRate,
+          companyName: organization,
+        })
+      );
+    } catch (e) {}
+
     // Enregistrer le profil réel dès l'inscription dans le registre persistant
     const userProfile: UserProfile = {
       ...DEFAULT_USER,
@@ -891,6 +939,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastName,
       email,
       organization,
+      country,
+      defaultVatRate,
       role: 'Administrateur / Gérant',
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`,
       emailVerified: false,
@@ -924,7 +974,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }).catch((e) => console.warn('[Send Verification API catch]', e));
     } catch (e) {}
 
-    // 2. Tentative via Supabase Auth
+    // 2. Tentative via Supabase Auth avec métadonnées de pays et TVA
     try {
       const supabase = createClient();
       await supabase.auth.signUp({
@@ -935,6 +985,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             firstName,
             lastName,
             organization,
+            country,
+            defaultVatRate,
           },
           emailRedirectTo: confirmUrl,
         },
@@ -975,6 +1027,10 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const lastName = pending?.lastName || existing?.lastName || (pending ? '' : 'Manille');
     const email = pending?.email || existing?.email || (cleanInput.includes('@') ? cleanInput : 'monmonnroyteam@gmail.com');
     const organization = pending?.organization || existing?.organization || 'MONROY AGENCY';
+    const country = pending?.country || existing?.country || 'Bénin';
+    const defaultVatRate = pending?.defaultVatRate !== undefined
+      ? pending.defaultVatRate
+      : (existing?.defaultVatRate !== undefined ? existing.defaultVatRate : getCountryStandardVatRate(country));
     const fullName = `${firstName} ${lastName}`.trim();
 
     const avatar = existing?.avatar || (pending?.firstName
@@ -989,6 +1045,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastName,
       email,
       organization,
+      country,
+      defaultVatRate,
       avatar,
       role: existing?.role || 'Fondateur / Gérant',
       emailVerified: true,
@@ -1004,6 +1062,18 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.removeItem('facturo:v1:last_email');
       localStorage.removeItem('facturo:v1:last_registered_email');
       localStorage.removeItem('facturo:v1:pending_verification');
+
+      const stored = localStorage.getItem('facturo:v1:settings');
+      const prev = stored ? JSON.parse(stored) : {};
+      localStorage.setItem(
+        'facturo:v1:settings',
+        JSON.stringify({
+          ...prev,
+          country,
+          defaultVat: defaultVatRate,
+          companyName: organization,
+        })
+      );
     } catch (e) {}
 
     return true;
@@ -1172,6 +1242,49 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setUpgradeModalDefaultPlan(defaultPlan);
     setIsUpgradeModalOpen(true);
   }, []);
+
+  // Pays de l'entreprise & Fiscalité UEMOA (19% Niger, 18% Bénin/CI/Sénégal/etc.)
+  const [persistedCountry, setPersistedCountry] = useState<string>('Bénin');
+  const [persistedVatRate, setPersistedVatRate] = useState<number>(18);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('facturo:v1:settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.country) setPersistedCountry(parsed.country);
+        if (parsed.defaultVat !== undefined) setPersistedVatRate(parsed.defaultVat);
+      }
+    } catch (e) {}
+  }, []);
+
+  const userCountry = currentUser?.country || persistedCountry || 'Bénin';
+  const defaultVatRate = currentUser?.defaultVatRate !== undefined
+    ? currentUser.defaultVatRate
+    : (persistedVatRate !== undefined ? persistedVatRate : getCountryStandardVatRate(userCountry));
+  const availableVatRates = getCountryVatRates(userCountry);
+
+  const setUserCountry = useCallback((countryNameOrCode: string) => {
+    const c = findUemoaCountry(countryNameOrCode);
+    const standardVat = c.standardVatRate;
+    setPersistedCountry(c.name);
+    setPersistedVatRate(standardVat);
+    if (currentUser) {
+      updateUserProfile({ country: c.name, defaultVatRate: standardVat });
+    }
+    try {
+      const stored = localStorage.getItem('facturo:v1:settings');
+      const prev = stored ? JSON.parse(stored) : {};
+      localStorage.setItem(
+        'facturo:v1:settings',
+        JSON.stringify({
+          ...prev,
+          country: c.name,
+          defaultVat: standardVat,
+        })
+      );
+    } catch (e) {}
+  }, [currentUser, updateUserProfile]);
 
   const userPlan: SubscriptionPlan = currentUser?.plan || 'free';
   const realInvoicesCount = invoices.filter((i) => i.documentKind !== 'quote').length;
@@ -1741,6 +1854,10 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setIsUpgradeModalOpen,
         openUpgradeModal,
         upgradeModalDefaultPlan,
+        userCountry,
+        defaultVatRate,
+        availableVatRates,
+        setUserCountry,
       }}
     >
       {children}

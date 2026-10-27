@@ -36,7 +36,18 @@ export default function EditInvoicePage() {
   const params = useParams();
   const invoiceId = params?.id as string;
 
-  const { getInvoice, updateInvoice, deleteInvoice, convertQuoteToInvoice, clients, currentUser, showToast } = useInvoices();
+  const {
+    getInvoice,
+    updateInvoice,
+    deleteInvoice,
+    convertQuoteToInvoice,
+    clients,
+    currentUser,
+    showToast,
+    userCountry,
+    defaultVatRate,
+    availableVatRates,
+  } = useInvoices();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
@@ -111,7 +122,7 @@ export default function EditInvoicePage() {
         quantity: 1,
         unitPrice: 0,
         discountPct: 0,
-        vatRate: 18,
+        vatRate: defaultVatRate || 18,
       },
     ]);
   };
@@ -503,8 +514,14 @@ export default function EditInvoicePage() {
                               }
                               className="w-full px-2 py-1.5 text-xs font-semibold bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer"
                             >
-                              <option value={18}>18% (UEMOA)</option>
-                              <option value={0}>0% (Exonéré)</option>
+                              {availableVatRates.map((opt) => (
+                                <option key={opt.rate} value={opt.rate}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                              {!availableVatRates.some((opt) => opt.rate === item.vatRate) && (
+                                <option value={item.vatRate}>{item.vatRate}%</option>
+                              )}
                             </select>
                           </div>
 
@@ -738,7 +755,9 @@ export default function EditInvoicePage() {
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600 text-xs">
-                      <span>TVA (18%) :</span>
+                      <span>
+                        TVA ({totals.vatAmount > 0 ? `${items.find((it) => (it.vatRate || 0) > 0)?.vatRate || defaultVatRate}% ${userCountry}` : '0% Exonéré'}) :
+                      </span>
                       <span className="font-semibold text-slate-900">{formatFCFA(totals.vatAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-extrabold text-slate-900 border-t border-slate-200 pt-2">

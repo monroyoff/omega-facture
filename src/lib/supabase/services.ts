@@ -10,7 +10,9 @@ export const DEFAULT_COMPANY_ID = 'c0000000-0000-0000-0000-000000000001';
 export async function getOrCreateUserCompany(
   userId?: string,
   userOrg?: string,
-  userEmail?: string
+  userEmail?: string,
+  userCountry?: string,
+  defaultVat?: number
 ): Promise<string> {
   const supabase = createClient();
 
@@ -51,6 +53,7 @@ export async function getOrCreateUserCompany(
 
   // 3. Création automatique de l'espace société pour ce nouvel utilisateur
   const newCompanyId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined;
+  const standardVat = defaultVat !== undefined ? defaultVat : (userCountry?.toLowerCase().includes('niger') ? 19 : 18);
   try {
     const { data: newComp, error } = await supabase
       .from('companies')
@@ -59,8 +62,9 @@ export async function getOrCreateUserCompany(
         user_id: userId && userId.length === 36 ? userId : null,
         name: userOrg || 'Mon Entreprise OMEGA',
         email: userEmail ? userEmail.toLowerCase().trim() : null,
+        country: userCountry || 'Bénin',
         currency: 'XOF',
-        default_vat: 18,
+        default_vat: standardVat,
         invoice_prefix: 'FAC',
         payment_terms: 15,
       } as any)

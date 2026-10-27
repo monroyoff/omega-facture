@@ -1,5 +1,6 @@
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
 export type SubscriptionPlan = 'free' | 'pro' | 'business';
+export type { UemoaCountry, VatRateOption } from '@/lib/tax/uemoa-tax';
 
 export interface InvoiceItem {
   id: string;

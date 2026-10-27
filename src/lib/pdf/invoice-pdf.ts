@@ -307,7 +307,9 @@ export function generateInvoicePDF({
         sY += 34;
       };
 
-      const appliedVatRate = invoice.vatAmount > 0 ? 18 : 0;
+      // Calcul dynamique du taux de TVA appliqué (ex: 19% Niger, 18% standard, 9% ou 10% taux réduit)
+      const nonZeroVatItem = invoice.items?.find((it) => (it.vatRate || 0) > 0);
+      const appliedVatRate = invoice.vatAmount > 0 ? (nonZeroVatItem?.vatRate || 18) : 0;
       drawSummaryLine('Sous-total HT :', formatFCFA(invoice.subtotal));
       drawSummaryLine(`TVA (${appliedVatRate}%) :`, formatFCFA(invoice.vatAmount));
       if (invoice.discount && invoice.discount > 0) {

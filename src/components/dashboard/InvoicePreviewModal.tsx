@@ -461,7 +461,9 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   </div>
                 )}
                 <div className="flex justify-between text-slate-600">
-                  <span>TVA (18% UEMOA) :</span>
+                  <span>
+                    TVA ({invoice.vatAmount > 0 ? `${invoice.items?.find((it) => (it.vatRate || 0) > 0)?.vatRate || 18}%` : '0% Exonéré'}) :
+                  </span>
                   <span className="font-semibold text-slate-900">
                     {formatFCFA(invoice.vatAmount)}
                   </span>

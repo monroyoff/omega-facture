@@ -16,8 +16,11 @@ import {
   AlertCircle,
   ArrowRight,
   Sparkles,
+  Globe,
+  Percent,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
+import { UEMOA_COUNTRIES, findUemoaCountry, getCountryStandardVatRate } from '@/lib/tax/uemoa-tax';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,6 +29,7 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [organization, setOrganization] = useState('');
+  const [country, setCountry] = useState('Bénin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -39,6 +43,7 @@ export default function RegisterPage() {
     setLastName('');
     setFirstName('');
     setOrganization('');
+    setCountry('Bénin');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -97,6 +102,7 @@ export default function RegisterPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         organization: organization.trim(),
+        country,
         email: email.trim(),
         password,
       });
@@ -213,6 +219,71 @@ export default function RegisterPage() {
                   className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                 />
               </div>
+            </div>
+
+            {/* Row 2bis: Pays d'implantation & Fiscalité UEMOA */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Globe className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                  Pays du siège (Zone UEMOA) <span className="text-rose-500">*</span>
+                </label>
+                <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 px-2 py-0.5 rounded-full border border-brand-200/50 dark:border-brand-800/50">
+                  Taux TVA standard : {getCountryStandardVatRate(country)}%
+                </span>
+              </div>
+              <div className="relative">
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
+                >
+                  {UEMOA_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.name}>
+                      {c.flag} {c.name} — TVA {c.standardVatRate}%{c.code === 'NE' ? ' (Taux spécifique Niger)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Information fiscale contextuelle en direct selon le pays choisi */}
+              {(() => {
+                const currentCountry = findUemoaCountry(country);
+                const isNiger = currentCountry.code === 'NE';
+                return (
+                  <div
+                    className={`mt-2 p-3 rounded-2xl border text-[11px] leading-relaxed transition-all flex items-start gap-2.5 ${
+                      isNiger
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 shadow-sm'
+                        : 'bg-brand-500/5 border-brand-500/20 text-slate-800 dark:text-slate-200'
+                    }`}
+                  >
+                    <span className="text-lg shrink-0 select-none">{currentCountry.flag}</span>
+                    <div className="flex-1">
+                      <div className="font-bold flex items-center gap-1.5 flex-wrap">
+                        <span>{currentCountry.name}</span>
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-black tracking-wide ${
+                            isNiger
+                              ? 'bg-amber-500 text-white dark:bg-amber-600'
+                              : 'bg-brand-600 text-white'
+                          }`}
+                        >
+                          TVA légale : {currentCountry.standardVatRate}%
+                        </span>
+                        {isNiger && (
+                          <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
+                            ★ Taux spécifique de 19%
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[11px] opacity-90 leading-normal">
+                        {currentCountry.notes}. Ce taux sera appliqué automatiquement à vos factures et devis dès votre première émission.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Row 3: Email Professionnel */}

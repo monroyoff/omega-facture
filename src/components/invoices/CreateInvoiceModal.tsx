@@ -91,6 +91,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     realInvoicesCount,
     canCreateInvoice,
     openUpgradeModal,
+    userCountry,
+    defaultVatRate,
+    availableVatRates,
   } = useInvoices();
 
   const [showPreview, setShowPreview] = useState(true);
@@ -123,7 +126,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [newClientEmail, setNewClientEmail] = useState<string>('');
   const [newClientPhone, setNewClientPhone] = useState<string>('');
   const [newClientCity, setNewClientCity] = useState<string>('Cotonou');
-  const [newClientCountry, setNewClientCountry] = useState<string>('Bénin');
+  const [newClientCountry, setNewClientCountry] = useState<string>(userCountry || 'Bénin');
   const [newClientTaxId, setNewClientTaxId] = useState<string>('');
 
   const [issueDate, setIssueDate] = useState(() => getTodayDate());
@@ -131,14 +134,14 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [invoiceNumber, setInvoiceNumber] = useState('FAC-2026-0001');
   const [currency, setCurrency] = useState('FCFA');
 
-  // Line items state - clean and empty on start
+  // Line items state - clean and empty on start with user's country standard VAT rate
   const [items, setItems] = useState<LineItemInput[]>([
     {
       description: '',
       quantity: 1,
       unitPrice: 0,
       discountPct: 0,
-      vatRate: 18,
+      vatRate: defaultVatRate || 18,
     },
   ]);
 
@@ -165,7 +168,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
           quantity: 1,
           unitPrice: 0,
           discountPct: 0,
-          vatRate: 18,
+          vatRate: defaultVatRate || 18,
         },
       ]);
 
@@ -177,7 +180,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
       setNewClientEmail('');
       setNewClientPhone('');
       setNewClientCity('Cotonou');
-      setNewClientCountry('Bénin');
+      setNewClientCountry(userCountry || 'Bénin');
       setNewClientTaxId('');
 
       // 3. Remise commerciale réinitialisée
@@ -386,7 +389,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         quantity: 1,
         unitPrice: 0,
         discountPct: 0,
-        vatRate: 18,
+        vatRate: defaultVatRate || 18,
       },
     ]);
   };
@@ -1336,8 +1339,14 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                               }
                               className="w-full px-2 py-1.5 text-xs sm:text-sm bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold cursor-pointer"
                             >
-                              <option value={18}>18% (UEMOA)</option>
-                              <option value={0}>0% (Exonéré)</option>
+                              {availableVatRates.map((opt) => (
+                                <option key={opt.rate} value={opt.rate}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                              {!availableVatRates.some((opt) => opt.rate === item.vatRate) && (
+                                <option value={item.vatRate}>{item.vatRate}%</option>
+                              )}
                             </select>
                           </div>
 
@@ -1740,7 +1749,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                     )}
 
                     <div className="flex justify-between text-slate-600 text-xs">
-                      <span>TVA (18% UEMOA) :</span>
+                      <span>
+                        TVA ({totals.vatAmount > 0 ? `${items.find((it) => (it.vatRate || 0) > 0)?.vatRate || defaultVatRate}% ${userCountry}` : '0% Exonéré'}) :
+                      </span>
                       <span className="font-semibold text-slate-900">
                         {formatFCFA(totals.vatAmount)}
                       </span>

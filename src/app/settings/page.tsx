@@ -3,23 +3,35 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X, Sparkles } from 'lucide-react';
+import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X, Sparkles, Globe } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
+import { UEMOA_COUNTRIES, findUemoaCountry, getCountryStandardVatRate, getCountryVatRates } from '@/lib/tax/uemoa-tax';
 
 export default function SettingsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-  const { currentUser, updateUserProfile, showToast, userPlan, realInvoicesCount, openUpgradeModal } = useInvoices();
+  const {
+    currentUser,
+    updateUserProfile,
+    showToast,
+    userPlan,
+    realInvoicesCount,
+    openUpgradeModal,
+    setUserCountry,
+    userCountry,
+    defaultVatRate,
+  } = useInvoices();
 
   // Settings form states
+  const [country, setCountry] = useState(currentUser?.country || userCountry || 'Bénin');
   const [companyName, setCompanyName] = useState(currentUser?.organization || 'MONROY Business Solutions');
   const [ifu, setIfu] = useState('0202110485960');
   const [rccm, setRccm] = useState('RB/COT/21 B 1042');
   const [email, setEmail] = useState(currentUser?.email || 'monmonnroyteam@gmail.com');
   const [phone, setPhone] = useState('+229 01 95 44 44 30');
   const [address, setAddress] = useState('Allada, République du Bénin');
-  const [defaultVat, setDefaultVat] = useState(18);
+  const [defaultVat, setDefaultVat] = useState(currentUser?.defaultVatRate || defaultVatRate || 18);
   const [invoicePrefix, setInvoicePrefix] = useState('FAC');
   const [paymentTerms, setPaymentTerms] = useState(15);
   const [momoNumber, setMomoNumber] = useState('+229 01 95 44 44 30');
@@ -29,6 +41,7 @@ export default function SettingsPage() {
       const stored = localStorage.getItem('facturo:v1:settings');
       if (stored) {
         const parsed = JSON.parse(stored);
+        if (parsed.country) setCountry(parsed.country);
         if (parsed.companyName) setCompanyName(parsed.companyName);
         if (parsed.ifu) setIfu(parsed.ifu);
         if (parsed.rccm) setRccm(parsed.rccm);
@@ -43,8 +56,10 @@ export default function SettingsPage() {
     } catch (e) {}
 
     if (currentUser) {
+      if (currentUser.country) setCountry(currentUser.country);
       if (currentUser.organization) setCompanyName(currentUser.organization);
       if (currentUser.email) setEmail(currentUser.email);
+      if (currentUser.defaultVatRate !== undefined) setDefaultVat(currentUser.defaultVatRate);
     }
   }, [currentUser]);
 
@@ -54,17 +69,27 @@ export default function SettingsPage() {
     };
   }, []);
 
+  const handleCountryChange = (newCountryName: string) => {
+    setCountry(newCountryName);
+    const standardVat = getCountryStandardVatRate(newCountryName);
+    setDefaultVat(standardVat);
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateUserProfile({
       organization: companyName,
       email: email,
+      country: country,
+      defaultVatRate: defaultVat,
     });
+    setUserCountry(country);
     try {
       localStorage.setItem(
         'facturo:v1:settings',
         JSON.stringify({
           companyName,
+          country,
           ifu,
           rccm,
           email,
@@ -83,7 +108,7 @@ export default function SettingsPage() {
     }
     showToast({
       title: 'Paramètres enregistrés avec succès !',
-      message: 'Vos informations d’entreprise et mentions fiscales ont été mises à jour.',
+      message: `Vos informations pour le ${country} (TVA ${defaultVat}%) ont été mises à jour.`,
       kind: 'success',
       duration: 3500,
     });
@@ -201,6 +226,23 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Pays du Siège (Zone UEMOA) *
+                  </label>
+                  <select
+                    value={country}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold cursor-pointer"
+                  >
+                    {UEMOA_COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.name}>
+                        {c.flag} {c.name} — TVA légale {c.standardVatRate}%{c.code === 'NE' ? ' (Taux spécifique Niger)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
                     Raison Sociale / Nom commercial *
                   </label>
                   <input
@@ -213,7 +255,7 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    Numéro IFU (Identifiant Fiscal Unique) *
+                    {findUemoaCountry(country).fiscalIdLabel} *
                   </label>
                   <input
                     type="text"
@@ -295,15 +337,18 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    Taux de TVA par défaut
+                    Taux de TVA par défaut ({findUemoaCountry(country).name})
                   </label>
                   <select
                     value={defaultVat}
                     onChange={(e) => setDefaultVat(parseInt(e.target.value, 10))}
                     className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
                   >
-                    <option value={18}>18% (Taux standard UEMOA)</option>
-                    <option value={0}>0% (Exonération)</option>
+                    {getCountryVatRates(country).map((opt) => (
+                      <option key={opt.rate} value={opt.rate}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
