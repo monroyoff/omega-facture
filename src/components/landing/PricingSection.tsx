@@ -122,7 +122,7 @@ export const PricingSection: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />
-                  <span>Calcul automatique TVA 18% &amp; retenues</span>
+                  <span>Calcul automatique TVA selon votre pays &amp; retenues</span>
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-brand-600 dark:text-brand-400 stroke-[2.5] shrink-0" />

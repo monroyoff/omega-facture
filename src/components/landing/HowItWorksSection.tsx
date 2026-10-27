@@ -17,7 +17,7 @@ export const HowItWorksSection: React.FC = () => {
       num: '02',
       title: 'Crée ta première facture',
       description:
-        'Sélectionnez votre client, ajoutez vos prestations en FCFA, la TVA 18% et les totaux s’appliquent automatiquement sans formule.',
+        'Sélectionnez votre client, ajoutez vos prestations en FCFA, la TVA en fonction de votre pays et les totaux s’appliquent automatiquement sans formule.',
       badge: 'Automatisation 100%',
       arrow: true,
     },

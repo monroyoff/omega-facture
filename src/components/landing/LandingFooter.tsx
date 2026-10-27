@@ -19,7 +19,7 @@ export const LandingFooter: React.FC = () => {
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm mb-6">
-              La facturation moderne conçue pour l’Afrique francophone. Conforme OHADA, TVA 18% automatique et encaissements suivis en temps réel.
+              La facturation moderne conçue pour l’Afrique francophone. Conforme OHADA, TVA en fonction de votre pays automatique et encaissements suivis en temps réel.
             </p>
             <div className="flex items-center gap-4">
               <span className="inline-flex items-center gap-2 text-xs text-gray-300 bg-gray-800/80 px-3.5 py-1.5 rounded-full border border-gray-700">

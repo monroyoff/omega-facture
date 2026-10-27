@@ -165,7 +165,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       id: 'nav-settings',
       category: 'navigation',
       title: 'Paramètres & Configuration',
-      subtitle: 'Informations de l’entreprise, TVA 18%, coordonnées bancaires & logo',
+      subtitle: 'Informations de l’entreprise, TVA selon votre pays, coordonnées bancaires & logo',
       meta: '/settings',
       icon: Settings,
       href: '/settings',

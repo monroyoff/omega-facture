@@ -14,8 +14,8 @@ export default function SupportPage() {
       a: 'Dans le tableau des factures, cliquez directement sur le bouton orange "Modifier" situé à droite de la ligne du brouillon, ou ouvrez l\'aperçu et cliquez sur "Modifier ce brouillon".',
     },
     {
-      q: 'Comment s\'applique la TVA de 18% en zone UEMOA ?',
-      a: 'Le calcul regroupe la base taxable des articles assujettis à 18% et arrondit le total selon la stricte réglementation fiscale de l\'UEMOA. Les articles à 0% restent exonérés.',
+      q: 'Comment s\'applique la TVA en fonction de mon pays dans la zone UEMOA ?',
+      a: 'Le calcul s\'adapte automatiquement au taux légal de votre pays de facturation : taux normal de 18% (Bénin, Côte d\'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Guinée-Bissau) ou 19% au Niger, avec prise en charge des taux réduits sectoriels (9% en CI, 5% solaire, 10% tourisme). Les articles à 0% restent exonérés.',
     },
     {
       q: 'Les factures générées sont-elles certifiées ?',

@@ -16,10 +16,10 @@ export const FeaturesSection: React.FC = () => {
     },
     {
       icon: Calculator,
-      title: 'TVA 18% calculée automatiquement',
+      title: 'TVA selon votre pays calculée automatiquement',
       description:
-        'Finies les erreurs de saisie : le système gère les taux de TVA standard de l’espace UEMOA/CEMAC, les exonérations légales et les retenues d’acompte sans gymnastique mathématique.',
-      tagLeft: '✓ Taux 18% préconfiguré',
+        'Finies les erreurs de saisie : le système gère les taux légaux de votre pays de facturation (18%, 19% au Niger, taux réduits), les exonérations et les retenues sans calcul manuel.',
+      tagLeft: '✓ Taux légal par pays préconfiguré',
       tagRight: 'Zéro erreur fiscale',
       highlightRight: true,
     },

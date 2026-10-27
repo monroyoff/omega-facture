@@ -20,7 +20,7 @@ export const TestimonialsSection: React.FC = () => {
       stars: 5,
       image: '/images/professionals/aminata-kone.jpg',
       quote:
-        '« La gestion automatique de la TVA à 18% m’a sauvée lors de mon dernier contrôle fiscal. Une solution pensée exactement pour nos réalités économiques en Côte d’Ivoire. »',
+        '« La gestion automatique de la TVA selon notre pays de facturation m’a sauvée lors de mon dernier contrôle fiscal. Une solution pensée exactement pour nos réalités économiques en Côte d’Ivoire. »',
       name: 'Aminata Koné',
       company: 'K-Logistics SARL',
       location: 'Abidjan, Côte d’Ivoire',

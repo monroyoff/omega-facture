@@ -98,7 +98,7 @@ export const HeroInvoiceSimulator: React.FC = () => {
           %
         </div>
         <div>
-          <p className="text-xs text-slate-500 font-medium">TVA UEMOA 18%</p>
+          <p className="text-xs text-slate-500 font-medium">TVA selon votre pays</p>
           <p className="text-sm font-bold text-slate-900 dark:text-white">
             {taxRate > 0 ? formatFCFA(taxAmount) : 'Exonéré'}
           </p>
@@ -348,13 +348,17 @@ export const HeroInvoiceSimulator: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* TVA Toggle */}
                   <div className="flex items-center justify-between bg-white dark:bg-[#151c2c] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">TVA UEMOA</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">TVA selon pays</span>
                     <select
                       value={taxRate}
                       onChange={(e) => setTaxRate(parseFloat(e.target.value))}
                       className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer"
                     >
-                      <option value="0.18">18% (Standard)</option>
+                      <option value="0.18">18% (Standard UEMOA)</option>
+                      <option value="0.19">19% (Niger)</option>
+                      <option value="0.10">10% (Tourisme SN)</option>
+                      <option value="0.09">9% (Réduit CI)</option>
+                      <option value="0.05">5% (Solaire ML/NE)</option>
                       <option value="0.00">0% (Exonéré)</option>
                     </select>
                   </div>
@@ -410,7 +414,7 @@ export const HeroInvoiceSimulator: React.FC = () => {
 
               <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                 <span className="flex items-center gap-1">
-                  <span>{taxRate > 0 ? `TVA (${Math.round(taxRate * 100)}% UEMOA)` : 'TVA (0% Exonéré)'}</span>
+                  <span>{taxRate > 0 ? `TVA (${Math.round(taxRate * 100)}% selon pays)` : 'TVA (0% Exonéré)'}</span>
                   <span className="w-3.5 h-3.5 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-[9px] font-bold">
                     i
                   </span>

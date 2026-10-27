@@ -15,9 +15,9 @@ export const ProblemSection: React.FC = () => {
     },
     {
       icon: Calculator,
-      title: 'Calculs manuels de TVA 18% hasardeux',
+      title: 'Calculs manuels de TVA hasardeux',
       description:
-        'Erreurs de formules sur la TVA standard, les acomptes BRS et les retenues à la source qui exposent votre entreprise à de lourdes pénalités fiscales.',
+        'Erreurs de formules sur la TVA selon les pays (18%, 19% au Niger), les acomptes et retenues qui exposent votre entreprise à de lourdes pénalités fiscales.',
       impact: 'Risque direct de redressement fiscal',
     },
     {

@@ -82,7 +82,7 @@ export const HeroSection: React.FC = () => {
 
           <p className="mt-6 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
             Adieu aux factures bricolées sur Excel et aux retards de paiement. <strong className="text-brand-600 dark:text-brand-400 font-black">OmegaFacture</strong> calcule automatiquement votre{' '}
-            <strong className="text-slate-900 dark:text-white font-bold">TVA 18%</strong>, génère vos{' '}
+            <strong className="text-slate-900 dark:text-white font-bold">TVA selon votre pays</strong>, génère vos{' '}
             <strong className="text-slate-900 dark:text-white font-bold">Devis et Factures officiels OHADA</strong>, permet à vos clients de régler instantanément par{' '}
             <strong className="text-slate-900 dark:text-white font-bold">Mobile Money, Wave, Virement...</strong>
           </p>
@@ -117,7 +117,7 @@ export const HeroSection: React.FC = () => {
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 hidden sm:inline-block"></span>
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-500 stroke-[2.5]" />
-            <span>TVA 18% &amp; Mentions OHADA vérifiées</span>
+            <span>TVA selon votre pays &amp; Mentions OHADA</span>
           </span>
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 hidden sm:inline-block"></span>
           <span className="flex items-center gap-1.5">
@@ -217,17 +217,17 @@ export const HeroSection: React.FC = () => {
               </div>
             </div>
 
-            {/* Floating Live Card Top-Right: TVA 18% & OHADA */}
+            {/* Floating Live Card Top-Right: TVA selon votre pays & OHADA */}
             <div className="hidden lg:flex absolute -top-6 -right-8 z-20 items-center gap-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-800 animate-float-bottom pointer-events-none text-left">
               <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
                 <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">TVA 18% Automatique</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">TVA selon votre pays</span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Zéro formule Excel • Mentions IFU / NINEA
+                  Calcul automatique • 18% ou 19% au Niger
                 </p>
               </div>
             </div>

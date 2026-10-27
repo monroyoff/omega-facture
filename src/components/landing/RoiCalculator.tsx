@@ -109,7 +109,7 @@ export const RoiCalculator: React.FC = () => {
                     0 erreur
                   </div>
                   <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
-                    Sur la TVA à 18% et les mentions obligatoires IFU / NINEA.
+                    Sur la TVA selon votre pays (18% ou 19%) et les mentions légales obligatoires.
                   </p>
                 </div>
               </div>
