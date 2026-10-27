@@ -31,3 +31,4 @@ scratch/
 out/
 tsconfig.tsbuildinfo
 _legacy/
+android-builds/
