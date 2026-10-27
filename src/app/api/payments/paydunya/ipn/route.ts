@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
     const token = invoiceData.token || data.token || '';
     const receivedHash = data.hash || '';
 
-    // 2. Vérification de la signature cryptographique PayDunya (si PAYDUNYA_MASTER_KEY est configurée)
-    const masterKey = process.env.PAYDUNYA_MASTER_KEY;
+    // 2. Vérification de la signature cryptographique PayDunya (si configurée)
+    const masterKey = process.env.PAYDUNYA_MASTER_KEY || process.env.PAYDUNYA_PUBLIC_KEY;
     if (masterKey && receivedHash && token) {
       const computedHash = crypto
         .createHash('sha512')
