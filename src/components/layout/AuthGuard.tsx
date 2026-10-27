@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   '/verify-email',
   '/confirm-email',
   '/auth/confirm',
+  '/payments/callback',
+  '/payments/cancel',
   '/api/',
 ];
 

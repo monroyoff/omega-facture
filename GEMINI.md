@@ -159,6 +159,13 @@
   3. **Image Haute Définition PNG (`.png`)** : Synthèse visuelle grand format (1200px) générée par Canvas pour transmission rapide via WhatsApp ou email.
   4. **Impression Directe (`Print`)** : Dialogue d'impression optimisé A4 avec mise en page dédiée.
   - **Sélecteur de Périmètre d'Export** : Bascule instantanée entre « Période active » (filtrée par le calendrier) et « Toutes les transactions » (Exercice complet).
+- **Passerelle de Paiement Mobile Money & Webhooks IPN (`/api/payments/paydunya/ipn`)** :
+  - **Endpoint IPN Officiel PayDunya** : `https://www.omegafacture.site/api/payments/paydunya/ipn` (ou `https://omegafacture.site/api/payments/paydunya/ipn`).
+  - **Endpoint IPN Universel** : `https://www.omegafacture.site/api/payments/ipn` pour l'intégration de toute passerelle de paiement (PayDunya, Wave, FedaPay, CinetPay).
+  - **Traitement Automatique en Temps Réel** : Réception des notifications asynchrones instantanées (`completed`), vérification de la signature cryptographique SHA-512 PayDunya, rapprochement de la facture (`invoices.amount_paid`, bascule automatique à `paid`), et enregistrement dans la table `payments`.
+  - **URLs de Redirection Associées** :
+    - *Callback / Retour après paiement* : `https://www.omegafacture.site/payments/callback`
+    - *Annulation* : `https://www.omegafacture.site/payments/cancel`
 - **Calendrier Unique et Universel** : Un seul calendrier fonctionnel dédié sur la page (suppression du calendrier dupliqué du header avec `hidePeriodPicker={true}`), proposant tous les modes temporels : *Mois*, *Jour précis*, *Plage libre (Du ... Au ...)*, *Trimestre (T1-T4)*, *Semestre (S1-S2)*, et *Année complète*. Ce calendrier unique pilote instantanément l'ensemble des 4 cartes KPI (*Total Encaissé, Mobile Money, Virements Bancaires, Espèces / Caisse*) ainsi que l'intégralité du tableau des transactions.
 - **Formulaire d'Encaissement Vierge & Filtrage Strict des Factures Éligibles (`NewPaymentModal`)** :
   - **Exclusion stricte des soldées et des devis** : Seules les factures avec un solde restant strictement positif (`inv.total - (inv.amountPaid || 0) > 0`) et en attente de règlement (`status !== 'paid'`) apparaissent dans le menu déroulant « Facture à payer ».
