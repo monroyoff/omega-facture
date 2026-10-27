@@ -19,7 +19,6 @@ import {
   CreditCard,
   Eye,
   Pencil,
-  ArrowLeft,
   FileCheck2,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
@@ -137,17 +136,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
               </>
             )}
           </div>
-
-          {/* CTA Retour Landing Page (Bouton en haut à gauche) */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-brand-50 dark:bg-slate-900/60 dark:hover:bg-brand-950/50 text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 border border-slate-200/80 dark:border-slate-800 text-xs font-bold transition-all shadow-2xs hover:shadow-xs active:scale-95 group shrink-0 ml-1 sm:ml-2"
-            title="Retourner sur la page d'accueil (Landing Page)"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 text-brand-600 transition-transform group-hover:-translate-x-0.5" />
-            <span className="hidden sm:inline">Site vitrine</span>
-            <span className="sm:hidden">Accueil</span>
-          </Link>
         </div>
 
         {/* Right: Period Selector, Notification, and New Invoice CTA */}
