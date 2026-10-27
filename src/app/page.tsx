@@ -12,6 +12,7 @@ import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { FinalCTASection } from '@/components/landing/FinalCTASection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { BackToTopButton } from '@/components/landing/BackToTopButton';
 import { useScrollReveal } from '@/components/landing/useScrollReveal';
 
 export default function LandingPage() {
@@ -53,6 +54,9 @@ export default function LandingPage() {
 
       {/* 11. Site Footer */}
       <LandingFooter />
+
+      {/* 12. Floating Back To Top Button */}
+      <BackToTopButton />
     </div>
   );
 }

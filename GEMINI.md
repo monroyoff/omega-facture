@@ -492,7 +492,8 @@ Pour accueillir les visiteurs, convertir les prospects et présenter les atouts 
    - Les utilisateurs déjà authentifiés disposent d'un accès direct `Mon Espace` menant à `/dashboard`.
    - Le tableau de bord financier de facturation est accessible sur `/dashboard`.
 2. **Architecture Modulaire Réutilisable (`src/components/landing/`)** :
-   - `LandingNavbar` : Barre de navigation sticky avec logo vectoriel Ω, bouton « Menu déroulant » fonctionnel sur Web (desktop) avec volet flottant multi-sections et outils, et bouton « Menu » interactif sur Mobile/Tablette avec tiroir responsive, fond flouté (backdrop), verrouillage du scroll et défilement fluide vers les ancres.
+   - `LandingNavbar` : Barre de navigation sticky épurée sur Desktop avec liens directs et actions d'accès rapide, et menu déroulant interactif sur Mobile/Tablette avec bouton « Menu », volet responsive, fond flouté (backdrop), verrouillage du scroll et défilement fluide vers les ancres.
+   - `BackToTopButton` : Bouton flottant « Remonter en haut de page » avec flèche `ArrowUp`, détection automatique de scroll (> 350px), micro-animation fluide d'apparition et défilement instantané vers le sommet du site (`scrollTo({ top: 0, behavior: 'smooth' })`).
    - `HeroSection` : Section d'accueil avec badges de réassurance, bouton CTA principal micro-animé (`hero-cta-button` avec halo lumineux, balayage shimmer et rebond au clic), et bouton de démo rapide.
    - `HeroInvoiceSimulator` : Simulateur interactif de factures et devis en temps réel en monnaie FCFA avec bascule Devis/Facture, calcul de TVA 18% automatique, retenue BRS, badges flottants animés (`animate-float-top`, `animate-float-bottom`), et rétroactions de téléchargement PDF et partage WhatsApp.
    - `ProblemSection` : Cartes explicatives des freins de la facturation manuelle sur Word/Excel.
