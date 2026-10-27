@@ -27,11 +27,18 @@ export interface PayDunyaInvoiceResponse {
  * Récupère la configuration PayDunya depuis les variables d'environnement
  */
 export function getPayDunyaConfig() {
-  const masterKey = process.env.PAYDUNYA_MASTER_KEY || process.env.PAYDUNYA_PUBLIC_KEY || '';
-  const privateKey = process.env.PAYDUNYA_PRIVATE_KEY || '';
-  const token = process.env.PAYDUNYA_TOKEN || '';
-  const mode = process.env.PAYDUNYA_MODE || (masterKey.startsWith('test_') ? 'test' : 'live');
-  const isTest = mode === 'test' || masterKey.startsWith('test_');
+  const masterKey =
+    process.env.PAYDUNYA_MASTER_KEY ||
+    process.env.PAYDUNYA_PUBLIC_KEY ||
+    'CN2QIqsD-0NnK-Nb1H-gRvY-Qvfpv3uupfir';
+  const privateKey =
+    process.env.PAYDUNYA_PRIVATE_KEY ||
+    'test_private_2WHxjYF58S2MKuHhoE18NnwIj84';
+  const token =
+    process.env.PAYDUNYA_TOKEN ||
+    'FPTa6qUzfCkSeSEWdMJl';
+  const mode = process.env.PAYDUNYA_MODE || 'test';
+  const isTest = mode === 'test' || privateKey.startsWith('test_');
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.omegafacture.site';
 

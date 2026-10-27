@@ -79,25 +79,38 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
           companyId: currentUser?.companyId,
         }),
       });
+
       const data = await res.json();
+
       if (data.success && data.checkoutUrl) {
-        // Redirection vers le guichet de paiement PayDunya (Wave, MTN, Orange, Moov, Carte)
-        window.location.href = data.checkoutUrl;
+        showToast({
+          kind: 'info',
+          title: 'Redirection vers PayDunya',
+          message: 'Ouverture du guichet officiel (Wave, MTN MoMo, Orange Money, Moov, Carte)...',
+          duration: 3500,
+        });
+        // Redirection immédiate vers le guichet officiel PayDunya
+        window.location.assign(data.checkoutUrl);
         return;
       }
-    } catch (e) {
-      console.warn('[UpgradePlanModal] Fallback vers validation locale :', e);
-    }
 
-    // Fallback instantané si hors-ligne
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    await upgradePlan(selectedPlan);
-    setLoading(false);
-    setSuccess(true);
-    setTimeout(() => {
-      setSuccess(false);
-      onClose();
-    }, 1500);
+      showToast({
+        kind: 'warning',
+        title: 'Erreur PayDunya',
+        message: data.error || 'Impossible d’initialiser le paiement sécurisé.',
+        duration: 5000,
+      });
+      setLoading(false);
+    } catch (e: any) {
+      console.error('[UpgradePlanModal] Erreur connexion PayDunya :', e);
+      showToast({
+        kind: 'error',
+        title: 'Erreur réseau',
+        message: 'Impossible de joindre la passerelle PayDunya. Veuillez réessayer.',
+        duration: 5000,
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -332,7 +345,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Validation Mobile Money...</span>
+                      <span>Redirection vers PayDunya...</span>
                     </>
                   ) : success ? (
                     <>
