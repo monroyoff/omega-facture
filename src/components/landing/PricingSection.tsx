@@ -9,7 +9,7 @@ export const PricingSection: React.FC = () => {
   const { isAuthenticated, openUpgradeModal } = useInvoices();
 
   return (
-    <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-gray-100 dark:border-gray-800" id="tarifs">
+    <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-gray-100 dark:border-gray-800 scroll-mt-24" id="tarifs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-3">

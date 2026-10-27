@@ -14,7 +14,7 @@ export const RoiCalculator: React.FC = () => {
   const daysSavedOnPayment = 18; // Average from 35 days to 17 days
 
   return (
-    <section className="py-20 bg-[#FAFAF9] dark:bg-[#070a0f] border-b border-slate-100 dark:border-slate-800">
+    <section className="py-20 bg-[#FAFAF9] dark:bg-[#070a0f] border-b border-slate-100 dark:border-slate-800 scroll-mt-24" id="calculateur-roi">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-[#111622] rounded-3xl p-8 sm:p-12 border border-slate-200/80 dark:border-slate-800 shadow-xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">

@@ -52,7 +52,7 @@ export const TestimonialsSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 bg-[#FAFAF9] dark:bg-[#070a0f]" id="temoignages">
+    <section className="py-24 bg-[#FAFAF9] dark:bg-[#070a0f] scroll-mt-24" id="temoignages">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400 mb-3">

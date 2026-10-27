@@ -164,7 +164,7 @@ export const HeroSection: React.FC = () => {
         </div>
 
         {/* View Mode Segmented Control: 3D Showcase vs Live Interactive Simulator */}
-        <div className="flex items-center justify-center gap-2 mb-8" id="demo">
+        <div className="flex items-center justify-center gap-2 mb-8 scroll-mt-24" id="demo">
           <div className="inline-flex p-1.5 rounded-2xl bg-slate-200/70 dark:bg-slate-900/80 backdrop-blur-md border border-slate-300/60 dark:border-slate-800 shadow-sm">
             <button
               onClick={() => setViewMode('preview')}

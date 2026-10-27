@@ -30,7 +30,7 @@ export const ProblemSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-slate-100 dark:border-slate-800" id="problemes">
+    <section className="py-24 bg-white dark:bg-[#0c1017] border-y border-slate-100 dark:border-slate-800 scroll-mt-24" id="problemes">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 reveal-on-scroll">
