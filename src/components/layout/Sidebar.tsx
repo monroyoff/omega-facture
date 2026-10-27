@@ -28,6 +28,7 @@ import {
   EyeOff,
   Sparkles,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { GlobalSearchModal } from '@/components/common/GlobalSearchModal';
@@ -194,8 +195,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
 
-          {/* Quick Search Bar */}
-          <div className="px-4 pt-4 pb-2">
+          {/* Quick Search Bar & Landing Page CTA */}
+          <div className="px-4 pt-4 pb-2 space-y-2">
             <button
               type="button"
               onClick={() => {
@@ -213,6 +214,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 ⌘K
               </kbd>
             </button>
+
+            {/* CTA Retour au Site Vitrine */}
+            <Link
+              href="/"
+              onClick={() => {
+                if (window.innerWidth < 1024) onClose();
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs text-brand-700 dark:text-brand-300 bg-brand-50/70 hover:bg-brand-100/70 dark:bg-brand-950/40 dark:hover:bg-brand-950/70 border border-brand-200/80 dark:border-brand-900/50 rounded-xl font-bold transition-all group shadow-2xs"
+              title="Retourner au site vitrine / Landing Page"
+            >
+              <div className="flex items-center gap-2">
+                <ArrowLeft className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 transition-transform group-hover:-translate-x-1 shrink-0" />
+                <span>Retour au site vitrine</span>
+              </div>
+              <span className="text-[10px] text-brand-600/70 dark:text-brand-400/70 font-semibold uppercase tracking-wider">
+                Accueil
+              </span>
+            </Link>
           </div>
 
           {/* Main Navigation */}

@@ -13,7 +13,7 @@ import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
-import { Sparkles, ArrowRight, ShieldCheck, Calendar, Plus, FileCheck2 } from 'lucide-react';
+import { Sparkles, ArrowRight, ShieldCheck, Calendar, Plus, FileCheck2, ArrowLeft } from 'lucide-react';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
 import {
   KPICardsSkeleton,
@@ -124,7 +124,22 @@ export default function DashboardPage() {
         />
 
         {/* Dashboard Main Body */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto min-w-0">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto min-w-0">
+          {/* Top-Left Action Bar: CTA Retour Landing Page */}
+          <div className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-white dark:bg-[#111622] hover:bg-brand-50/80 dark:hover:bg-brand-950/50 text-slate-700 dark:text-slate-200 hover:text-brand-600 dark:hover:text-brand-400 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-bold shadow-2xs hover:shadow-xs transition-all active:scale-95 group cursor-pointer"
+              title="Retourner à la page d'accueil (Landing Page)"
+            >
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-brand-50 dark:bg-brand-950/80 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
+                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+              </div>
+              <span>Retour au site vitrine</span>
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">• Page d&apos;accueil</span>
+            </Link>
+          </div>
+
           {/* Welcome & Context Banner (Sleeker & more compact) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 bg-gradient-to-r from-brand-700 via-brand-600 to-brand-800 rounded-2xl sm:rounded-3xl p-4 sm:p-5 sm:py-6 text-white shadow-md shadow-brand-600/15 relative overflow-hidden">
             {/* Background decorative circles */}
