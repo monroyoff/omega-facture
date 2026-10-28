@@ -97,6 +97,11 @@ export const LandingFooter: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link className="hover:text-white transition-colors" href="/politique-de-confidentialite">
+                  Politique de confidentialité
+                </Link>
+              </li>
+              <li>
                 <span className="text-gray-500">Mentions OHADA &amp; UEMOA</span>
               </li>
               <li>
