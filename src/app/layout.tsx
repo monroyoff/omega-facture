@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     title: 'OMEGA FACTURE',
   },
   verification: {
-    google: '3cD17ybVzPuK91mNz6HBh7NQBv1UelD7HFhikEMBOFc',
+    google: ['3cD17ybVzPuK91mNz6HBh7NQBv1UelD7HFhikEMBOFc', '5a187ae36d30dd48'],
   },
 };
 
