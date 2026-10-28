@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "site.omegafacture.app"
+    namespace "com.omegafacture.billing"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "site.omegafacture.app"
+        applicationId "com.omegafacture.billing"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

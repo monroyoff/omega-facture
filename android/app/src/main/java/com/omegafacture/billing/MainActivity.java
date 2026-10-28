@@ -1,4 +1,4 @@
-package site.omegafacture.app;
+package com.omegafacture.billing;
 
 import com.getcapacitor.BridgeActivity;
 
