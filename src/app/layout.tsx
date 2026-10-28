@@ -47,6 +47,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'OMEGA FACTURE',
   },
+  verification: {
+    google: '3cD17ybVzPuK91mNz6HBh7NQBv1UelD7HFhikEMBOFc',
+  },
 };
 
 import { GlobalUpgradeModal } from '@/components/subscription/GlobalUpgradeModal';
