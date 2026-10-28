@@ -307,14 +307,14 @@
   - Sélecteur de pays dans les informations d'entreprise recalculant en direct le taux de TVA standard par défaut et mettant à jour l'intitulé du numéro fiscal (IFU au Bénin, NCC en Côte d'Ivoire, NINEA au Sénégal, NIF au Niger).
 
 ### Q. Application Mobile Android & Publication Google Play Store Ready
-- **Architecture Hybride Native Capacitor (`site.omegafacture.app`)** :
+- **Architecture Hybride Native Capacitor (`com.omegafacture.billing`)** :
   - Dossier natif Android Studio complet `/android` avec Gradle, AndroidManifest et activités natives.
   - Configuration `capacitor.config.json` connectée en direct à l'URL de production `https://www.omegafacture.site`, garantissant que toute évolution de fonctionnalités ou mise à jour déployée sur le cloud est immédiatement active sur l'application mobile des utilisateurs sans nécessiter de nouvelle validation Play Store.
 - **PWA & Service Worker Intégré (`public/sw.js`, `public/manifest.json`, `src/app/manifest.ts`)** :
   - Support hors-ligne, mise en cache prédictive des assets, conformité stricte aux critères d'installabilité Google Play.
-- **Digital Asset Links Certifié (`public/.well-known/assetlinks.json`)** :
-  - Permet la vérification du domaine par Google Play et l'exécution en plein écran natif sans barre d'adresse de navigateur (Trusted Web Activity).
-  - Prise en charge des App Links (liens profonds `https://www.omegafacture.site/*` ouvrant directement l'application installée).
+- **Digital Asset Links & Validation de Domaine Google Certifiés** :
+  - `public/.well-known/assetlinks.json` configuré pour `com.omegafacture.billing` (App Links et Trusted Web Activity).
+  - Validation de propriété Google Search Console et Google Play par balises meta HTML et fichiers dédiés sécurisés (`google5a187ae36d30dd48.html` et `google3cD17ybVzPuK91mNz6HBh7NQBv1UelD7HFhikEMBOFc.html`) avec en-têtes de sécurité (`X-Robots-Tag: noindex, nofollow`, `X-Content-Type-Options: nosniff`).
 - **Politique de Confidentialité Conforme Play Store (`/politique-de-confidentialite` et `/privacy`)** :
   - Page légale dédiée intégrée pour la validation Google Play (collecte, finalité, sécurité, droit à l'effacement et contacts).
 - **Iconographie Mipmap Multi-Densités** :
