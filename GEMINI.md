@@ -309,20 +309,25 @@
 ### Q. Application Mobile Android & Publication Google Play Store Ready
 - **Architecture Hybride Native Capacitor (`com.omegafacture.billing`)** :
   - Dossier natif Android Studio complet `/android` avec Gradle, AndroidManifest et activités natives.
-  - Configuration `capacitor.config.json` connectée en direct à l'URL de production `https://www.omegafacture.site`, garantissant que toute évolution de fonctionnalités ou mise à jour déployée sur le cloud est immédiatement active sur l'application mobile des utilisateurs sans nécessiter de nouvelle validation Play Store.
+  - Configuration `capacitor.config.json` et `capacitor.config.ts` harmonisée sur `com.omegafacture.billing`, connectée en direct à l'URL de production `https://www.omegafacture.site`, garantissant que toute évolution de fonctionnalités ou mise à jour déployée sur le cloud est immédiatement active sur l'application mobile des utilisateurs sans nécessiter de nouvelle validation Play Store.
+  - Cible Android moderne : **SDK 36** (`compileSdkVersion 36`, `targetSdkVersion 36`) et `minSdkVersion 24`.
+  - Signature de production officielle : `release.keystore` (RSA 2048-bit) configuré dans `android/app/build.gradle` (`versionCode 2`, `versionName "1.0.1"`).
 - **PWA & Service Worker Intégré (`public/sw.js`, `public/manifest.json`, `src/app/manifest.ts`)** :
   - Support hors-ligne, mise en cache prédictive des assets, conformité stricte aux critères d'installabilité Google Play.
 - **Digital Asset Links & Validation de Domaine Google Certifiés** :
-  - `public/.well-known/assetlinks.json` configuré pour `com.omegafacture.billing` (App Links et Trusted Web Activity).
+  - `public/.well-known/assetlinks.json` configuré pour `com.omegafacture.billing` avec empreintes SHA-256 de signature release et debug (App Links et Trusted Web Activity).
   - Validation de propriété Google Search Console et Google Play par balises meta HTML et fichiers dédiés sécurisés (`google5a187ae36d30dd48.html` et `google3cD17ybVzPuK91mNz6HBh7NQBv1UelD7HFhikEMBOFc.html`) avec en-têtes de sécurité (`X-Robots-Tag: noindex, nofollow`, `X-Content-Type-Options: nosniff`).
-- **Politique de Confidentialité Conforme Play Store (`/politique-de-confidentialite` et `/privacy`)** :
-  - Page légale dédiée intégrée pour la validation Google Play (collecte, finalité, sécurité, droit à l'effacement et contacts).
-- **Iconographie Mipmap Multi-Densités** :
+- **Politique de Confidentialité & Suppression de Données Conformes Play Store** :
+  - Politique de confidentialité : `/politique-de-confidentialite` et `/privacy`.
+  - Page dédiée de demande de suppression de compte et de données : `/suppression-donnees` et `/delete-account` (conforme aux exigences strictes de la Google Play Console sur le droit à l'effacement et conservation légale UEMOA).
+- **Iconographie & Assets Graphiques Play Store** :
   - Pack d'icônes généré pour Android (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi) et icônes PWA 192px / 512px avec le logo Ω officiel.
+  - Graphisme des fonctionnalités officiel (1024x500 px) et pack de captures d'écran de l'application.
 - **Pipeline CI/CD GitHub Actions (`.github/workflows/android-build.yml`)** :
-  - Compilation automatique à chaque commit dans le cloud (Ubuntu + Java 17 + Android SDK) pour générer :
+  - Compilation automatique à chaque commit dans le cloud (Ubuntu + Java 17 + Android SDK 36) pour générer :
     1. **APK de Test** pour installation directe sur smartphone (`omega-facture-debug-apk`).
     2. **AAB de Production (Android App Bundle)** prêt pour l'importation sur la Google Play Console (`omega-facture-playstore-aab`).
+  - Statut : **Version 1.0.1 (versionCode 2) soumise avec succès pour examen Google Play Console**.
 
 ---
 
