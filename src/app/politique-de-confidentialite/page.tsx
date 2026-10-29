@@ -135,10 +135,14 @@ export default function PolitiqueConfidentialitePage() {
               Conformément à la réglementation sur la protection des données, vous disposez d&apos;un droit d&apos;accès, de rectification, de portabilité et de suppression définitive de l&apos;intégralité de vos données personnelles et professionnelles.
             </p>
             <p className="mt-2">
-              Vous pouvez demander la suppression immédiate et définitive de votre compte et de toutes les factures associées en nous adressant un e-mail à :{' '}
-              <a href="mailto:contact@omegafacture.site" className="text-indigo-400 font-semibold underline hover:text-indigo-300">
-                contact@omegafacture.site
-              </a>. Le traitement est effectif sous un délai maximal de 48 heures ouvrées.
+              Vous pouvez demander la suppression immédiate et définitive de votre compte et de toutes les factures associées en consultant notre page dédiée :{' '}
+              <Link href="/suppression-donnees" className="text-indigo-400 font-semibold underline hover:text-indigo-300">
+                Procédure de suppression de compte et données
+              </Link>{' '}
+              ou en nous adressant un e-mail à :{' '}
+              <a href="mailto:jobovog@gmail.com" className="text-indigo-400 font-semibold underline hover:text-indigo-300">
+                jobovog@gmail.com
+              </a> (ou <a href="mailto:contact@omegafacture.site" className="text-indigo-400 font-semibold underline hover:text-indigo-300">contact@omegafacture.site</a>). Le traitement est effectif sous un délai maximal de 48 heures ouvrées.
             </p>
           </section>
 

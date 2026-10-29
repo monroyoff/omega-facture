@@ -102,6 +102,11 @@ export const LandingFooter: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link className="hover:text-white transition-colors" href="/suppression-donnees">
+                  Suppression des données
+                </Link>
+              </li>
+              <li>
                 <span className="text-gray-500">Mentions OHADA &amp; UEMOA</span>
               </li>
               <li>
