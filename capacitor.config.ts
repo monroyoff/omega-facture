@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'site.omegafacture.app',
+  appId: 'com.omegafacture.billing',
   appName: 'OMEGA FACTURE',
   webDir: 'public',
   server: {
