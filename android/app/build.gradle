@@ -20,10 +20,18 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    signingConfigs {
+        release {
+            storeFile file('release.keystore')
+            storePassword 'omegafacture2026'
+            keyAlias 'omegafacture'
+            keyPassword 'omegafacture2026'
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
