@@ -513,6 +513,171 @@ export default function EditInvoicePage() {
                 </div>
               </div>
 
+              {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS (Positionnée avant Lignes de Facturation) */}
+              <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 shadow-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-brand-600" />
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                      Options fiscales &amp; Déductions
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-2.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60 flex items-center gap-1.5">
+                    <span>{currentCountryObj.flag}</span>
+                    <span>{currentCountryObj.name}</span>
+                    <span className="font-mono font-black">• TVA {globalVatRate}%</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {/* 1. Bouton CTA Pays fiscal : compact, élégant, tout sur la même ligne */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsCountryMenuOpen((prev) => !prev)}
+                      className={`w-full h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border text-left flex items-center justify-between gap-2 transition-all cursor-pointer shadow-2xs group ${
+                        isCountryMenuOpen
+                          ? 'border-brand-500 ring-2 ring-brand-500/20 bg-white dark:bg-slate-900'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-brand-400 dark:hover:border-brand-600'
+                      }`}
+                      title="Changer le pays fiscal de facturation"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="text-xl leading-none shrink-0">{currentCountryObj.flag}</span>
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0 whitespace-nowrap">
+                          Pays fiscal :
+                        </span>
+                        <span className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                          {currentCountryObj.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 text-slate-400 group-hover:text-brand-600">
+                        <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-1.5 py-0.5 rounded-md border border-brand-200/50">
+                          {currentCountryObj.standardVatRate}%
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${isCountryMenuOpen ? 'rotate-180 text-brand-600' : ''}`} />
+                      </div>
+                    </button>
+
+                    {/* Popover déroulant des 10 pays */}
+                    {isCountryMenuOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setIsCountryMenuOpen(false)}
+                        />
+                        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-1.5 max-h-72 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+                          <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1 flex items-center justify-between">
+                            <span>Choisir le pays</span>
+                            <span className="text-[9px] text-brand-600 dark:text-brand-400 font-extrabold">10 pays</span>
+                          </div>
+                          <div className="space-y-0.5">
+                            {SUPPORTED_COUNTRIES.map((c) => {
+                              const isSelected = c.code === currentCountryObj.code;
+                              return (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => handleTaxCountryChange(c.name)}
+                                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-brand-600 text-white font-bold shadow-xs'
+                                      : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className="text-xl shrink-0">{c.flag}</span>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold truncate block">{c.name}</span>
+                                        <span className={`text-[9px] font-bold px-1 rounded ${
+                                          isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                        }`}>
+                                          {c.region === 'europe' ? 'Europe' : 'UEMOA'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    <span className={`text-[11px] font-extrabold px-1.5 py-0.5 rounded ${
+                                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400'
+                                    }`}>
+                                      {c.standardVatRate}%
+                                    </span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* 2. Sélecteur TVA compact sur la même ligne */}
+                  <div className="relative h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-1.5 shadow-2xs">
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Percent className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        TVA :
+                      </span>
+                    </div>
+                    <div className="relative flex-1 min-w-0">
+                      <select
+                        value={globalVatRate}
+                        onChange={(e) => handleGlobalVatRateChange(parseFloat(e.target.value))}
+                        className="w-full py-1 pl-1 pr-5 bg-transparent text-xs sm:text-sm font-bold text-slate-900 dark:text-white border-0 focus:ring-0 cursor-pointer appearance-none truncate"
+                      >
+                        {currentCountryVatOptions.map((opt) => (
+                          <option
+                            key={opt.rate}
+                            value={opt.rate}
+                            className="text-slate-900 dark:text-white bg-white dark:bg-slate-900"
+                          >
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* 3. Remise commerciale compacte sur la même hauteur */}
+                  <div className="h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs sm:col-span-2 lg:col-span-1">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={hasDiscount}
+                        onChange={(e) => setHasDiscount(e.target.checked)}
+                        className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4 cursor-pointer"
+                      />
+                      <span>Remise</span>
+                    </label>
+
+                    {hasDiscount ? (
+                      <div className="relative w-28">
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={discountAmount === 0 ? '' : discountAmount}
+                          placeholder="0 FCFA"
+                          onChange={(e) =>
+                            setDiscountAmount(
+                              e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
+                            )
+                          }
+                          className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-right font-bold text-rose-600 focus:outline-none"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-medium">0 FCFA</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Items */}
               <div className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-6 shadow-card space-y-4">
                 <div className="flex items-center justify-between">
@@ -619,216 +784,6 @@ export default function EditInvoicePage() {
                   <Plus className="w-4 h-4" />
                   <span>Ajouter une ligne</span>
                 </button>
-
-                {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS */}
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 block">
-                        Options fiscales &amp; Déductions
-                      </span>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Sélectionnez le pays fiscal et ajustez le taux de TVA applicable
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 dark:bg-brand-950/70 border border-brand-200/70 dark:border-brand-800/70 self-start sm:self-auto shadow-2xs">
-                      <span className="text-lg leading-none">{currentCountryObj.flag}</span>
-                      <span className="text-xs font-bold text-brand-900 dark:text-brand-200">
-                        {currentCountryObj.name}
-                      </span>
-                      <span className="text-[11px] font-mono font-extrabold text-white bg-brand-600 dark:bg-brand-500 px-2 py-0.5 rounded-md shadow-2xs">
-                        TVA {globalVatRate}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Grille responsive : 2 grandes cartes ergonomiques sans débordement */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    {/* CARTE 1 : CTA PAYS FISCAL ENTIER & INTERACTIF */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setIsCountryMenuOpen((prev) => !prev)}
-                        className={`w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 transition-all cursor-pointer shadow-sm text-left group active:scale-[0.99] ${
-                          isCountryMenuOpen
-                            ? 'border-brand-500 ring-4 ring-brand-500/10 dark:ring-brand-500/20'
-                            : 'border-slate-200 dark:border-slate-800 hover:border-brand-400 dark:hover:border-brand-600 hover:shadow-md'
-                        }`}
-                        title="Cliquer pour choisir le pays de facturation"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-11 h-11 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl shrink-0 border border-brand-200/60 dark:border-brand-800/60 shadow-2xs">
-                            {currentCountryObj.flag}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
-                              Pays fiscal de facturation
-                            </span>
-                            <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate block">
-                              {currentCountryObj.name}
-                            </span>
-                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block truncate">
-                              {currentCountryObj.region === 'europe' ? 'Zone Europe' : 'Zone UEMOA'} • Taux standard {currentCountryObj.standardVatRate}%
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
-                          <span className="text-xs font-black text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-2.5 py-1 rounded-xl border border-brand-200/70 dark:border-brand-800/70">
-                            Changer
-                          </span>
-                          <ChevronDown
-                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                              isCountryMenuOpen ? 'rotate-180 text-brand-600' : 'group-hover:text-slate-700 dark:group-hover:text-white'
-                            }`}
-                          />
-                        </div>
-                      </button>
-
-                      {/* POPOVER DÉROULANT DES 10 PAYS */}
-                      {isCountryMenuOpen && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setIsCountryMenuOpen(false)}
-                          />
-                          <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-brand-500/30 p-2 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150 divide-y divide-slate-100 dark:divide-slate-800/60">
-                            <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
-                              <span>Choisir le pays de facturation</span>
-                              <span className="text-[9px] text-brand-600 dark:text-brand-400 font-extrabold">
-                                10 pays disponibles
-                              </span>
-                            </div>
-                            <div className="pt-1.5 space-y-1">
-                              {SUPPORTED_COUNTRIES.map((c) => {
-                                const isSelected = c.code === currentCountryObj.code;
-                                return (
-                                  <button
-                                    key={c.code}
-                                    type="button"
-                                    onClick={() => handleTaxCountryChange(c.name)}
-                                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer ${
-                                      isSelected
-                                        ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-500/20'
-                                        : 'hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-800 dark:text-slate-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-2xl shrink-0">{c.flag}</span>
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs sm:text-sm font-extrabold block">
-                                            {c.name}
-                                          </span>
-                                          <span
-                                            className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                                              isSelected
-                                                ? 'bg-white/20 text-white'
-                                                : c.region === 'europe'
-                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                            }`}
-                                          >
-                                            {c.region === 'europe' ? 'Europe' : 'UEMOA'}
-                                          </span>
-                                        </div>
-                                        <span
-                                          className={`text-[10px] block truncate ${
-                                            isSelected ? 'text-white/80' : 'text-slate-400 dark:text-slate-500'
-                                          }`}
-                                        >
-                                          {c.fiscalIdLabel.split('(')[0].trim()}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <span
-                                        className={`text-xs font-black px-2 py-0.5 rounded-lg ${
-                                          isSelected
-                                            ? 'bg-white/20 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400'
-                                        }`}
-                                      >
-                                        TVA {c.standardVatRate}%
-                                      </span>
-                                      {isSelected && <Check className="w-4 h-4 text-white" />}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* CARTE 2 : SÉLECTEUR DE TAUX DE TVA DU PAYS */}
-                    <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-sm">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
-                          <Percent className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                          <span>Taux de TVA ({currentCountryObj.name})</span>
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                          {currentCountryVatOptions.length} option{currentCountryVatOptions.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-
-                      <div className="relative">
-                        <select
-                          value={globalVatRate}
-                          onChange={(e) => handleGlobalVatRateChange(parseFloat(e.target.value))}
-                          className="w-full py-2.5 pl-3.5 pr-8 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer appearance-none"
-                        >
-                          {currentCountryVatOptions.map((opt) => (
-                            <option
-                              key={opt.rate}
-                              value={opt.rate}
-                              className="text-slate-900 dark:text-white bg-white dark:bg-slate-900 py-1"
-                            >
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CARTE 3 : REMISE COMMERCIALE (LIGNE LARGE DÉDIÉE) */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                    <label className="flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={hasDiscount}
-                        onChange={(e) => setHasDiscount(e.target.checked)}
-                        className="rounded-lg border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4 cursor-pointer"
-                      />
-                      <span>Appliquer une remise commerciale globale</span>
-                    </label>
-
-                    {hasDiscount && (
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
-                        <span className="text-xs font-semibold text-slate-500">Montant déduit :</span>
-                        <div className="relative w-36">
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            value={discountAmount === 0 ? '' : discountAmount}
-                            placeholder="0 FCFA"
-                            onChange={(e) =>
-                              setDiscountAmount(
-                                e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
-                              )
-                            }
-                            className="w-full px-3 py-1.5 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-right font-bold text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500/20 shadow-2xs"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Mobile Action Bar: Save & Finalize */}
