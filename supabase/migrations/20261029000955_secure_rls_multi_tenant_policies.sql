@@ -25,6 +25,15 @@ ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_installments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
+-- 3.1 Blocage total du rôle anonyme (anon) sur toutes les tables exposées (Défense en profondeur)
+REVOKE ALL ON TABLE public.companies FROM anon;
+REVOKE ALL ON TABLE public.clients FROM anon;
+REVOKE ALL ON TABLE public.products FROM anon;
+REVOKE ALL ON TABLE public.invoices FROM anon;
+REVOKE ALL ON TABLE public.invoice_items FROM anon;
+REVOKE ALL ON TABLE public.invoice_installments FROM anon;
+REVOKE ALL ON TABLE public.payments FROM anon;
+
 -- 4. Index de performance sur les clés étrangères pour accélérer les vérifications RLS
 CREATE INDEX IF NOT EXISTS idx_companies_user_id ON public.companies(user_id);
 CREATE INDEX IF NOT EXISTS idx_clients_company_id ON public.clients(company_id);
