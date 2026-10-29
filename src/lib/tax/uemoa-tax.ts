@@ -184,7 +184,7 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'FR',
-    name: 'France métropolitaine',
+    name: 'France',
     aliases: ['france', 'france métropolitaine', 'france metropolitaine', 'fr', 'république française', 'republique francaise'],
     standardVatRate: 20,
     reducedRates: [
@@ -252,7 +252,11 @@ export function findUemoaCountry(countryOrCode?: string): UemoaCountry {
   const found = SUPPORTED_COUNTRIES.find((c) => {
     if (c.code.toLowerCase() === clean) return true;
     if (c.name.toLowerCase() === clean) return true;
-    return c.aliases.some((a) => a.toLowerCase() === clean || clean.includes(a.toLowerCase()));
+    if (clean.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(clean)) return true;
+    return c.aliases.some((a) => {
+      const aLower = a.toLowerCase();
+      return aLower === clean || clean.includes(aLower) || aLower.includes(clean);
+    });
   });
 
   return found || SUPPORTED_COUNTRIES[0];
