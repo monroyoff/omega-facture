@@ -30,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_companies_user_id ON public.companies(user_id);
 CREATE INDEX IF NOT EXISTS idx_clients_company_id ON public.clients(company_id);
 CREATE INDEX IF NOT EXISTS idx_products_company_id ON public.products(company_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_company_id ON public.invoices(company_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON public.invoices(client_id);
 CREATE INDEX IF NOT EXISTS idx_payments_company_id ON public.payments(company_id);
 CREATE INDEX IF NOT EXISTS idx_payments_invoice_id ON public.payments(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON public.invoice_items(invoice_id);
