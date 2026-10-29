@@ -283,8 +283,8 @@
     - *Paramètres (`/settings`)* : Volet dédié « Formule d’Abonnement » avec jauge de quota en temps réel, récapitulatif des avantages et gestion de formule.
     - *Landing Page (`/#tarifs`)* : Grille tarifaire publique harmonisée avec les spécifications régionales UEMOA.
 
-### P. Système Fiscal UEMOA & Taux de TVA Multi-Pays (`@/lib/tax/uemoa-tax.ts`)
-- **Taux de TVA Officiels par Pays Membre UEMOA** :
+### P. Système Fiscal Multi-Régions & Taux de TVA par Pays (`@/lib/tax/uemoa-tax.ts`)
+- **Taux de TVA Officiels par Pays Membre UEMOA & Pays Ciblés (France & Belgique)** :
   1. **Bénin** : Taux normal de **18%** (Identifiant fiscal : *Numéro IFU*).
   2. **Burkina Faso** : Taux normal de **18%** (Identifiant fiscal : *Numéro IFU*).
   3. **Côte d'Ivoire** : Taux normal de **18%**, taux réduit de **9%** (lait, pâtes alimentaires et produits de 1ère nécessité) (Identifiant fiscal : *Numéro NCC*).
@@ -293,18 +293,35 @@
   6. **Niger** : **Taux normal spécifique de 19%**, taux particulier de **5%** (énergie solaire) (Identifiant fiscal : *Numéro NIF*).
   7. **Sénégal** : Taux normal de **18%**, taux réduit de **10%** (secteur de l'hôtellerie et du tourisme) (Identifiant fiscal : *Numéro NINEA*).
   8. **Togo** : Taux normal de **18%** (Identifiant fiscal : *Numéro NIF*).
-- **Détection Automatique dès l'Inscription (`/register`)** :
-  - Sélecteur officiel des 8 pays membres de l'UEMOA avec drapeaux nationaux.
-  - Dès qu'un utilisateur sélectionne son pays (ex: **Niger**), le système affiche un encadré d'information fiscale contextuelle et configure automatiquement son espace avec le taux de TVA légal correspondant (**19% pour le Niger**, **18% pour les autres pays**).
+  9. **France métropolitaine** :
+     - **Taux normal (20%)** : par défaut pour les biens et prestations de services.
+     - **Taux intermédiaire (10%)** : restauration sur place, transports de voyageurs, travaux de rénovation de logement, hébergements.
+     - **Taux réduit (5,5%)** : produits alimentaires de base, livres, abonnements gaz et électricité, équipements handicap.
+     - **Taux super réduit (2,1%)** : médicaments remboursables par la Sécurité sociale, presse, spectacles.
+     - **Taux de 0%** : franchise en base de TVA (art. 293 B du CGI) et exportations.
+     - Identifiant fiscal : *Numéro SIREN / SIRET ou TVA Intracommunautaire*.
+  10. **Belgique** :
+      - **Taux normal (21%)** : taux standard en vigueur.
+      - **Taux intermédiaire (12%)** : restauration, fournitures de logements sociaux, margarine, hôtels et campings (depuis le 1er mars 2026).
+      - **Taux réduit (6%)** : produits alimentaires de base, eau, médicaments, livres, transport de personnes, travaux de rénovation sous conditions.
+      - **Taux de 0%** : publications périodiques (≥ 48/an), matériaux de récupération, régime de franchise petites entreprises (< 25 000 €), professions médicales exemptées.
+      - Identifiant fiscal : *Numéro d'entreprise (BCE / TVA Intracommunautaire)*.
+- **Détection Automatique dès l'Inscription (`/register`) & Profil** :
+  - Sélecteur de l'ensemble des 10 pays ciblés avec drapeaux nationaux.
+  - Dès qu'un utilisateur sélectionne son pays (ex: **France métropolitaine** ou **Belgique**), le système affiche un encadré d'information fiscale contextuelle et configure automatiquement son espace avec le taux de TVA légal standard correspondant (**20% en France**, **21% en Belgique**, **19% au Niger**, **18% en zone UEMOA**).
   - Les métadonnées fiscales sont sauvegardées dans le profil utilisateur, transmises à Supabase (`country`, `default_vat`) et stockées dans les préférences locales (`facturo:v1:settings`).
-- **Application Immédiate lors de la Création de Documents (`CreateInvoiceModal.tsx`, `/invoices/[id]/edit`)** :
-  - Toute nouvelle ligne d'article s'initialise rigoureusement avec le taux de TVA du pays du compte (**19% au Niger**, **18% au Bénin/CI/Sénégal/etc.**).
-  - Le sélecteur de TVA de chaque ligne propose dynamiquement les taux propres au pays (taux normal, taux réduits sectoriels et exonération 0%).
-  - L'étiquette de synthèse dans l'aperçu, les totaux et les factures s'adapte en direct (`TVA (19% Niger) :`, `TVA (18% Côte d'Ivoire) :`).
+- **Sélecteur Dynamique de Pays & TVA en Direct lors de la Création / Édition (`CreateInvoiceModal.tsx`, `/invoices/[id]/edit`)** :
+  - **Basé par défaut sur le pays d'inscription** : À l'ouverture de création ou d'édition d'une facture ou devis, le pays fiscal et le taux de TVA s'initialisent automatiquement sur le pays renseigné lors de l'inscription.
+  - **Menu Déroulant de Pays au Même Endroit** : Dans la section « Options fiscales & Déductions », un menu déroulant complet liste l'ensemble des pays ciblés (Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger, Guinée-Bissau, France métropolitaine, Belgique).
+  - **Changement Instantané & Répercussion Immédiate** : Dès qu'un utilisateur sélectionne un autre pays :
+    1. Le taux de TVA appliqué bascule immédiatement sur le taux normal légal du pays sélectionné.
+    2. Toutes les lignes d'articles de la facture voient leur taux de TVA mis à jour instantanément.
+    3. Le menu déroulant des taux de TVA s'actualise pour afficher l'ensemble des taux applicables dans ce pays (taux normal, taux intermédiaires, réduits, super réduits et exonération/franchise).
+    4. Les sous-totaux HT, montants de TVA (avec support complet des décimales `5.5%` et `2.1%` via `parseFloat`), totaux TTC et acomptes se recalculent en temps réel.
 - **Génération PDF Officielle Conforme (`invoice-pdf.ts`)** :
-  - Détection dynamique du taux de TVA appliqué à partir des articles de la facture (`appliedVatRate`), garantissant que les factures nigériennes affichent fidèlement `TVA (19%) :` sur le document PDF officiel certifié.
+  - Détection dynamique du taux de TVA appliqué à partir des articles de la facture (`appliedVatRate`), garantissant que les factures françaises affichent `TVA (20%) :` (ou 10%, 5.5%, 2.1%), les factures belges `TVA (21%) :` (ou 12%, 6%), les factures nigériennes `TVA (19%) :` et les factures UEMOA `TVA (18%) :` sur le document PDF officiel certifié.
 - **Paramétrage & Changement de Pays (`/settings`)** :
-  - Sélecteur de pays dans les informations d'entreprise recalculant en direct le taux de TVA standard par défaut et mettant à jour l'intitulé du numéro fiscal (IFU au Bénin, NCC en Côte d'Ivoire, NINEA au Sénégal, NIF au Niger).
+  - Sélecteur de pays dans les informations d'entreprise recalculant en direct le taux de TVA standard par défaut et mettant à jour l'intitulé du numéro fiscal (IFU au Bénin, NCC en Côte d'Ivoire, NINEA au Sénégal, NIF au Niger, SIRET/TVA en France, BCE/TVA en Belgique).
 
 ### Q. Application Mobile Android & Publication Google Play Store Ready
 - **Architecture Hybride Native Capacitor (`com.omegafacture.billing`)** :

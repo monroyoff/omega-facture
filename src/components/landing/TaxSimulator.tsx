@@ -30,13 +30,13 @@ export const TaxSimulator: React.FC = () => {
         <div className="max-w-md">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 dark:bg-brand-950/50 border border-brand-200/60 dark:border-brand-800/60 text-brand-600 dark:text-brand-400 text-xs font-bold uppercase tracking-wider mb-2">
             <Calculator className="w-3.5 h-3.5" />
-            <span>Simulateur fiscal UEMOA</span>
+            <span>Simulateur fiscal UEMOA &amp; Europe</span>
           </div>
           <h4 className="text-xl font-bold text-brand-dark dark:text-white mt-1">
             Calculez votre montant TTC avec TVA selon votre pays
           </h4>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Testez immédiatement le calcul conforme aux exigences fiscales de votre pays de facturation (18%, 19% au Niger, taux réduits).
+            Testez immédiatement le calcul conforme aux exigences fiscales de votre pays de facturation (20% en France, 21% en Belgique, 18% zone UEMOA, 19% au Niger, taux réduits).
           </p>
         </div>
 

@@ -226,7 +226,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                    Pays du Siège (Zone UEMOA) *
+                    Pays du Siège (Zone UEMOA &amp; Europe) *
                   </label>
                   <select
                     value={country}
@@ -235,7 +235,7 @@ export default function SettingsPage() {
                   >
                     {UEMOA_COUNTRIES.map((c) => (
                       <option key={c.code} value={c.name}>
-                        {c.flag} {c.name} — TVA légale {c.standardVatRate}%{c.code === 'NE' ? ' (Taux spécifique Niger)' : ''}
+                        {c.flag} {c.name} — TVA légale {c.standardVatRate}%
                       </option>
                     ))}
                   </select>

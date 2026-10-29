@@ -221,12 +221,12 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Row 2bis: Pays d'implantation & Fiscalité UEMOA */}
+            {/* Row 2bis: Pays d'implantation & Fiscalité */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Globe className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                  Pays du siège (Zone UEMOA) <span className="text-rose-500">*</span>
+                  Pays du siège (Zone UEMOA &amp; Europe) <span className="text-rose-500">*</span>
                 </label>
                 <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 px-2 py-0.5 rounded-full border border-brand-200/50 dark:border-brand-800/50">
                   Taux TVA standard : {getCountryStandardVatRate(country)}%
@@ -240,7 +240,7 @@ export default function RegisterPage() {
                 >
                   {UEMOA_COUNTRIES.map((c) => (
                     <option key={c.code} value={c.name}>
-                      {c.flag} {c.name} — TVA {c.standardVatRate}%{c.code === 'NE' ? ' (Taux spécifique Niger)' : ''}
+                      {c.flag} {c.name} — TVA légale {c.standardVatRate}%
                     </option>
                   ))}
                 </select>
@@ -274,6 +274,16 @@ export default function RegisterPage() {
                         {isNiger && (
                           <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
                             ★ Taux spécifique de 19%
+                          </span>
+                        )}
+                        {currentCountry.code === 'FR' && (
+                          <span className="text-[10px] font-extrabold text-blue-700 dark:text-blue-400">
+                            ★ France métropolitaine (20%, 10%, 5,5%, 2,1%)
+                          </span>
+                        )}
+                        {currentCountry.code === 'BE' && (
+                          <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
+                            ★ Belgique (21%, 12%, 6%)
                           </span>
                         )}
                       </div>

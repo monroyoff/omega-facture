@@ -24,13 +24,20 @@ import {
   X,
   FileText,
   Menu,
+  Globe,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { DocumentKind } from '@/lib/types';
-import { UEMOA_ALL_VAT_OPTIONS } from '@/lib/tax/uemoa-tax';
+import {
+  UEMOA_COUNTRIES,
+  findUemoaCountry,
+  getCountryStandardVatRate,
+  getCountryVatRates,
+  UEMOA_ALL_VAT_OPTIONS,
+} from '@/lib/tax/uemoa-tax';
 
 export default function EditInvoicePage() {
   const router = useRouter();
@@ -70,9 +77,39 @@ export default function EditInvoicePage() {
   const [currency, setCurrency] = useState('FCFA');
 
   const [items, setItems] = useState<LineItemInput[]>([]);
+  const [selectedTaxCountry, setSelectedTaxCountry] = useState<string>(userCountry || 'Bénin');
   const [globalVatRate, setGlobalVatRate] = useState<number>(defaultVatRate || 18);
   const [hasDiscount, setHasDiscount] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  // Dynamic VAT rate options for the selected country
+  const currentCountryVatOptions = useMemo(() => {
+    return getCountryVatRates(selectedTaxCountry);
+  }, [selectedTaxCountry]);
+
+  // Switch country and immediately update applied VAT rate and all invoice line items
+  const handleTaxCountryChange = (newCountryName: string) => {
+    setSelectedTaxCountry(newCountryName);
+    const newStandardVat = getCountryStandardVatRate(newCountryName);
+    setGlobalVatRate(newStandardVat);
+    setItems((prev) =>
+      prev.map((it) => ({
+        ...it,
+        vatRate: newStandardVat,
+      }))
+    );
+  };
+
+  // Change VAT rate globally across all line items
+  const handleGlobalVatRateChange = (newRate: number) => {
+    setGlobalVatRate(newRate);
+    setItems((prev) =>
+      prev.map((it) => ({
+        ...it,
+        vatRate: newRate,
+      }))
+    );
+  };
 
   // Load existing invoice data
   useEffect(() => {
@@ -92,10 +129,18 @@ export default function EditInvoicePage() {
       setDueDate(inv.dueDate);
       setInvoiceNumber(inv.number);
       setCurrency(inv.currency === 'XOF' ? 'FCFA' : inv.currency);
+
+      const invClient = clients.find((c) => c.id === (inv.clientId || inv.client.id)) || inv.client;
+      const initialCountry = invClient?.country || userCountry || 'Bénin';
+      setSelectedTaxCountry(initialCountry);
+
       const activeVat = inv.items.find((it) => (it.vatRate || 0) > 0)?.vatRate;
-      if (activeVat) {
+      if (activeVat !== undefined) {
         setGlobalVatRate(activeVat);
+      } else {
+        setGlobalVatRate(getCountryStandardVatRate(initialCountry));
       }
+
       setItems(
         inv.items.map((it) => ({
           description: it.description,
@@ -110,7 +155,7 @@ export default function EditInvoicePage() {
         setDiscountAmount(inv.discount);
       }
     }
-  }, [invoiceId, getInvoice]);
+  }, [invoiceId, getInvoice, clients, userCountry]);
 
   const currentClient = useMemo(() => {
     return clients.find((c) => c.id === selectedClientId) || clients[0];
@@ -121,6 +166,7 @@ export default function EditInvoicePage() {
   }, [items, hasDiscount, discountAmount]);
 
   const handleAddItem = () => {
+    const fallbackVat = globalVatRate !== undefined ? globalVatRate : getCountryStandardVatRate(selectedTaxCountry);
     setItems((prev) => [
       ...prev,
       {
@@ -128,7 +174,7 @@ export default function EditInvoicePage() {
         quantity: 1,
         unitPrice: 0,
         discountPct: 0,
-        vatRate: globalVatRate || defaultVatRate || 18,
+        vatRate: fallbackVat,
       },
     ]);
   };
@@ -516,16 +562,16 @@ export default function EditInvoicePage() {
                             <select
                               value={item.vatRate}
                               onChange={(e) =>
-                                handleUpdateItem(index, 'vatRate', parseInt(e.target.value, 10))
+                                handleUpdateItem(index, 'vatRate', parseFloat(e.target.value))
                               }
                               className="w-full px-2 py-1.5 text-xs font-semibold bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer"
                             >
-                              {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
+                              {currentCountryVatOptions.map((opt) => (
                                 <option key={opt.rate} value={opt.rate}>
                                   {opt.label}
                                 </option>
                               ))}
-                              {!UEMOA_ALL_VAT_OPTIONS.some((opt) => opt.rate === item.vatRate) && (
+                              {!currentCountryVatOptions.some((opt) => opt.rate === item.vatRate) && (
                                 <option value={item.vatRate}>{item.vatRate}%</option>
                               )}
                             </select>
@@ -562,47 +608,60 @@ export default function EditInvoicePage() {
                   <span>Ajouter une ligne</span>
                 </button>
 
-                {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS (Reproduit fidèlement selon la capture) */}
+                {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS */}
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Options fiscales &amp; Déductions
                     </span>
-                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/60 px-2.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60">
-                      Zone UEMOA
+                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/60 px-2.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60 flex items-center gap-1.5">
+                      <span>{findUemoaCountry(selectedTaxCountry).flag}</span>
+                      <span>{selectedTaxCountry}</span>
+                      <span className="font-mono font-bold">• TVA {globalVatRate}%</span>
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* TVA selon pays (exact style de la capture) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* 1. Menu déroulant Pays ciblé */}
                     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        TVA selon pays
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                        <span className="truncate">Pays fiscal</span>
+                      </span>
+                      <select
+                        value={selectedTaxCountry}
+                        onChange={(e) => handleTaxCountryChange(e.target.value)}
+                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer max-w-[140px] sm:max-w-[170px] truncate"
+                      >
+                        {UEMOA_COUNTRIES.map((c) => (
+                          <option key={c.code} value={c.name} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
+                            {c.flag} {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 2. Menu déroulant TVA selon pays sélectionné */}
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Percent className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                        <span className="truncate">Taux TVA</span>
                       </span>
                       <select
                         value={globalVatRate}
-                        onChange={(e) => {
-                          const newRate = parseInt(e.target.value, 10);
-                          setGlobalVatRate(newRate);
-                          setItems((prev) =>
-                            prev.map((it) => ({
-                              ...it,
-                              vatRate: newRate,
-                            }))
-                          );
-                        }}
-                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer"
+                        onChange={(e) => handleGlobalVatRateChange(parseFloat(e.target.value))}
+                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer max-w-[150px] sm:max-w-[180px] truncate"
                       >
-                        {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
-                          <option key={opt.rate} value={opt.rate}>
+                        {currentCountryVatOptions.map((opt) => (
+                          <option key={opt.rate} value={opt.rate} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
                             {opt.label}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    {/* Remise commerciale */}
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                    {/* 3. Remise commerciale */}
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 sm:col-span-2 lg:col-span-1">
                       <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                         <input
                           type="checkbox"
@@ -610,7 +669,7 @@ export default function EditInvoicePage() {
                           onChange={(e) => setHasDiscount(e.target.checked)}
                           className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
                         />
-                        <span>Remise commerciale</span>
+                        <span>Remise</span>
                       </label>
 
                       {hasDiscount && (
@@ -622,7 +681,9 @@ export default function EditInvoicePage() {
                             value={discountAmount === 0 ? '' : discountAmount}
                             placeholder="0 FCFA"
                             onChange={(e) =>
-                              setDiscountAmount(parseInt(e.target.value, 10) || 0)
+                              setDiscountAmount(
+                                e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
+                              )
                             }
                             className="w-full px-2 py-0.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-right font-bold text-rose-600 focus:outline-none"
                           />

@@ -18,13 +18,21 @@ import {
   FileCheck2,
   FileText,
   RotateCcw,
+  Globe,
+  Percent,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { DocumentKind, Invoice } from '@/lib/types';
-import { UEMOA_ALL_VAT_OPTIONS } from '@/lib/tax/uemoa-tax';
+import {
+  UEMOA_COUNTRIES,
+  findUemoaCountry,
+  getCountryStandardVatRate,
+  getCountryVatRates,
+  UEMOA_ALL_VAT_OPTIONS,
+} from '@/lib/tax/uemoa-tax';
 
 function calculateDateOffset(baseDate: string, days: number): string {
   try {
@@ -135,19 +143,52 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [invoiceNumber, setInvoiceNumber] = useState('FAC-2026-0001');
   const [currency, setCurrency] = useState('FCFA');
 
-  // Line items state - clean and empty on start with user's country standard VAT rate
+  // Selected tax country (defaulting to user country from registration/profile)
+  const [selectedTaxCountry, setSelectedTaxCountry] = useState<string>(userCountry || 'Bénin');
+
+  // Line items state - clean and empty on start with country standard VAT rate
+  const initialVat = defaultVatRate !== undefined ? defaultVatRate : getCountryStandardVatRate(userCountry || 'Bénin');
   const [items, setItems] = useState<LineItemInput[]>([
     {
       description: '',
       quantity: 1,
       unitPrice: 0,
       discountPct: 0,
-      vatRate: defaultVatRate || 18,
+      vatRate: initialVat,
     },
   ]);
 
   // Global VAT Rate selection for the invoice (defaulting to user country standard)
-  const [globalVatRate, setGlobalVatRate] = useState<number>(defaultVatRate || 18);
+  const [globalVatRate, setGlobalVatRate] = useState<number>(initialVat);
+
+  // Dynamic VAT rate options for the selected country
+  const currentCountryVatOptions = useMemo(() => {
+    return getCountryVatRates(selectedTaxCountry);
+  }, [selectedTaxCountry]);
+
+  // Switch country and immediately update applied VAT rate and all invoice line items
+  const handleTaxCountryChange = (newCountryName: string) => {
+    setSelectedTaxCountry(newCountryName);
+    const newStandardVat = getCountryStandardVatRate(newCountryName);
+    setGlobalVatRate(newStandardVat);
+    setItems((prev) =>
+      prev.map((it) => ({
+        ...it,
+        vatRate: newStandardVat,
+      }))
+    );
+  };
+
+  // Change VAT rate globally across all line items
+  const handleGlobalVatRateChange = (newRate: number) => {
+    setGlobalVatRate(newRate);
+    setItems((prev) =>
+      prev.map((it) => ({
+        ...it,
+        vatRate: newRate,
+      }))
+    );
+  };
 
   // Discount - unchecked by default, 0 FCFA
   const [hasDiscount, setHasDiscount] = useState(false);
@@ -161,10 +202,13 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     (targetKind: DocumentKind = initialKind) => {
       const today = getTodayDate();
       const defaultDue = calculateDateOffset(today, targetKind === 'quote' ? 30 : 15);
+      const targetCountry = userCountry || 'Bénin';
+      const standardVat = defaultVatRate !== undefined ? defaultVatRate : getCountryStandardVatRate(targetCountry);
 
       setDocumentKind(targetKind);
       setInvoiceType('standard');
-      setGlobalVatRate(defaultVatRate || 18);
+      setSelectedTaxCountry(targetCountry);
+      setGlobalVatRate(standardVat);
 
       // 1. Articles : strictement 1 seule ligne vide sans montant imposé
       setItems([
@@ -173,7 +217,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
           quantity: 1,
           unitPrice: 0,
           discountPct: 0,
-          vatRate: defaultVatRate || 18,
+          vatRate: standardVat,
         },
       ]);
 
@@ -230,7 +274,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
       if (currentUser?.organization) setSellerName(currentUser.organization);
       if (currentUser?.email) setSellerEmail(currentUser.email);
     },
-    [initialKind, invoices, currentUser]
+    [initialKind, invoices, currentUser, userCountry, defaultVatRate]
   );
 
   // Réinitialiser systématiquement à chaque ouverture de la modale
@@ -387,6 +431,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
 
   // Item handlers
   const handleAddItem = () => {
+    const fallbackVat = globalVatRate !== undefined ? globalVatRate : getCountryStandardVatRate(selectedTaxCountry);
     setItems((prev) => [
       ...prev,
       {
@@ -394,7 +439,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         quantity: 1,
         unitPrice: 0,
         discountPct: 0,
-        vatRate: globalVatRate || defaultVatRate || 18,
+        vatRate: fallbackVat,
       },
     ]);
   };
@@ -402,6 +447,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const handleAddFromCatalog = (productName: string) => {
     const prod = products.find((p) => p.name === productName);
     if (!prod) return;
+    const fallbackVat = globalVatRate !== undefined ? globalVatRate : getCountryStandardVatRate(selectedTaxCountry);
     setItems((prev) => [
       ...prev,
       {
@@ -409,7 +455,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         quantity: 1,
         unitPrice: prod.price,
         discountPct: 0,
-        vatRate: prod.vat,
+        vatRate: prod.vat !== undefined ? prod.vat : fallbackVat,
       },
     ]);
   };
@@ -1340,16 +1386,16 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             <select
                               value={item.vatRate}
                               onChange={(e) =>
-                                handleUpdateItem(index, 'vatRate', parseInt(e.target.value, 10))
+                                handleUpdateItem(index, 'vatRate', parseFloat(e.target.value))
                               }
                               className="w-full px-2 py-1.5 text-xs sm:text-sm bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold cursor-pointer"
                             >
-                              {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
+                              {currentCountryVatOptions.map((opt) => (
                                 <option key={opt.rate} value={opt.rate}>
                                   {opt.label}
                                 </option>
                               ))}
-                              {!UEMOA_ALL_VAT_OPTIONS.some((opt) => opt.rate === item.vatRate) && (
+                              {!currentCountryVatOptions.some((opt) => opt.rate === item.vatRate) && (
                                 <option value={item.vatRate}>{item.vatRate}%</option>
                               )}
                             </select>
@@ -1419,47 +1465,60 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                   </div>
                 </div>
 
-                {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS (Reproduit fidèlement selon la capture) */}
+                {/* SECTION: OPTIONS FISCALES & DÉDUCTIONS */}
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Options fiscales &amp; Déductions
                     </span>
-                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/60 px-2.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60">
-                      Zone UEMOA
+                    <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold bg-brand-50 dark:bg-brand-950/60 px-2.5 py-0.5 rounded-full border border-brand-200/60 dark:border-brand-800/60 flex items-center gap-1.5">
+                      <span>{findUemoaCountry(selectedTaxCountry).flag}</span>
+                      <span>{selectedTaxCountry}</span>
+                      <span className="font-mono font-bold">• TVA {globalVatRate}%</span>
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* TVA selon pays (exact style de la capture) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* 1. Menu déroulant Pays ciblé (se base sur le pays d'inscription par défaut) */}
                     <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        TVA selon pays
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                        <span className="truncate">Pays fiscal</span>
+                      </span>
+                      <select
+                        value={selectedTaxCountry}
+                        onChange={(e) => handleTaxCountryChange(e.target.value)}
+                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer max-w-[140px] sm:max-w-[170px] truncate"
+                      >
+                        {UEMOA_COUNTRIES.map((c) => (
+                          <option key={c.code} value={c.name} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
+                            {c.flag} {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 2. Menu déroulant TVA selon pays sélectionné */}
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Percent className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 shrink-0" />
+                        <span className="truncate">Taux TVA</span>
                       </span>
                       <select
                         value={globalVatRate}
-                        onChange={(e) => {
-                          const newRate = parseInt(e.target.value, 10);
-                          setGlobalVatRate(newRate);
-                          setItems((prev) =>
-                            prev.map((it) => ({
-                              ...it,
-                              vatRate: newRate,
-                            }))
-                          );
-                        }}
-                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer"
+                        onChange={(e) => handleGlobalVatRateChange(parseFloat(e.target.value))}
+                        className="text-xs font-bold text-slate-900 dark:text-white bg-transparent border-0 focus:ring-0 p-0 text-right cursor-pointer max-w-[150px] sm:max-w-[180px] truncate"
                       >
-                        {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
-                          <option key={opt.rate} value={opt.rate}>
+                        {currentCountryVatOptions.map((opt) => (
+                          <option key={opt.rate} value={opt.rate} className="text-slate-900 dark:text-white bg-white dark:bg-slate-900">
                             {opt.label}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    {/* Remise commerciale */}
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                    {/* 3. Remise commerciale */}
+                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/60 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700/80 sm:col-span-2 lg:col-span-1">
                       <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
                         <input
                           type="checkbox"
@@ -1467,7 +1526,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                           onChange={(e) => setHasDiscount(e.target.checked)}
                           className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
                         />
-                        <span>Remise commerciale</span>
+                        <span>Remise</span>
                       </label>
 
                       {hasDiscount && (

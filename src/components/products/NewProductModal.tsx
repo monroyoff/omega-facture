@@ -174,7 +174,7 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({
               </label>
               <select
                 value={vat}
-                onChange={(e) => setVat(parseInt(e.target.value, 10))}
+                onChange={(e) => setVat(parseFloat(e.target.value))}
                 className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold cursor-pointer"
               >
                 {UEMOA_ALL_VAT_OPTIONS.map((opt) => (
