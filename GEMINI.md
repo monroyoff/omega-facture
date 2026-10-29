@@ -469,7 +469,11 @@ Le projet est entièrement connecté et synchronisé avec le backend **Supabase*
   6. `public.invoice_installments` : Échéanciers d'acomptes (modalités 30%-70%, 50%-50%, etc.).
   7. `public.payments` : Historique des règlements (Mobile Money MTN/Moov/Wave, virements, espèces, chèques).
 - **Triggers PostgreSQL** : `trg_sync_invoice_payments` recalcule automatiquement `amount_paid` et bascule la facture en `paid` dès l'atteinte du solde.
-- **Sécurité RLS** : Active sur toutes les tables (`ROW LEVEL SECURITY`).
+- **Sécurité RLS & Multi-Tenant Hermétique** : 
+  - **Isolation Stricte par Propriétaire** : Politiques RLS hermétiques limitant l'accès aux seuls utilisateurs authentifiés (`TO authenticated`) pour leurs propres ressources via `user_id = (SELECT auth.uid())` sur `companies`, et `company_id IN (SELECT id FROM public.companies WHERE user_id = (SELECT auth.uid()))` sur `clients`, `products`, `invoices`, `payments`, `invoice_items` et `invoice_installments`.
+  - **Blocage Total du Rôle Public/Anon** : Aucune donnée de facturation ni aucun règlement n'est lisible ni modifiable par le rôle anonyme (`anon`). Toute tentative de lecture directe sans session authentifiée renvoie une liste vide `[]` et les écritures sont bloquées par erreur `42501` (violation de sécurité RLS).
+  - **Verrouillage des Fonctions SECURITY DEFINER** : Les fonctions d'administration et triggers (`auto_confirm_user`, `rls_auto_enable`, `fn_sync_invoice_payments`) ont leur `search_path` explicitement figé et les privilèges d'exécution RPC sont révoqués pour empêcher toute invocation via l'API REST.
+  - **Indexation des Clés Étrangères** : Index B-tree sur toutes les colonnes de jointure RLS (`user_id`, `company_id`, `invoice_id`) garantissant une latence minimale sur l'évaluation des politiques de sécurité.
 - **Typage Strict** : `src/lib/supabase/database.types.ts` généré directement depuis la base PostgreSQL.
 - **Couche d'Accès aux Données (`src/lib/supabase/services.ts`)** :
   - `fetchSupabaseData()` : Récupération des données distantes.
