@@ -240,6 +240,7 @@ export function generateInvoicePDF({
 
       tableY += 45;
 
+      const docCurrency = invoice.currency === 'XOF' ? 'FCFA' : invoice.currency || 'FCFA';
       const items = invoice.items || [];
       items.forEach((item, index) => {
         const rowHeight = 44;
@@ -263,7 +264,7 @@ export function generateInvoicePDF({
         ctx.fillText(item.quantity.toString(), 690, tableY + 27);
 
         // Prix Unitaire
-        ctx.fillText(formatFCFA(item.unitPrice), 770, tableY + 27);
+        ctx.fillText(formatFCFA(item.unitPrice, docCurrency), 770, tableY + 27);
 
         // Remise
         ctx.fillStyle = item.discountPct ? '#059669' : '#94a3b8';
@@ -273,7 +274,7 @@ export function generateInvoicePDF({
         ctx.fillStyle = '#0f172a';
         ctx.font = 'bold 13px system-ui, sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(formatFCFA(item.total), 1160, tableY + 27);
+        ctx.fillText(formatFCFA(item.total, docCurrency), 1160, tableY + 27);
         ctx.textAlign = 'left';
 
         tableY += rowHeight;
@@ -310,10 +311,10 @@ export function generateInvoicePDF({
       // Calcul dynamique du taux de TVA appliqué (ex: 19% Niger, 18% standard, 9% ou 10% taux réduit)
       const nonZeroVatItem = invoice.items?.find((it) => (it.vatRate || 0) > 0);
       const appliedVatRate = invoice.vatAmount > 0 ? (nonZeroVatItem?.vatRate || 18) : 0;
-      drawSummaryLine('Sous-total HT :', formatFCFA(invoice.subtotal));
-      drawSummaryLine(`TVA (${appliedVatRate}%) :`, formatFCFA(invoice.vatAmount));
+      drawSummaryLine('Sous-total HT :', formatFCFA(invoice.subtotal, docCurrency));
+      drawSummaryLine(`TVA (${appliedVatRate}%) :`, formatFCFA(invoice.vatAmount, docCurrency));
       if (invoice.discount && invoice.discount > 0) {
-        drawSummaryLine('Remise globale accordée :', `-${formatFCFA(invoice.discount)}`, false, '#059669');
+        drawSummaryLine('Remise globale accordée :', `-${formatFCFA(invoice.discount, docCurrency)}`, false, '#059669');
       }
 
       // Ligne de Total TTC mise en avant
@@ -327,7 +328,7 @@ export function generateInvoicePDF({
       ctx.fillText('TOTAL NET À PAYER TTC :', summaryX + 30, sY + 21);
       ctx.font = 'bold 18px system-ui, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(formatFCFA(invoice.total), summaryX + summaryW - 30, sY + 21);
+      ctx.fillText(formatFCFA(invoice.total, docCurrency), summaryX + summaryW - 30, sY + 21);
       ctx.textAlign = 'left';
       sY += 60;
 
@@ -336,13 +337,13 @@ export function generateInvoicePDF({
         const remaining = Math.max(0, invoice.total - (invoice.amountPaid || 0));
         drawSummaryLine(
           'Montant déjà encaissé (Acomptes) :',
-          formatFCFA(invoice.amountPaid || 0),
+          formatFCFA(invoice.amountPaid || 0, docCurrency),
           false,
           '#059669'
         );
         drawSummaryLine(
           'Solde Restant Dû :',
-          formatFCFA(remaining),
+          formatFCFA(remaining, docCurrency),
           true,
           remaining > 0 ? '#e11d48' : '#059669'
         );

@@ -91,7 +91,8 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
 
   const handleWhatsApp = () => {
     const docLabel = docKind === 'quote' ? 'votre devis' : 'votre facture';
-    const text = `Bonjour ${invoice.client.name}, voici ${docLabel} ${invoice.number} d'un montant de ${formatFCFA(invoice.total)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
+    const docCurrency = invoice.currency === 'XOF' ? 'FCFA' : invoice.currency || 'FCFA';
+    const text = `Bonjour ${invoice.client.name}, voici ${docLabel} ${invoice.number} d'un montant de ${formatFCFA(invoice.total, docCurrency)} émis(e) par OMEGA FACTURE. Merci de votre confiance !`;
     const cleanPhone = invoice.client.phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -435,7 +436,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                         {item.vatRate}%
                       </td>
                       <td className="py-3.5 pl-4 text-right font-bold text-slate-900">
-                        {formatFCFA(item.total)}
+                        {formatFCFA(item.total, invoice.currency)}
                       </td>
                     </tr>
                   ))}
@@ -449,14 +450,14 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 <div className="flex justify-between text-slate-600">
                   <span>Sous-total HT :</span>
                   <span className="font-semibold text-slate-900">
-                    {formatFCFA(invoice.subtotal)}
+                    {formatFCFA(invoice.subtotal, invoice.currency)}
                   </span>
                 </div>
                 {invoice.discount > 0 && (
                   <div className="flex justify-between text-emerald-600">
                     <span>Remise commerciale accordée :</span>
                     <span className="font-semibold">
-                      -{formatFCFA(invoice.discount)}
+                      -{formatFCFA(invoice.discount, invoice.currency)}
                     </span>
                   </div>
                 )}
@@ -465,13 +466,13 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                     TVA ({invoice.vatAmount > 0 ? `${invoice.items?.find((it) => (it.vatRate || 0) > 0)?.vatRate || 18}%` : '0% Exonéré'}) :
                   </span>
                   <span className="font-semibold text-slate-900">
-                    {formatFCFA(invoice.vatAmount)}
+                    {formatFCFA(invoice.vatAmount, invoice.currency)}
                   </span>
                 </div>
                 <div className="flex justify-between text-base font-extrabold text-slate-900 border-t-2 border-slate-900 pt-2.5">
                   <span>Total TTC :</span>
                   <span className="text-brand-600">
-                    {formatFCFA(invoice.total)}
+                    {formatFCFA(invoice.total, invoice.currency)}
                   </span>
                 </div>
 
@@ -479,11 +480,11 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   <>
                     <div className="flex justify-between text-emerald-600 pt-1 text-xs font-semibold">
                       <span>Acompte déjà réglé :</span>
-                      <span>{formatFCFA(invoice.amountPaid)}</span>
+                      <span>{formatFCFA(invoice.amountPaid, invoice.currency)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold text-slate-900 border-t border-slate-200 pt-1">
                       <span>Reste à payer :</span>
-                      <span>{formatFCFA(invoice.total - invoice.amountPaid)}</span>
+                      <span>{formatFCFA(invoice.total - invoice.amountPaid, invoice.currency)}</span>
                     </div>
                   </>
                 )}
@@ -504,8 +505,8 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                 </p>
                 <p className="text-[11px] text-slate-400 mt-2 italic">
                   {docKind === 'quote'
-                    ? `Arrêté le présent devis à la somme de ${formatFCFA(invoice.total)}. Validité : 30 jours à compter de la date d’émission.`
-                    : `Arrêtée la présente facture à la somme exacte de ${formatFCFA(invoice.total)}.`}
+                    ? `Arrêté le présent devis à la somme de ${formatFCFA(invoice.total, invoice.currency)}. Validité : 30 jours à compter de la date d’émission.`
+                    : `Arrêtée la présente facture à la somme exacte de ${formatFCFA(invoice.total, invoice.currency)}.`}
                 </p>
               </div>
 

@@ -97,10 +97,11 @@ export default function EditInvoicePage() {
     return getCountryVatRates(currentCountryObj.name);
   }, [currentCountryObj]);
 
-  // Switch country and immediately update applied VAT rate and all invoice line items
+  // Switch country and immediately update applied VAT rate, currency and all invoice line items
   const handleTaxCountryChange = (countryNameOrCode: string) => {
     const target = findUemoaCountry(countryNameOrCode);
     setSelectedTaxCountry(target.name);
+    setCurrency(target.currency || 'FCFA');
     const newStandardVat = target.standardVatRate;
     setGlobalVatRate(newStandardVat);
     setItems((prev) =>
@@ -530,7 +531,7 @@ export default function EditInvoicePage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {/* 1. Bouton CTA Pays fiscal : compact, élégant, tout sur la même ligne */}
+                  {/* 1. Bouton CTA Pays fiscal : compact, élégant, nom du pays en clair et devise */}
                   <div className="relative">
                     <button
                       type="button"
@@ -551,7 +552,10 @@ export default function EditInvoicePage() {
                           {currentCountryObj.name}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0 text-slate-400 group-hover:text-brand-600">
+                      <div className="flex items-center gap-1.5 shrink-0 text-slate-400 group-hover:text-brand-600">
+                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                          {currency}
+                        </span>
                         <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-1.5 py-0.5 rounded-md border border-brand-200/50">
                           {currentCountryObj.standardVatRate}%
                         </span>
@@ -569,7 +573,7 @@ export default function EditInvoicePage() {
                         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-1.5 max-h-72 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
                           <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1 flex items-center justify-between">
                             <span>Choisir le pays</span>
-                            <span className="text-[9px] text-brand-600 dark:text-brand-400 font-extrabold">10 pays</span>
+                            <span className="text-[9px] text-brand-600 dark:text-brand-400 font-extrabold">10 pays disponibles</span>
                           </div>
                           <div className="space-y-0.5">
                             {SUPPORTED_COUNTRIES.map((c) => {
@@ -585,22 +589,18 @@ export default function EditInvoicePage() {
                                       : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-800 dark:text-slate-200'
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     <span className="text-xl shrink-0">{c.flag}</span>
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-bold truncate block">{c.name}</span>
-                                        <span className={`text-[9px] font-bold px-1 rounded ${
-                                          isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                                        }`}>
-                                          {c.region === 'europe' ? 'Europe' : 'UEMOA'}
-                                        </span>
-                                      </div>
-                                    </div>
+                                    <span className="text-xs sm:text-sm font-bold truncate block">{c.name}</span>
                                   </div>
                                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                    }`}>
+                                      {c.currency}
+                                    </span>
                                     <span className={`text-[11px] font-extrabold px-1.5 py-0.5 rounded ${
-                                      isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400'
+                                      isSelected ? 'bg-white/20 text-white' : 'bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400'
                                     }`}>
                                       {c.standardVatRate}%
                                     </span>
@@ -643,7 +643,7 @@ export default function EditInvoicePage() {
                     </div>
                   </div>
 
-                  {/* 3. Remise commerciale compacte sur la même hauteur */}
+                  {/* 3. Remise commerciale élargie pour une saisie bien lisible */}
                   <div className="h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shadow-2xs sm:col-span-2 lg:col-span-1">
                     <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer select-none shrink-0">
                       <input
@@ -656,23 +656,23 @@ export default function EditInvoicePage() {
                     </label>
 
                     {hasDiscount ? (
-                      <div className="relative w-28">
+                      <div className="relative w-36 sm:w-44 flex-1 max-w-[170px]">
                         <input
                           type="number"
                           step="1"
                           min="0"
                           value={discountAmount === 0 ? '' : discountAmount}
-                          placeholder="0 FCFA"
+                          placeholder={`0 ${currency}`}
                           onChange={(e) =>
                             setDiscountAmount(
                               e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0
                             )
                           }
-                          className="w-full px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-right font-bold text-rose-600 focus:outline-none"
+                          className="w-full px-2.5 py-1 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-right font-bold text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500/20 shadow-2xs"
                         />
                       </div>
                     ) : (
-                      <span className="text-[10px] text-slate-400 font-medium">0 FCFA</span>
+                      <span className="text-[10px] text-slate-400 font-medium">0 {currency}</span>
                     )}
                   </div>
                 </div>
@@ -685,7 +685,18 @@ export default function EditInvoicePage() {
                     <Layers className="w-4 h-4 text-brand-600" />
                     Lignes de Facturation
                   </h2>
-                  <span className="text-xs font-semibold text-slate-500">Devise : {currency}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 font-semibold">Devise :</span>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="px-2.5 py-1 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-semibold cursor-pointer"
+                    >
+                      <option value="FCFA">FCFA (XOF)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="USD">USD ($)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -942,7 +953,7 @@ export default function EditInvoicePage() {
                               <td className="py-2.5 pr-2 font-medium text-slate-800">{it.description}</td>
                               <td className="py-2.5 px-2 text-center text-slate-600">{it.quantity}</td>
                               <td className="py-2.5 px-2 text-right text-slate-600">{it.vatRate}%</td>
-                              <td className="py-2.5 pl-2 text-right font-bold text-slate-900">{formatFCFA(itemTotal)}</td>
+                              <td className="py-2.5 pl-2 text-right font-bold text-slate-900">{formatFCFA(itemTotal, currency)}</td>
                             </tr>
                           );
                         })}
@@ -953,23 +964,23 @@ export default function EditInvoicePage() {
                   <div className="border-t border-slate-200 pt-4 space-y-1.5 text-right">
                     <div className="flex justify-between text-slate-600 text-xs">
                       <span>Sous-total :</span>
-                      <span className="font-semibold text-slate-900">{formatFCFA(totals.subtotalHT)}</span>
+                      <span className="font-semibold text-slate-900">{formatFCFA(totals.subtotalHT, currency)}</span>
                     </div>
                     {totals.discountAmount > 0 && (
                       <div className="flex justify-between text-rose-600 text-xs">
                         <span>Remise :</span>
-                        <span className="font-semibold">- {formatFCFA(totals.discountAmount)}</span>
+                        <span className="font-semibold">- {formatFCFA(totals.discountAmount, currency)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600 text-xs">
                       <span>
-                        TVA ({totals.vatAmount > 0 ? `${items.find((it) => (it.vatRate || 0) > 0)?.vatRate || defaultVatRate}% ${userCountry}` : '0% Exonéré'}) :
+                        TVA ({totals.vatAmount > 0 ? `${items.find((it) => (it.vatRate || 0) > 0)?.vatRate || globalVatRate}%` : '0% Exonéré'}) :
                       </span>
-                      <span className="font-semibold text-slate-900">{formatFCFA(totals.vatAmount)}</span>
+                      <span className="font-semibold text-slate-900">{formatFCFA(totals.vatAmount, currency)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-extrabold text-slate-900 border-t border-slate-200 pt-2">
                       <span>Total TTC :</span>
-                      <span className="text-brand-600 text-base">{formatFCFA(totals.totalTTC)}</span>
+                      <span className="text-brand-600 text-base">{formatFCFA(totals.totalTTC, currency)}</span>
                     </div>
                   </div>
                 </div>
