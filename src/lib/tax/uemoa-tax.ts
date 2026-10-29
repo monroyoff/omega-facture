@@ -36,6 +36,7 @@ export interface VatRateOption {
 
 export interface UemoaCountry {
   code: string; // BJ, BF, CI, GW, ML, NE, SN, TG, FR, BE
+  iso3: string; // BEN, BFA, CIV, GNB, MLI, NER, SEN, TGO, FRA, BEL
   name: string; // Bénin, Burkina Faso, France métropolitaine, Belgique, etc.
   aliases: string[];
   standardVatRate: number; // 18, 19, 20, 21
@@ -52,8 +53,9 @@ export interface UemoaCountry {
 export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   {
     code: 'BJ',
+    iso3: 'BEN',
     name: 'Bénin',
-    aliases: ['benin', 'république du bénin', 'republique du benin', 'bj'],
+    aliases: ['benin', 'république du bénin', 'republique du benin', 'bj', 'ben'],
     standardVatRate: 18,
     fiscalIdLabel: 'Numéro IFU (Identifiant Fiscal Unique)',
     flag: '🇧🇯',
@@ -65,8 +67,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'BF',
+    iso3: 'BFA',
     name: 'Burkina Faso',
-    aliases: ['burkina faso', 'burkina', 'bf'],
+    aliases: ['burkina faso', 'burkina', 'bf', 'bfa'],
     standardVatRate: 18,
     fiscalIdLabel: 'Numéro IFU',
     flag: '🇧🇫',
@@ -78,8 +81,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'CI',
+    iso3: 'CIV',
     name: "Côte d'Ivoire",
-    aliases: ["cote d'ivoire", "côte d'ivoire", 'ci', 'ivory coast'],
+    aliases: ["cote d'ivoire", "côte d'ivoire", 'ci', 'civ', 'ivory coast'],
     standardVatRate: 18,
     reducedRates: [
       {
@@ -98,8 +102,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'GW',
+    iso3: 'GNB',
     name: 'Guinée-Bissau',
-    aliases: ['guinée-bissau', 'guinee-bissau', 'guinea-bissau', 'gw'],
+    aliases: ['guinée-bissau', 'guinee-bissau', 'guinea-bissau', 'gw', 'gnb'],
     standardVatRate: 18,
     fiscalIdLabel: 'Numéro NIF',
     flag: '🇬🇼',
@@ -111,8 +116,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'ML',
+    iso3: 'MLI',
     name: 'Mali',
-    aliases: ['mali', 'ml', 'république du mali'],
+    aliases: ['mali', 'ml', 'mli', 'république du mali'],
     standardVatRate: 18,
     reducedRates: [
       {
@@ -131,8 +137,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'NE',
+    iso3: 'NER',
     name: 'Niger',
-    aliases: ['niger', 'ne', 'république du niger'],
+    aliases: ['niger', 'ne', 'ner', 'république du niger'],
     standardVatRate: 19,
     reducedRates: [
       {
@@ -151,8 +158,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'SN',
+    iso3: 'SEN',
     name: 'Sénégal',
-    aliases: ['sénégal', 'senegal', 'sn'],
+    aliases: ['sénégal', 'senegal', 'sn', 'sen'],
     standardVatRate: 18,
     reducedRates: [
       {
@@ -171,8 +179,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'TG',
+    iso3: 'TGO',
     name: 'Togo',
-    aliases: ['togo', 'tg', 'république togolaise'],
+    aliases: ['togo', 'tg', 'tgo', 'république togolaise'],
     standardVatRate: 18,
     fiscalIdLabel: 'Numéro NIF',
     flag: '🇹🇬',
@@ -184,8 +193,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'FR',
+    iso3: 'FRA',
     name: 'France',
-    aliases: ['france', 'france métropolitaine', 'france metropolitaine', 'fr', 'république française', 'republique francaise'],
+    aliases: ['france', 'france métropolitaine', 'france metropolitaine', 'fr', 'fra', 'république française', 'republique francaise'],
     standardVatRate: 20,
     reducedRates: [
       {
@@ -214,8 +224,9 @@ export const SUPPORTED_COUNTRIES: UemoaCountry[] = [
   },
   {
     code: 'BE',
+    iso3: 'BEL',
     name: 'Belgique',
-    aliases: ['belgique', 'belgium', 'be', 'royaume de belgique'],
+    aliases: ['belgique', 'belgium', 'be', 'bel', 'royaume de belgique'],
     standardVatRate: 21,
     reducedRates: [
       {
