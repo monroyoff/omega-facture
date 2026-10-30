@@ -175,11 +175,11 @@ export default function ClientsPage() {
                           e.stopPropagation();
                           setClientToDelete(cli);
                         }}
-                        className="p-1.5 px-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer active:scale-95"
+                        className="p-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
                         title="Supprimer ce client"
+                        aria-label="Supprimer ce client"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Supprimer</span>
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
