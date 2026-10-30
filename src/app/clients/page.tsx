@@ -131,25 +131,25 @@ export default function ClientsPage() {
               <div
                 key={cli.id}
                 onClick={() => handleOpenEdit(cli)}
-                className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-card hover:shadow-dropdown hover:border-brand-500/50 dark:hover:border-brand-500/40 transition-all flex flex-col justify-between cursor-pointer group"
+                className="bg-white dark:bg-[#111622] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-card hover:shadow-dropdown hover:border-brand-500/50 dark:hover:border-brand-500/40 transition-all flex flex-col justify-between cursor-pointer group overflow-hidden"
               >
                 <div>
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl overflow-hidden bg-brand-50 dark:bg-brand-950/40 border border-slate-200 dark:border-slate-700 shrink-0">
+                  <div className="flex items-start justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1 mr-1">
+                      <div className="w-10 h-10 rounded-2xl overflow-hidden bg-brand-50 dark:bg-brand-950/40 border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center">
                         {cli.avatar ? (
                           <img src={cli.avatar} alt={cli.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center font-bold text-brand-600 text-xs">
+                          <span className="font-bold text-brand-600 text-xs">
                             {cli.name.substring(0, 2).toUpperCase()}
-                          </div>
+                          </span>
                         )}
                       </div>
-                      <div>
-                        <h2 className="font-bold text-slate-900 dark:text-white text-sm leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <h2 className="font-bold text-slate-900 dark:text-white text-sm leading-tight truncate group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                           {cli.name}
                         </h2>
-                        <span className="text-xs text-brand-600 dark:text-brand-400 font-semibold block mt-0.5">
+                        <span className="text-xs text-brand-600 dark:text-brand-400 font-semibold block mt-0.5 truncate">
                           {cli.company}
                         </span>
                       </div>
@@ -162,11 +162,11 @@ export default function ClientsPage() {
                           e.stopPropagation();
                           handleOpenEdit(cli);
                         }}
-                        className="p-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 group-hover:text-brand-600 group-hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer active:scale-95"
+                        className="w-8 h-8 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-brand-600 hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
                         title="Modifier la fiche client"
+                        aria-label="Modifier la fiche client"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Modifier</span>
                       </button>
 
                       <button
@@ -175,11 +175,11 @@ export default function ClientsPage() {
                           e.stopPropagation();
                           setClientToDelete(cli);
                         }}
-                        className="p-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 transition-colors flex items-center justify-center cursor-pointer active:scale-95"
+                        className="w-8 h-8 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/70 dark:bg-rose-950/30 text-rose-500 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-950/60 hover:border-rose-300 transition-colors flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
                         title="Supprimer ce client"
                         aria-label="Supprimer ce client"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
