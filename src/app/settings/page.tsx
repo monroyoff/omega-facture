@@ -276,7 +276,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="text-slate-500 dark:text-slate-400 mt-0.5">
                       {userPlan === 'pro'
-                        ? 'Factures & devis illimités, 1 utilisateur, relances WhatsApp & exports comptables.'
+                        ? 'Factures & devis illimités, 2 utilisateurs (max 2), relances WhatsApp & exports comptables.'
                         : 'Illimité total, jusqu’à 10 utilisateurs, rôles comptables avancés et intégration API.'}
                     </div>
                   </div>

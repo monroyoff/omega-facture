@@ -204,7 +204,7 @@ export default function DashboardPage() {
                 ) : userPlan === 'pro' ? (
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] text-white">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                    <span>Plan Pro : <strong className="text-emerald-300">Factures & Devis illimités</strong></span>
+                    <span>Plan Pro : <strong className="text-emerald-300">Factures illimitées & 2 utilisateurs</strong></span>
                   </div>
                 ) : (
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] text-white">
