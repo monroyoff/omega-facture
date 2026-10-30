@@ -31,7 +31,7 @@ function ConfirmEmailContent() {
     // 1. Process confirmation
     const verify = () => {
       try {
-        const identifier = tokenParam || emailParam || codeParam || 'confirmed';
+        const identifier = emailParam || tokenParam || codeParam || 'confirmed';
         confirmEmailVerification(identifier);
         setStatus('success');
       } catch (e) {

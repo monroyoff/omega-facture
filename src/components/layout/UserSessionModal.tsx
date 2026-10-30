@@ -44,10 +44,10 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
 
   if (!isOpen || !currentUser) return null;
 
-  const firstName = currentUser.firstName || currentUser.name.split(' ')[0] || 'Mari-ella';
-  const lastName = currentUser.lastName || currentUser.name.split(' ').slice(1).join(' ') || 'Manille';
-  const organization = currentUser.organization || 'MONROY AGENCY';
-  const email = currentUser.email || 'monmonnroyteam@gmail.com';
+  const firstName = currentUser.firstName || (currentUser.name ? currentUser.name.split(' ')[0] : (currentUser.email ? currentUser.email.split('@')[0] : 'Utilisateur'));
+  const lastName = currentUser.lastName || (currentUser.name ? currentUser.name.split(' ').slice(1).join(' ') : '');
+  const organization = currentUser.organization || 'Mon Entreprise';
+  const email = currentUser.email || currentUser.phone || 'Non renseigné';
   const role = currentUser.role || 'Administrateur / Gérant';
   const avatar = currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName + ' ' + lastName)}&background=2563eb&color=fff&size=160&bold=true`;
 
@@ -87,7 +87,7 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
@@ -103,23 +103,37 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
         className="hidden"
       />
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
-        {/* Top Header Banner */}
-        <div className="bg-gradient-to-r from-brand-700 via-brand-600 to-brand-800 px-6 pt-6 pb-12 text-white relative">
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-            title="Fermer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-[10px] font-bold text-white mb-1">
-            <ShieldCheck className="w-3 h-3 text-emerald-300" />
-            <span>Session Utilisateur Active</span>
+      {/* Modal Dialog with mobile scrolling */}
+      <div className="relative w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-y-auto max-h-[92vh] no-scrollbar z-10 animate-in fade-in zoom-in-95 duration-200 my-auto">
+        {/* Top Header Banner with Direct Quick Logout */}
+        <div className="bg-gradient-to-r from-brand-700 via-brand-600 to-brand-800 px-5 pt-4 pb-11 text-white relative">
+          <div className="flex items-center justify-between mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-[10px] font-bold text-white">
+              <ShieldCheck className="w-3 h-3 text-emerald-300" />
+              <span>Session Active</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/90 hover:bg-rose-600 active:bg-rose-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all cursor-pointer touch-manipulation"
+                title="Se déconnecter immédiatement"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>{loggingOut ? '...' : 'Se déconnecter'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer"
+                title="Fermer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <h2 className="text-lg font-black tracking-tight">Mon Espace Professionnel</h2>
+          <h2 className="text-base sm:text-lg font-black tracking-tight">Mon Espace Professionnel</h2>
         </div>
 
         {/* User Card Content (Overlapping the banner) */}
@@ -319,12 +333,12 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
           </div>
 
           {/* Logout Button */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="pt-3 pb-2 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md shadow-rose-600/25 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed touch-manipulation"
             >
               <LogOut className="w-4 h-4" />
               <span>{loggingOut ? 'Déconnexion en cours...' : 'Se déconnecter de la session'}</span>

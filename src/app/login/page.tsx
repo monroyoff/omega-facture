@@ -22,7 +22,8 @@ import { useInvoices } from '@/lib/store/invoice-context';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useInvoices();
+  const { login, logout, currentUser, isAuthenticated } = useInvoices();
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [mode, setMode] = useState<'login' | 'forgot-password'>('login');
   const [email, setEmail] = useState('');
@@ -128,6 +129,47 @@ export default function LoginPage() {
                 <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
+                </div>
+              )}
+
+              {/* Indicateur de session déjà active avec bouton de déconnexion direct */}
+              {isAuthenticated && currentUser && (
+                <div className="mb-5 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-xs">
+                  <div className="flex items-center gap-2.5 mb-2.5">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-100 border border-brand-200 shrink-0">
+                      <img src={currentUser.avatar} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-extrabold text-slate-900 dark:text-white truncate">
+                        Connecté : {currentUser.firstName || currentUser.name}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        {currentUser.email || currentUser.phone}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/dashboard"
+                      className="flex-1 py-1.5 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-center text-[11px] shadow-xs active:scale-95 transition-all"
+                    >
+                      Aller au Dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={loggingOut}
+                      onClick={async () => {
+                        setLoggingOut(true);
+                        try {
+                          await logout();
+                        } catch (e) {}
+                        setLoggingOut(false);
+                      }}
+                      className="py-1.5 px-3 rounded-xl bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/60 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold text-[11px] active:scale-95 transition-all cursor-pointer disabled:opacity-60"
+                    >
+                      {loggingOut ? '...' : 'Se déconnecter'}
+                    </button>
+                  </div>
                 </div>
               )}
 

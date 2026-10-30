@@ -439,31 +439,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
             ) : isAuthenticated && currentUser ? (
-              <div
-                onClick={() => setSessionModalOpen(true)}
-                className="flex items-center justify-between p-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group active:scale-98"
-                title="Cliquer pour afficher ma photo, mon prénom et mes informations de session"
-              >
-                <div className="flex items-center gap-2.5 overflow-hidden">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-100 dark:bg-brand-900/40 border border-slate-200 dark:border-slate-700 shrink-0">
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="truncate text-left">
-                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-600 transition-colors">
-                      {currentUser.firstName ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim() : currentUser.name}
+              <div className="flex items-center gap-1.5">
+                <div
+                  onClick={() => setSessionModalOpen(true)}
+                  className="flex-1 flex items-center justify-between p-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group active:scale-98 min-w-0"
+                  title="Cliquer pour afficher ma photo, mon prénom et mes informations de session"
+                >
+                  <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-brand-100 dark:bg-brand-900/40 border border-slate-200 dark:border-slate-700 shrink-0">
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      {currentUser.email}
+                    <div className="truncate text-left">
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-600 transition-colors">
+                        {currentUser.firstName ? `${currentUser.firstName} ${currentUser.lastName || ''}`.trim() : currentUser.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate">
+                        {currentUser.email || currentUser.phone}
+                      </div>
                     </div>
                   </div>
+                  <ChevronsUpDown
+                    className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-brand-600 transition-colors ml-1"
+                  />
                 </div>
-                <ChevronsUpDown
-                  className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-brand-600 transition-colors"
-                />
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="p-2.5 rounded-2xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 transition-all cursor-pointer active:scale-95 shrink-0 touch-manipulation"
+                  title="Se déconnecter directement"
+                  aria-label="Se déconnecter"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             ) : (
               <div className="space-y-2">

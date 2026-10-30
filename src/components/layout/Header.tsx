@@ -27,6 +27,7 @@ import { NewPaymentModal } from '@/components/payments/NewPaymentModal';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
 import { Invoice } from '@/lib/types';
 import { PeriodPickerDropdown } from '@/components/common/PeriodPickerDropdown';
+import { UserSessionModal } from '@/components/layout/UserSessionModal';
 
 interface HeaderProps {
   onOpenSidebar: () => void;
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
 
   const [mounted, setMounted] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [paymentInvoiceId, setPaymentInvoiceId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
 
@@ -74,6 +76,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
     dismissNotification,
     unreadNotificationCount,
     invoices,
+    currentUser,
+    isAuthenticated,
   } = useInvoices();
 
   const handleCardClick = (n: typeof notifications[0]) => {
@@ -406,7 +410,27 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
             )}
           </div>
 
-
+          {/* User Profile / Session Trigger with Avatar (Desktop & Mobile) */}
+          {mounted && isAuthenticated && currentUser && (
+            <button
+              type="button"
+              onClick={() => setSessionModalOpen(true)}
+              className="flex items-center gap-2 p-1 pl-1.5 pr-2 sm:pr-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer active:scale-95 touch-manipulation shadow-2xs"
+              title="Mon profil et session"
+              aria-label="Mon profil et session"
+            >
+              <div className="w-7 h-7 rounded-lg overflow-hidden bg-brand-100 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-700 shrink-0">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[80px] sm:max-w-[120px] truncate hidden min-[400px]:inline">
+                {currentUser.firstName || currentUser.name.split(' ')[0]}
+              </span>
+            </button>
+          )}
 
           {/* Close / Return to Dashboard cross button (Visible on Web & Mobile for all non-dashboard sections) */}
           {!isDashboard && (
@@ -434,6 +458,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
       <InvoicePreviewModal
         invoice={previewInvoice}
         onClose={() => setPreviewInvoice(null)}
+      />
+
+      <UserSessionModal
+        isOpen={sessionModalOpen}
+        onClose={() => setSessionModalOpen(false)}
       />
     </>
   );

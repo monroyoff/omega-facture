@@ -244,19 +244,19 @@ export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, PlanConfig> = {
 };
 
 export const DEFAULT_USER: UserProfile = {
-  id: 'fc1ff9e5-80d6-4bcf-8794-c4bb463e148d',
-  companyId: 'c0000000-0000-0000-0000-000000000001',
-  name: 'Mari-ella Manille',
-  firstName: 'Mari-ella',
-  lastName: 'Manille',
-  email: 'monmonnroyteam@gmail.com',
-  phone: '+229 01 95 44 44 30',
-  role: 'Administrateur / Gérante',
-  organization: 'MONROY AGENCY',
+  id: '00000000-0000-0000-0000-000000000000',
+  companyId: 'c0000000-0000-0000-0000-000000000000',
+  name: 'Utilisateur',
+  firstName: 'Utilisateur',
+  lastName: '',
+  email: '',
+  phone: '',
+  role: 'Administrateur / Gérant',
+  organization: 'Mon Entreprise',
   avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
   country: 'Bénin',
   defaultVatRate: 18,
-  emailVerified: true,
+  emailVerified: false,
   plan: 'free',
 };
 
@@ -1027,8 +1027,9 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // A. CAS 1 : INSCRIPTION PAR NUMÉRO DE TÉLÉPHONE (Activation Immédiate !)
     if (isPhoneSignup && phone) {
       const userProfile: UserProfile = {
-        ...DEFAULT_USER,
-        name: fullName,
+        id: crypto.randomUUID(),
+        companyId: 'c' + crypto.randomUUID().slice(1),
+        name: fullName || firstName,
         firstName,
         lastName,
         email: email || getPhoneAuthEmail(phone),
@@ -1041,6 +1042,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         role: 'Administrateur / Gérant',
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`,
         emailVerified: true,
+        plan: 'free',
       };
 
       saveUserToRegistry(userProfile);
@@ -1112,8 +1114,9 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Enregistrer le profil dans le registre persistant
     const userProfile: UserProfile = {
-      ...DEFAULT_USER,
-      name: fullName,
+      id: crypto.randomUUID(),
+      companyId: 'c' + crypto.randomUUID().slice(1),
+      name: fullName || firstName,
       firstName,
       lastName,
       email,
@@ -1126,6 +1129,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       role: 'Administrateur / Gérant',
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`,
       emailVerified: false,
+      plan: 'free',
     };
     saveUserToRegistry(userProfile);
     try {
@@ -1212,47 +1216,60 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } catch (e) {}
     }
 
-    const cleanInput = (tokenOrEmail || '').trim().toLowerCase();
-    const existing = findUserInRegistry(cleanInput) || (pending?.email ? findUserInRegistry(pending.email) : undefined);
+    const rawInput = (tokenOrEmail || '').trim();
+    const cleanInput = rawInput.toLowerCase();
 
-    const firstName = pending?.firstName || existing?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Mari-ella');
-    const lastName = pending?.lastName || existing?.lastName || (pending ? '' : 'Manille');
-    const email = pending?.email || existing?.email || (cleanInput.includes('@') ? cleanInput : 'monmonnroyteam@gmail.com');
+    // Priorité à l'email réel de l'inscription
+    const targetEmail = cleanInput.includes('@')
+      ? cleanInput
+      : (pending?.email ? pending.email.toLowerCase().trim() : '');
+
+    const existing = (targetEmail ? findUserInRegistry(targetEmail) : undefined) ||
+      findUserInRegistry(cleanInput) ||
+      (pending?.email ? findUserInRegistry(pending.email) : undefined);
+
+    const firstName = pending?.firstName || existing?.firstName || (targetEmail.includes('@') ? targetEmail.split('@')[0] : 'Utilisateur');
+    const lastName = pending?.lastName || existing?.lastName || '';
+    const email = targetEmail || existing?.email || (cleanInput.includes('@') ? cleanInput : 'utilisateur@omegafacture.site');
     const phone = pending?.phone || existing?.phone;
-    const organization = pending?.organization || existing?.organization || 'MONROY AGENCY';
+    const organization = pending?.organization || existing?.organization || 'Mon Entreprise';
     const country = pending?.country || existing?.country || 'Bénin';
     const defaultVatRate = pending?.defaultVatRate !== undefined
       ? pending.defaultVatRate
       : (existing?.defaultVatRate !== undefined ? existing.defaultVatRate : getCountryStandardVatRate(country));
-    const fullName = `${firstName} ${lastName}`.trim();
+    const fullName = `${firstName} ${lastName}`.trim() || firstName;
 
     const avatar = existing?.avatar || (pending?.firstName
       ? `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`
-      : DEFAULT_USER.avatar);
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || 'Utilisateur')}&background=2563eb&color=fff&size=160&bold=true`);
 
     const verifiedUser: UserProfile = {
-      ...DEFAULT_USER,
-      ...(existing || {}),
+      id: existing?.id || crypto.randomUUID(),
+      companyId: existing?.companyId || ('c' + crypto.randomUUID().slice(1)),
       name: fullName,
       firstName,
       lastName,
       email,
       phone,
+      authMethod: pending?.authMethod || existing?.authMethod || (phone ? 'phone' : 'email'),
       organization,
       country,
       defaultVatRate,
       avatar,
-      role: existing?.role || 'Fondateur / Gérant',
+      role: existing?.role || 'Administrateur / Gérant',
       emailVerified: true,
+      plan: existing?.plan || 'free',
     };
 
     saveUserToRegistry(verifiedUser);
     setCurrentUser(verifiedUser);
     setIsAuthenticated(true);
     setPendingVerificationUser(null);
+    loadUserData(verifiedUser).catch((err) => console.warn('[loadUserData confirm error] :', err));
 
     try {
       localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: verifiedUser }));
+      localStorage.removeItem('facturo:v1:is_logged_out');
       localStorage.removeItem('facturo:v1:last_email');
       localStorage.removeItem('facturo:v1:last_registered_email');
       localStorage.removeItem('facturo:v1:pending_verification');
@@ -1336,7 +1353,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
     setCurrentUser((prev) => {
-      const updated = { ...(prev || DEFAULT_USER), ...updates };
+      if (!prev) return null;
+      const updated = { ...prev, ...updates };
       try {
         localStorage.setItem(
           'facturo:v1:auth',

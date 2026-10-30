@@ -55,12 +55,12 @@ function VerifyEmailContent() {
       setOtpError('Veuillez saisir le code à 6 chiffres reçu par email');
       return;
     }
-    confirmEmailVerification(userToken || userEmail);
+    confirmEmailVerification(userEmail);
     router.push(`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`);
   };
 
   const handleInstantActivate = () => {
-    confirmEmailVerification(userToken || userEmail);
+    confirmEmailVerification(userEmail);
     router.replace('/dashboard');
   };
 
@@ -185,7 +185,7 @@ function VerifyEmailContent() {
                   setOtpInput(val);
                   setOtpError('');
                   if (val.length === 6) {
-                    confirmEmailVerification(userToken || userEmail);
+                    confirmEmailVerification(userEmail);
                     router.push(`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`);
                   }
                 }}
