@@ -140,9 +140,9 @@ export default function PolitiqueConfidentialitePage() {
                 Procédure de suppression de compte et données
               </Link>{' '}
               ou en nous adressant un e-mail à :{' '}
-              <a href="mailto:jobovog@gmail.com" className="text-indigo-400 font-semibold underline hover:text-indigo-300">
-                jobovog@gmail.com
-              </a> (ou <a href="mailto:contact@omegafacture.site" className="text-indigo-400 font-semibold underline hover:text-indigo-300">contact@omegafacture.site</a>). Le traitement est effectif sous un délai maximal de 48 heures ouvrées.
+              <a href="mailto:contact@omegafacture.site" className="text-indigo-400 font-semibold underline hover:text-indigo-300">
+                contact@omegafacture.site
+              </a>. Le traitement est effectif sous un délai maximal de 48 heures ouvrées.
             </p>
           </section>
 

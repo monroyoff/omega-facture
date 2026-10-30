@@ -79,13 +79,13 @@ export default function SuppressionDonneesPage() {
                   Envoyez simplement un e-mail à notre équipe de support technique :
                 </p>
                 <div className="text-xs font-mono bg-slate-950 p-2.5 rounded border border-slate-800 text-indigo-300 space-y-1">
-                  <div><strong>Destinataire :</strong> jobovog@gmail.com (ou contact@omegafacture.site)</div>
+                  <div><strong>Destinataire :</strong> contact@omegafacture.site</div>
                   <div><strong>Objet :</strong> [SUPPRESSION DE COMPTE] OMEGA FACTURE</div>
                   <div><strong>Message :</strong> Veuillez supprimer définitivement mon compte OMEGA FACTURE associé à l&apos;adresse email [Votre Email].</div>
                 </div>
                 <div className="mt-3">
                   <a
-                    href="mailto:jobovog@gmail.com?subject=%5BSUPPRESSION%20DE%20COMPTE%5D%20OMEGA%20FACTURE&body=Bonjour%2C%0A%0AJe%20demande%20la%20suppression%20d%C3%A9finitive%20de%20mon%20compte%20OMEGA%20FACTURE%20et%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AAdresse%20email%20du%20compte%20%3A%20%0ANom%20de%20l'entreprise%20%3A%20%0A%0ACordialement."
+                    href="mailto:contact@omegafacture.site?subject=%5BSUPPRESSION%20DE%20COMPTE%5D%20OMEGA%20FACTURE&body=Bonjour%2C%0A%0AJe%20demande%20la%20suppression%20d%C3%A9finitive%20de%20mon%20compte%20OMEGA%20FACTURE%20et%20des%20donn%C3%A9es%20associ%C3%A9es.%0A%0AAdresse%20email%20du%20compte%20%3A%20%0ANom%20de%20l'entreprise%20%3A%20%0A%0ACordialement."
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-rose-600/20"
                   >
                     <Mail className="w-3.5 h-3.5" />

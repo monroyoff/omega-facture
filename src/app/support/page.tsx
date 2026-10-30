@@ -66,7 +66,7 @@ export default function SupportPage() {
             </a>
 
             <a
-              href="mailto:omegafacture@gmail.com?subject=Support%20OMEGA%20FACTURE"
+              href="mailto:contact@omegafacture.site?subject=Support%20OMEGA%20FACTURE"
               className="p-5 rounded-3xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all flex items-center justify-between group"
             >
               <div className="flex items-center gap-3">
@@ -77,7 +77,7 @@ export default function SupportPage() {
                   <h3 className="font-bold text-slate-900 dark:text-white text-sm">
                     Support par Email
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">omegafacture@gmail.com</p>
+                  <p className="text-xs text-slate-500 mt-0.5">contact@omegafacture.site</p>
                 </div>
               </div>
               <ExternalLink className="w-4 h-4 text-brand-600 group-hover:translate-x-0.5 transition-transform" />
