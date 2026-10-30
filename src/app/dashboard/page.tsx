@@ -55,7 +55,12 @@ export default function DashboardPage() {
 
   // Si une inscription est en attente de confirmation d'email, rediriger vers la page d'instructions de confirmation
   React.useEffect(() => {
-    if (pendingVerificationUser && (!currentUser || !currentUser.emailVerified)) {
+    if (
+      pendingVerificationUser &&
+      pendingVerificationUser.authMethod === 'email' &&
+      pendingVerificationUser.email &&
+      (!currentUser || !currentUser.emailVerified)
+    ) {
       router.push(`/verify-email?email=${encodeURIComponent(pendingVerificationUser.email)}`);
     }
   }, [pendingVerificationUser, currentUser, router]);

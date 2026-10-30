@@ -20,8 +20,17 @@ import {
   ShieldCheck,
   ArrowLeft,
   CheckCircle2,
+  Phone,
+  Smartphone,
+  Globe,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
+import {
+  PHONE_PREFIXES,
+  getCountryPhonePrefix,
+  normalizePhone,
+  cleanPhoneDigits,
+} from '@/lib/auth/phone-utils';
 
 export type AuthMode = 'login' | 'register' | 'forgot-password';
 
@@ -48,15 +57,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
+  // Register form state
+  const [regAuthMethod, setRegAuthMethod] = useState<'phone' | 'email'>('phone');
+  const [regFirstName, setRegFirstName] = useState('');
+  const [regLastName, setRegLastName] = useState('');
+  const [regOrganization, setRegOrganization] = useState('');
+  const [regCountry, setRegCountry] = useState('Bénin');
+  const [regPhone, setRegPhone] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
+
   // Réinitialisation stricte à l'ouverture pour garantir la séparation totale des comptes
   React.useEffect(() => {
     if (isOpen) {
       setLoginEmail('');
       setLoginPassword('');
       setLoginError(null);
+      setRegAuthMethod('phone');
       setRegFirstName('');
       setRegLastName('');
       setRegOrganization('');
+      setRegCountry('Bénin');
+      setRegPhone('');
       setRegEmail('');
       setRegPassword('');
       setRegConfirmPassword('');
@@ -67,17 +93,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } catch (e) {}
     }
   }, [isOpen]);
-
-  // Register form state
-  const [regFirstName, setRegFirstName] = useState('');
-  const [regLastName, setRegLastName] = useState('');
-  const [regOrganization, setRegOrganization] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState('');
-  const [showRegPassword, setShowRegPassword] = useState(false);
-  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
-  const [regError, setRegError] = useState<string | null>(null);
 
   // Forgot password state
   const [forgotEmail, setForgotEmail] = useState('');
@@ -107,26 +122,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const passwordsMatch = regConfirmPassword.length > 0 && regPassword === regConfirmPassword;
   const passwordsMismatch = regConfirmPassword.length > 0 && regPassword !== regConfirmPassword;
 
-  // Handle Login
+  // Handle Login (support Email OU Téléphone)
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
-    const cleanEmail = loginEmail.trim();
+    const cleanIdentifier = loginEmail.trim();
     const cleanPassword = loginPassword.trim();
 
-    if (!cleanEmail || !cleanPassword) {
-      setLoginError('Veuillez renseigner votre email et mot de passe.');
+    if (!cleanIdentifier || !cleanPassword) {
+      setLoginError('Veuillez renseigner votre email ou téléphone et votre mot de passe.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await login(cleanEmail, cleanPassword);
+      const res = await login(cleanIdentifier, cleanPassword);
       if (res.success) {
         const firstName = res.user?.firstName || res.user?.name?.split(' ')[0] || 'Cher Partenaire';
         onSuccess?.(`Ravi de vous revoir, ${firstName} ! Connexion réussie.`);
         onClose();
+        router.push('/dashboard');
       } else {
         setLoginError(res.error || 'Identifiants incorrects ou compte introuvable.');
       }
@@ -137,7 +153,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Handle Register
+  // Handle Register (support Téléphone OU Email)
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError(null);
@@ -150,10 +166,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setRegError('Veuillez renseigner le nom de votre entreprise ou organisation.');
       return;
     }
-    if (!regEmail.trim() || !regEmail.includes('@')) {
-      setRegError('Veuillez renseigner une adresse email valide.');
-      return;
+
+    // Validation selon méthode choisie
+    if (regAuthMethod === 'phone') {
+      const digits = cleanPhoneDigits(regPhone);
+      if (digits.length < 8) {
+        setRegError('Veuillez renseigner un numéro de téléphone valide (au moins 8 chiffres).');
+        return;
+      }
+    } else {
+      if (!regEmail.trim() || !regEmail.includes('@')) {
+        setRegError('Veuillez renseigner une adresse email valide.');
+        return;
+      }
     }
+
     if (regPassword.length < 6) {
       setRegError('Le mot de passe doit comporter au moins 6 caractères.');
       return;
@@ -165,20 +192,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await register({
-        firstName: regFirstName.trim(),
-        lastName: regLastName.trim(),
-        email: regEmail.trim(),
-        organization: regOrganization.trim(),
-        password: regPassword,
-      });
+      if (regAuthMethod === 'phone') {
+        const fullPhone = normalizePhone(regPhone, regCountry);
+        const res = await register({
+          firstName: regFirstName.trim(),
+          lastName: regLastName.trim(),
+          phone: fullPhone,
+          country: regCountry,
+          authMethod: 'phone',
+          email: regEmail.trim() || undefined,
+          organization: regOrganization.trim(),
+          password: regPassword,
+        });
 
+        setIsSubmitting(false);
+        if (res?.success) {
+          onSuccess?.(`Bienvenue, ${regFirstName.trim()} ! Votre compte est activé.`);
+          onClose();
+          router.push('/dashboard');
+        } else {
+          setRegError(res?.error || "Erreur lors de la création de l'espace entreprise.");
+        }
+      } else {
+        await register({
+          firstName: regFirstName.trim(),
+          lastName: regLastName.trim(),
+          email: regEmail.trim(),
+          country: regCountry,
+          authMethod: 'email',
+          organization: regOrganization.trim(),
+          password: regPassword,
+        });
+
+        setIsSubmitting(false);
+        onClose();
+        router.push(`/verify-email?email=${encodeURIComponent(regEmail.trim())}`);
+      }
+    } catch (err: any) {
       setIsSubmitting(false);
-      onClose();
-      router.push(`/verify-email?email=${encodeURIComponent(regEmail.trim())}`);
-    } catch (err) {
-      setIsSubmitting(false);
-      setRegError("Une erreur est survenue lors de l'envoi de votre lien de confirmation.");
+      setRegError(err?.message || "Une erreur est survenue lors de l'enregistrement de votre compte.");
     }
   };
 
@@ -285,19 +337,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <form onSubmit={handleLoginSubmit} className="space-y-4" autoComplete="off">
               <div>
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
-                  Adresse Email Professionnelle
+                  Email ou Numéro de téléphone
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  {loginEmail.trim().startsWith('+') || /^[0-9]/.test(loginEmail.trim()) ? (
+                    <Smartphone className="w-4 h-4 text-brand-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  ) : (
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  )}
                   <input
-                    type="email"
+                    type="text"
                     required
-                    autoComplete="off"
+                    autoComplete="username"
                     data-lpignore="true"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="ex: contact@entreprise.bj"
-                    className="w-full pl-10 pr-3.5 py-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                    placeholder="contact@entreprise.bj ou +229 97 00 00 00"
+                    className="w-full pl-10 pr-3.5 py-3 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all font-medium"
                   />
                 </div>
               </div>
@@ -445,27 +501,118 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </div>
 
-              {/* Row 3: Email Professionnel */}
+              {/* Sélecteur de méthode d'inscription */}
+              <div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-xl flex gap-1 border border-slate-200/60 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setRegAuthMethod('phone')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    regAuthMethod === 'phone'
+                      ? 'bg-white dark:bg-[#111622] text-brand-600 dark:text-brand-400 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Numéro Téléphone (Direct)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegAuthMethod('email')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    regAuthMethod === 'email'
+                      ? 'bg-white dark:bg-[#111622] text-brand-600 dark:text-brand-400 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Adresse E-mail</span>
+                </button>
+              </div>
+
+              {/* Pays d'immatriculation / Indicatif */}
               <div>
                 <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Adresse Email Professionnelle <span className="text-rose-500">*</span>
+                  Pays d'activité <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    autoComplete="off"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-form-type="other"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="ex: contact@kora-tech.bj"
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                  />
+                  <Globe className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <select
+                    value={regCountry}
+                    onChange={(e) => setRegCountry(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                  >
+                    {PHONE_PREFIXES.map((p) => (
+                      <option key={p.code} value={p.name}>
+                        {p.flag} {p.name} ({p.dialCode})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
+              {/* Champ principal : Téléphone ou Email */}
+              {regAuthMethod === 'phone' ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Numéro de Téléphone Mobile <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                      ⚡ Activation instantanée
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shrink-0">
+                      <span>{getCountryPhonePrefix(regCountry).flag}</span>
+                      <span>{getCountryPhonePrefix(regCountry).dialCode}</span>
+                    </div>
+                    <div className="relative flex-1">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        required
+                        value={regPhone}
+                        onChange={(e) => setRegPhone(e.target.value)}
+                        placeholder="97 00 00 00"
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-semibold"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5">
+                      Email professionnel (optionnel, pour copies PDF)
+                    </label>
+                    <input
+                      type="email"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="contact@kora-tech.bj (optionnel)"
+                      className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Adresse Email Professionnelle <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="ex: contact@kora-tech.bj"
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Row 4: Mot de passe & Confirmation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

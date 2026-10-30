@@ -16,6 +16,7 @@ import {
   AlertCircle,
   ArrowLeft,
   CheckCircle2,
+  Phone,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
@@ -49,21 +50,21 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    const cleanEmail = email.trim();
+    const cleanIdentifier = email.trim();
     const cleanPassword = password.trim();
 
-    if (!cleanEmail || !cleanPassword) {
-      setError('Veuillez renseigner votre email et mot de passe.');
+    if (!cleanIdentifier || !cleanPassword) {
+      setError('Veuillez renseigner votre email ou téléphone et mot de passe.');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await login(cleanEmail, cleanPassword);
+      const res = await login(cleanIdentifier, cleanPassword);
       if (res.success) {
         router.replace('/dashboard');
       } else if (res.requiresEmailVerification) {
-        router.push(`/verify-email?email=${encodeURIComponent(cleanEmail)}`);
+        router.push(`/verify-email?email=${encodeURIComponent(cleanIdentifier)}`);
       } else {
         setError(res.error || 'Identifiants incorrects ou compte introuvable.');
       }
@@ -119,7 +120,7 @@ export default function LoginPage() {
                   Connexion à votre espace
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Connexion exclusive par Identifiant (Email) et Mot de passe.
+                  Connectez-vous par Adresse Email ou par Numéro de Téléphone.
                 </p>
               </div>
 
@@ -133,17 +134,25 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
-                    Identifiant (Adresse Email)
+                    Identifiant (Email ou Numéro de téléphone)
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-slate-400">
+                      {email.includes('@') ? (
+                        <Mail className="w-4 h-4" />
+                      ) : email.replace(/\D/g, '').length >= 3 ? (
+                        <Phone className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Mail className="w-4 h-4" />
+                      )}
+                    </div>
                     <input
-                      type="email"
+                      type="text"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="ex: contact@entreprise.bj"
-                      className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                      placeholder="ex: contact@entreprise.bj ou +229 97 00 00 00"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-medium"
                     />
                   </div>
                 </div>

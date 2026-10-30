@@ -3,8 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "site.omegafacture.app",
+      "package_name": "com.omegafacture.billing",
       "sha256_cert_fingerprints": [
+        "4A:71:0A:04:11:ED:B8:43:FB:01:F9:FE:19:1D:91:17:15:A2:5C:BA:9B:8A:EE:37:22:E7:63:5D:3A:31:BC:58",
         "14:6D:E9:7F:48:8B:2A:44:B6:5E:84:7B:3A:90:5B:67:8B:44:86:14:1D:95:48:0E:48:58:34:6A:B9:76:88:B8"
       ]
     }

@@ -18,6 +18,7 @@ import {
   Sparkles,
   Globe,
   Percent,
+  Phone,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { UEMOA_COUNTRIES, findUemoaCountry, getCountryStandardVatRate } from '@/lib/tax/uemoa-tax';
@@ -26,10 +27,12 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register } = useInvoices();
 
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
   const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [organization, setOrganization] = useState('');
   const [country, setCountry] = useState('Bénin');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,6 +47,7 @@ export default function RegisterPage() {
     setFirstName('');
     setOrganization('');
     setCountry('Bénin');
+    setPhone('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -83,10 +87,20 @@ export default function RegisterPage() {
       setError('Veuillez renseigner le nom de votre entreprise ou organisation.');
       return;
     }
-    if (!email.trim() || !email.includes('@')) {
-      setError('Veuillez renseigner une adresse email valide.');
-      return;
+
+    if (authMethod === 'phone') {
+      const cleanDigits = phone.replace(/\D/g, '');
+      if (cleanDigits.length < 6) {
+        setError('Veuillez renseigner un numéro de téléphone valide.');
+        return;
+      }
+    } else {
+      if (!email.trim() || !email.includes('@')) {
+        setError('Veuillez renseigner une adresse email valide.');
+        return;
+      }
     }
+
     if (password.length < 6) {
       setError('Le mot de passe doit comporter au moins 6 caractères.');
       return;
@@ -98,21 +112,37 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register({
+      const currentCountry = findUemoaCountry(country);
+      const fullPhone = phone.trim()
+        ? (phone.trim().startsWith('+') ? phone.trim() : `${currentCountry.phoneCode}${phone.trim()}`)
+        : '';
+
+      const res = await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         organization: organization.trim(),
         country,
+        phone: fullPhone,
         email: email.trim(),
+        authMethod,
         password,
       });
 
       setLoading(false);
-      // Redirection vers la page d'attente et d'instructions de confirmation d'email
-      router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
-    } catch (err) {
+      if (res.success) {
+        if (!res.requiresEmailVerification) {
+          // Inscription par téléphone -> accès direct immédiat au tableau de bord !
+          router.replace('/dashboard');
+        } else {
+          // Inscription par email -> page de confirmation avec code
+          router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
+        }
+      } else {
+        setError(res.error || "Une erreur est survenue lors de l'inscription.");
+      }
+    } catch (err: any) {
       setLoading(false);
-      setError("Une erreur est survenue lors de l'envoi de votre lien de confirmation. Veuillez réessayer.");
+      setError(err?.message || "Une erreur est survenue lors de l'envoi de votre lien de confirmation. Veuillez réessayer.");
     }
   };
 
@@ -158,6 +188,43 @@ export default function RegisterPage() {
               <span>{error}</span>
             </div>
           )}
+
+          {/* SÉLECTEUR DE CANAL D'INSCRIPTION : TÉLÉPHONE OU EMAIL */}
+          <div className="flex p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-5">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMethod('phone');
+                setError(null);
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                authMethod === 'phone'
+                  ? 'bg-white dark:bg-[#111622] text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>Numéro de Téléphone</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-extrabold uppercase">
+                Direct
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMethod('email');
+                setError(null);
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                authMethod === 'email'
+                  ? 'bg-white dark:bg-[#111622] text-brand-600 dark:text-brand-400 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>Adresse E-mail</span>
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Row 1: Nom & Prénom */}
@@ -296,27 +363,98 @@ export default function RegisterPage() {
               })()}
             </div>
 
-            {/* Row 3: Email Professionnel */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                Adresse Email Professionnelle <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  required
-                  autoComplete="off"
-                  data-lpignore="true"
-                  data-1p-ignore="true"
-                  data-form-type="other"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ex: arnaud.kouame@partners.ci"
-                  className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                />
-              </div>
-            </div>
+            {/* Row 3: Coordonnées de contact (Téléphone ou Email selon mode) */}
+            {authMethod === 'phone' ? (
+              <>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Numéro de téléphone / WhatsApp <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 shrink-0 select-none">
+                      <span className="text-base">{findUemoaCountry(country).flag}</span>
+                      <span className="font-mono">{findUemoaCountry(country).phoneCode}</span>
+                    </div>
+                    <div className="relative flex-1">
+                      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        required
+                        autoComplete="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder={findUemoaCountry(country).phoneCode === '+229' ? 'ex: 01 95 44 44 30' : 'ex: 07 12 34 56 78'}
+                        className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span>Activation immédiate : aucun email d'attente requis.</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Adresse Email <span className="text-slate-400 text-[10px] font-normal">(Optionnelle)</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      autoComplete="off"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ex: contact@societe.bj"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Adresse Email Professionnelle <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ex: arnaud.kouame@partners.ci"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">
+                    Un code de sécurité à 6 chiffres vous sera envoyé par email.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Numéro Téléphone / WhatsApp <span className="text-slate-400 text-[10px] font-normal">(Optionnel)</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="ex: +229 01 95 44 44 30"
+                      className="w-full pl-10 pr-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Row 4: Mot de passe & Confirmation */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -429,12 +567,22 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs sm:text-sm font-bold shadow-lg shadow-brand-600/25 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70"
               >
-                <UserPlus className="w-4 h-4" />
-                <span>
-                  {loading
-                    ? 'Envoi de votre lien de confirmation...'
-                    : "Créer mon compte & Recevoir le lien d'activation"}
-                </span>
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Création de votre compte...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" />
+                    <span>
+                      {authMethod === 'phone'
+                        ? 'Activer mon compte & Accéder au Dashboard'
+                        : "Créer mon compte & Recevoir le code par email"}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </form>

@@ -26,9 +26,17 @@ import {
   getCountryVatRates,
   type VatRateOption,
 } from '@/lib/tax/uemoa-tax';
+import {
+  isPhoneIdentifier,
+  normalizePhone,
+  cleanPhoneDigits,
+  getPhoneAuthEmail,
+} from '@/lib/auth/phone-utils';
 
 export interface PendingVerificationUser {
-  email: string;
+  email?: string;
+  phone?: string;
+  authMethod?: 'email' | 'phone';
   firstName: string;
   lastName: string;
   organization: string;
@@ -161,6 +169,8 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   email: string;
+  phone?: string;
+  authMethod?: 'email' | 'phone';
   role: string;
   organization: string;
   avatar: string;
@@ -240,6 +250,7 @@ export const DEFAULT_USER: UserProfile = {
   firstName: 'Mari-ella',
   lastName: 'Manille',
   email: 'monmonnroyteam@gmail.com',
+  phone: '+229 01 95 44 44 30',
   role: 'Administrateur / Gérante',
   organization: 'MONROY AGENCY',
   avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
@@ -257,6 +268,7 @@ export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
     firstName: 'Mari-ella',
     lastName: 'Manille',
     email: 'monmonnroyteam@gmail.com',
+    phone: '+229 01 95 44 44 30',
     role: 'Administrateur / Gérante',
     organization: 'MONROY AGENCY',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
@@ -269,6 +281,7 @@ export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
     firstName: 'TFTGCFXF',
     lastName: 'JHJHGU',
     email: 'laradamourr@gmail.com',
+    phone: '+229 97 12 34 56',
     role: 'Administrateur / Gérant',
     organization: 'KJKHGGJ',
     avatar: 'https://ui-avatars.com/api/?name=TFTGCFXF+JHJHGU&background=2563eb&color=fff&size=160&bold=true',
@@ -281,6 +294,7 @@ export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
     firstName: 'MONROY',
     lastName: 'Business',
     email: 'jobovog@gmail.com',
+    phone: '+229 97 00 00 00',
     role: 'Directeur Général',
     organization: 'MONROY Business Solutions',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
@@ -303,10 +317,62 @@ export const saveUserToRegistry = (user: UserProfile) => {
   if (typeof window === 'undefined') return;
   try {
     const registry = getUserRegistry();
-    const key = user.email.toLowerCase().trim();
-    registry[key] = { ...registry[key], ...user };
+    if (user.email) {
+      const emailKey = user.email.toLowerCase().trim();
+      registry[emailKey] = { ...registry[emailKey], ...user };
+    }
+    if (user.phone) {
+      const norm = normalizePhone(user.phone);
+      const digits = cleanPhoneDigits(user.phone);
+      if (norm) registry[norm] = { ...registry[norm], ...user };
+      if (digits) registry[digits] = { ...registry[digits], ...user };
+    }
     localStorage.setItem('facturo:v1:users_registry', JSON.stringify(registry));
   } catch (e) {}
+};
+
+/**
+ * Recherche polyvalente d'un utilisateur par Email OU par Numéro de Téléphone
+ */
+export const findUserInRegistry = (identifier: string): UserProfile | undefined => {
+  if (!identifier) return undefined;
+  const registry = getUserRegistry();
+  const raw = identifier.trim();
+  const clean = raw.toLowerCase();
+
+  // 1. Clé exacte dans le registre (email ou téléphone)
+  if (registry[clean]) return registry[clean];
+  if (registry[raw]) return registry[raw];
+
+  // 2. Si c'est un numéro de téléphone
+  if (isPhoneIdentifier(raw)) {
+    const norm = normalizePhone(raw);
+    const digits = cleanPhoneDigits(raw);
+
+    if (registry[norm]) return registry[norm];
+    if (registry[digits]) return registry[digits];
+
+    // Recherche dans les objets utilisateurs
+    for (const u of Object.values(registry)) {
+      if (!u.phone) continue;
+      const uDigits = cleanPhoneDigits(u.phone);
+      const uNorm = normalizePhone(u.phone);
+      if (uNorm === norm || uDigits === digits) return u;
+      // Tolérance sur les 8 derniers chiffres
+      if (digits.length >= 8 && uDigits.length >= 8) {
+        if (digits.endsWith(uDigits.slice(-8)) || uDigits.endsWith(digits.slice(-8))) {
+          return u;
+        }
+      }
+    }
+  }
+
+  // 3. Recherche dans les objets par email
+  for (const u of Object.values(registry)) {
+    if (u.email && u.email.toLowerCase() === clean) return u;
+  }
+
+  return undefined;
 };
 
 interface InvoiceContextType {
@@ -348,22 +414,27 @@ interface InvoiceContextType {
   refreshData: () => Promise<void>;
   pendingVerificationUser: PendingVerificationUser | null;
   login: (
-    email?: string,
+    emailOrPhone?: string,
     passwordOrName?: string,
     extra?: { firstName?: string; lastName?: string; organization?: string; avatar?: string }
   ) => Promise<{ success: boolean; user?: UserProfile; error?: string; requiresEmailVerification?: boolean }>;
   register: (userData: {
     firstName: string;
     lastName: string;
-    email: string;
     organization: string;
+    email?: string;
+    phone?: string;
+    authMethod?: 'email' | 'phone';
     country?: string;
     password?: string;
   }) => Promise<{
     success: boolean;
     requiresEmailVerification: boolean;
-    email: string;
-    token: string;
+    email?: string;
+    phone?: string;
+    token?: string;
+    code?: string;
+    user?: UserProfile;
     error?: string;
   }>;
   confirmEmailVerification: (tokenOrEmail: string) => boolean;
@@ -766,34 +837,90 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   /**
-   * Connexion sécurisée : AUCUN compte fictif toléré.
+   * Connexion sécurisée par EMAIL ou NUMÉRO DE TÉLÉPHONE.
    * L'utilisateur DOIT obligatoirement avoir un compte valide et un mot de passe correct.
    */
   const login = async (
-    emailOrCredentials?: string,
+    emailOrPhone?: string,
     passwordOrName?: string
   ): Promise<{ success: boolean; user?: UserProfile; error?: string; requiresEmailVerification?: boolean }> => {
-    const cleanEmail = (emailOrCredentials || '').trim().toLowerCase();
+    const rawInput = (emailOrPhone || '').trim();
     const password = (passwordOrName || '').trim();
 
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { success: false, error: 'Veuillez saisir une adresse email valide.' };
+    if (!rawInput) {
+      return { success: false, error: 'Veuillez renseigner votre email ou votre numéro de téléphone.' };
     }
     if (!password) {
       return { success: false, error: 'Veuillez renseigner votre mot de passe.' };
     }
 
-    // 1. Authentification Supabase Auth
+    const isPhone = isPhoneIdentifier(rawInput);
+    const cleanEmail = rawInput.toLowerCase();
+
+    // 1. Recherche dans le registre persistant (recherche universelle Email & Téléphone)
+    const regUser = findUserInRegistry(rawInput);
+
+    if (regUser) {
+      if (regUser.password && regUser.password !== password) {
+        return {
+          success: false,
+          error: 'Mot de passe incorrect. Veuillez vérifier votre saisie.',
+        };
+      }
+
+      // Si l'utilisateur est inscrit par téléphone, il est activé directement
+      const isPhoneUser = Boolean(regUser.phone && (regUser.authMethod === 'phone' || isPhone));
+      if (!regUser.emailVerified && !isPhoneUser) {
+        return {
+          success: false,
+          error: "Votre adresse email n'a pas encore été validée. Veuillez cliquer sur le lien de confirmation reçu.",
+          requiresEmailVerification: true,
+        };
+      }
+
+      const lookupEmail = regUser.email || (regUser.phone ? getPhoneAuthEmail(regUser.phone) : cleanEmail);
+      const companyId = regUser.companyId || await getOrCreateUserCompany(regUser.id, regUser.organization, lookupEmail);
+      const validUser: UserProfile = {
+        ...regUser,
+        companyId,
+        emailVerified: true,
+      };
+
+      setCurrentUser(validUser);
+      setIsAuthenticated(true);
+      setPendingVerificationUser(null);
+      saveUserToRegistry(validUser);
+      await loadUserData(validUser);
+
+      try {
+        localStorage.removeItem('facturo:v1:is_logged_out');
+        localStorage.removeItem('facturo:v1:pending_verification');
+        localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: validUser }));
+        localStorage.removeItem('facturo:v1:last_email');
+        localStorage.removeItem('facturo:v1:last_registered_email');
+      } catch (e) {}
+
+      return { success: true, user: validUser };
+    }
+
+    // 2. Si pas encore en cache local, tentative Supabase Auth
     try {
       const supabase = createClient();
+      const authEmail = isPhone ? getPhoneAuthEmail(rawInput) : cleanEmail;
       const { data: authData, error: sbError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
+        email: authEmail,
         password: password,
       });
 
       if (!sbError && authData?.user) {
         const sbUser = authData.user;
-        const isVerified = Boolean(sbUser.confirmed_at || sbUser.email_confirmed_at || (sbUser.user_metadata as any)?.email_verified);
+        const isVerified = Boolean(
+          sbUser.confirmed_at ||
+          sbUser.email_confirmed_at ||
+          (sbUser.user_metadata as any)?.email_verified ||
+          isPhone
+        );
+
         if (!isVerified) {
           return {
             success: false,
@@ -803,8 +930,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         const meta = (sbUser.user_metadata || {}) as Record<string, any>;
-        const fullName = `${meta.firstName || ''} ${meta.lastName || ''}`.trim() || meta.organization || cleanEmail.split('@')[0];
-        const companyId = await getOrCreateUserCompany(sbUser.id, meta.organization, cleanEmail);
+        const fullName = `${meta.firstName || ''} ${meta.lastName || ''}`.trim() || meta.organization || (isPhone ? rawInput : cleanEmail.split('@')[0]);
+        const companyId = await getOrCreateUserCompany(sbUser.id, meta.organization, authEmail);
 
         const profile: UserProfile = {
           id: sbUser.id,
@@ -812,7 +939,9 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           name: fullName,
           firstName: meta.firstName || fullName,
           lastName: meta.lastName || '',
-          email: cleanEmail,
+          email: meta.email || (isPhone ? '' : cleanEmail),
+          phone: meta.phone || (isPhone ? rawInput : undefined),
+          authMethod: isPhone ? 'phone' : 'email',
           organization: meta.organization || 'Mon Entreprise',
           role: 'Administrateur / Gérant',
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563eb&color=fff&size=160&bold=true`,
@@ -847,91 +976,38 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.warn('[login] Supabase auth attempt catch:', e);
     }
 
-    // 2. Vérification dans le registre persistant
-    const registry = getUserRegistry();
-    const regUser = registry[cleanEmail];
-
-    if (!regUser) {
-      return {
-        success: false,
-        error: "Aucun compte n'existe avec cette adresse email. Veuillez d'abord vous inscrire.",
-      };
-    }
-
-    if (regUser.password && regUser.password !== password) {
-      return {
-        success: false,
-        error: "Mot de passe incorrect. Veuillez vérifier votre saisie.",
-      };
-    }
-
-    if (!regUser.emailVerified) {
-      return {
-        success: false,
-        error: "Votre adresse email n'a pas encore été validée. Veuillez cliquer sur le lien de confirmation reçu.",
-        requiresEmailVerification: true,
-      };
-    }
-
-    // Connexion réussie via le registre vérifié
-    const companyId = regUser.companyId || await getOrCreateUserCompany(regUser.id, regUser.organization, cleanEmail);
-    const validUser: UserProfile = {
-      ...regUser,
-      companyId,
-      emailVerified: true,
+    return {
+      success: false,
+      error: isPhone
+        ? "Aucun compte n'existe avec ce numéro de téléphone ou mot de passe incorrect."
+        : "Aucun compte n'existe avec cette adresse email ou mot de passe incorrect.",
     };
-
-    setCurrentUser(validUser);
-    setIsAuthenticated(true);
-    setPendingVerificationUser(null);
-    saveUserToRegistry(validUser);
-    await loadUserData(validUser);
-
-    try {
-      localStorage.removeItem('facturo:v1:is_logged_out');
-      localStorage.removeItem('facturo:v1:pending_verification');
-      localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: validUser }));
-      localStorage.removeItem('facturo:v1:last_email');
-      localStorage.removeItem('facturo:v1:last_registered_email');
-    } catch (e) {}
-
-    return { success: true, user: validUser };
   };
 
   const register = async (userData: {
     firstName: string;
     lastName: string;
-    email: string;
     organization: string;
+    email?: string;
+    phone?: string;
+    authMethod?: 'email' | 'phone';
     country?: string;
     password?: string;
   }) => {
     const firstName = userData.firstName.trim();
     const lastName = userData.lastName.trim();
-    const email = userData.email.trim();
+    const rawPhone = (userData.phone || '').trim();
+    const rawEmail = (userData.email || '').trim().toLowerCase();
     const organization = userData.organization.trim();
     const country = userData.country ? findUemoaCountry(userData.country).name : 'Bénin';
     const defaultVatRate = getCountryStandardVatRate(country);
+    const fullName = `${firstName} ${lastName}`.trim();
     const token = Math.random().toString(36).substring(2, 12) + Math.random().toString(36).substring(2, 12);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const fullName = `${firstName} ${lastName}`.trim();
 
-    const pending: PendingVerificationUser = {
-      firstName,
-      lastName,
-      email,
-      organization,
-      country,
-      defaultVatRate,
-      token,
-      code,
-      sentAt: new Date().toISOString(),
-    };
-
-    setPendingVerificationUser(pending);
-    try {
-      localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
-    } catch (e) {}
+    const isPhoneSignup = userData.authMethod === 'phone' || (Boolean(rawPhone) && !rawEmail);
+    const phone = rawPhone ? normalizePhone(rawPhone) : '';
+    const email = rawEmail || (phone ? getPhoneAuthEmail(phone) : '');
 
     // Pré-enregistrer les paramètres avec le pays et son taux de TVA officiel
     try {
@@ -948,16 +1024,105 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       );
     } catch (e) {}
 
-    // Enregistrer le profil réel dès l'inscription dans le registre persistant
+    // A. CAS 1 : INSCRIPTION PAR NUMÉRO DE TÉLÉPHONE (Activation Immédiate !)
+    if (isPhoneSignup && phone) {
+      const userProfile: UserProfile = {
+        ...DEFAULT_USER,
+        name: fullName,
+        firstName,
+        lastName,
+        email: email || getPhoneAuthEmail(phone),
+        phone,
+        authMethod: 'phone',
+        organization,
+        country,
+        defaultVatRate,
+        password: userData.password,
+        role: 'Administrateur / Gérant',
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`,
+        emailVerified: true,
+      };
+
+      saveUserToRegistry(userProfile);
+
+      // Inscription Supabase en tâche de fond
+      try {
+        const supabase = createClient();
+        await supabase.auth.signUp({
+          email: userProfile.email,
+          password: userData.password || 'SecurePassword2026!',
+          options: {
+            data: {
+              firstName,
+              lastName,
+              phone,
+              organization,
+              country,
+              defaultVatRate,
+              authMethod: 'phone',
+              email_verified: true,
+            },
+          },
+        });
+      } catch (err) {
+        console.warn('[Supabase Auth signUp phone] :', err);
+      }
+
+      // Connexion immédiate du nouvel utilisateur
+      setCurrentUser(userProfile);
+      setIsAuthenticated(true);
+      setPendingVerificationUser(null);
+      await loadUserData(userProfile);
+
+      try {
+        localStorage.removeItem('facturo:v1:is_logged_out');
+        localStorage.removeItem('facturo:v1:pending_verification');
+        localStorage.setItem('facturo:v1:auth', JSON.stringify({ isAuthenticated: true, currentUser: userProfile }));
+        localStorage.removeItem('facturo:v1:last_registered_email');
+        localStorage.removeItem('facturo:v1:last_email');
+      } catch (e) {}
+
+      return {
+        success: true,
+        requiresEmailVerification: false,
+        phone,
+        user: userProfile,
+      };
+    }
+
+    // B. CAS 2 : INSCRIPTION PAR EMAIL (Avec envoi sécurisé du code d'activation)
+    const pending: PendingVerificationUser = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      authMethod: 'email',
+      organization,
+      country,
+      defaultVatRate,
+      token,
+      code,
+      sentAt: new Date().toISOString(),
+    };
+
+    setPendingVerificationUser(pending);
+    try {
+      localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
+    } catch (e) {}
+
+    // Enregistrer le profil dans le registre persistant
     const userProfile: UserProfile = {
       ...DEFAULT_USER,
       name: fullName,
       firstName,
       lastName,
       email,
+      phone,
+      authMethod: 'email',
       organization,
       country,
       defaultVatRate,
+      password: userData.password,
       role: 'Administrateur / Gérant',
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || firstName)}&background=2563eb&color=fff&size=160&bold=true`,
       emailVerified: false,
@@ -975,7 +1140,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const networkUrl = process.env.NODE_ENV === 'development' ? `http://192.168.100.25:3000/confirm-email?token=${token}&email=${encodeURIComponent(email)}` : undefined;
 
     try {
-      fetch('/api/auth/send-verification', {
+      const res = await fetch('/api/auth/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -988,10 +1153,20 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           confirmUrl,
           networkUrl,
         }),
-      }).catch((e) => console.warn('[Send Verification API catch]', e));
-    } catch (e) {}
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.code) {
+        pending.code = data.code;
+        setPendingVerificationUser({ ...pending });
+        try {
+          localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pending));
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('[Send Verification API catch]', e);
+    }
 
-    // 2. Tentative via Supabase Auth avec métadonnées de pays et TVA
+    // 2. Inscription via Supabase Auth
     try {
       const supabase = createClient();
       await supabase.auth.signUp({
@@ -1012,7 +1187,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.warn('[Supabase Auth signUp] Info / fallback :', err);
     }
 
-    // L'utilisateur reste NON authentifié tant qu'il n'a pas confirmé son adresse email
+    // L'utilisateur reste en attente tant qu'il n'a pas validé
     setCurrentUser(null);
     setIsAuthenticated(false);
     try {
@@ -1024,6 +1199,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       requiresEmailVerification: true,
       email,
       token,
+      code: pending.code || code,
     };
   };
 
@@ -1037,12 +1213,12 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const cleanInput = (tokenOrEmail || '').trim().toLowerCase();
-    const registry = getUserRegistry();
-    const existing = registry[cleanInput] || (pending?.email ? registry[pending.email.toLowerCase()] : undefined);
+    const existing = findUserInRegistry(cleanInput) || (pending?.email ? findUserInRegistry(pending.email) : undefined);
 
     const firstName = pending?.firstName || existing?.firstName || (cleanInput.includes('@') ? cleanInput.split('@')[0] : 'Mari-ella');
     const lastName = pending?.lastName || existing?.lastName || (pending ? '' : 'Manille');
     const email = pending?.email || existing?.email || (cleanInput.includes('@') ? cleanInput : 'monmonnroyteam@gmail.com');
+    const phone = pending?.phone || existing?.phone;
     const organization = pending?.organization || existing?.organization || 'MONROY AGENCY';
     const country = pending?.country || existing?.country || 'Bénin';
     const defaultVatRate = pending?.defaultVatRate !== undefined
@@ -1061,6 +1237,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       firstName,
       lastName,
       email,
+      phone,
       organization,
       country,
       defaultVatRate,
@@ -1113,9 +1290,9 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const token = pendingVerificationUser?.token || 'resend-token';
     const confirmUrl = `${origin}/confirm-email?token=${token}&email=${encodeURIComponent(emailToUse)}`;
 
-    // 1. Envoi via passerelle d'emailing
+    // 1. Envoi via passerelle d'emailing (Gmail SMTP)
     try {
-      fetch('/api/auth/send-verification', {
+      const res = await fetch('/api/auth/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1124,10 +1301,21 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           lastName: pendingVerificationUser?.lastName || '',
           organization: pendingVerificationUser?.organization || '',
           token,
+          code: pendingVerificationUser?.code,
           confirmUrl,
         }),
-      }).catch((e) => console.warn('[Resend API catch]', e));
-    } catch (e) {}
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.code && pendingVerificationUser) {
+        pendingVerificationUser.code = data.code;
+        setPendingVerificationUser({ ...pendingVerificationUser });
+        try {
+          localStorage.setItem('facturo:v1:pending_verification', JSON.stringify(pendingVerificationUser));
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('[Resend API catch]', e);
+    }
 
     // 2. Tentative Supabase Auth
     try {

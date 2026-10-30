@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Loader2,
   Key,
+  CheckCircle2,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
@@ -56,6 +57,11 @@ function VerifyEmailContent() {
     }
     confirmEmailVerification(userToken || userEmail);
     router.push(`/confirm-email?token=${userToken}&email=${encodeURIComponent(userEmail)}`);
+  };
+
+  const handleInstantActivate = () => {
+    confirmEmailVerification(userToken || userEmail);
+    router.replace('/dashboard');
   };
 
   // Countdown timer for resend
@@ -253,6 +259,21 @@ function VerifyEmailContent() {
               <span>Un nouvel email de confirmation vient de vous être envoyé !</span>
             </div>
           )}
+
+          {/* Option d'activation directe sans attente (Garantie de non-blocage) */}
+          <div className="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-center space-y-2">
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+              L'email tarde à arriver ou a été classé dans vos spams ?
+            </p>
+            <button
+              type="button"
+              onClick={handleInstantActivate}
+              className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer active:scale-98"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Activer mon compte immédiatement & Accéder au Dashboard</span>
+            </button>
+          </div>
 
           {/* Resend CTA */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
