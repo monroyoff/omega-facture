@@ -20,7 +20,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   clientToEdit,
   onSuccess,
 }) => {
-  const { addClient, updateClient, showToast } = useInvoices();
+  const { addClient, updateClient, deleteClient, showToast } = useInvoices();
 
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
@@ -30,6 +30,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
   const [country, setCountry] = useState('Bénin');
   const [taxId, setTaxId] = useState('');
   const [avatar, setAvatar] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Sync state when clientToEdit changes or modal opens
   React.useEffect(() => {
@@ -128,6 +129,19 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
     });
     onClientCreated?.(created);
     onSuccess?.('Nouveau client enregistré avec succès !');
+    onClose();
+  };
+
+  const handleDeleteClient = () => {
+    if (!clientToEdit) return;
+    deleteClient?.(clientToEdit.id);
+    showToast({
+      title: 'Client supprimé !',
+      message: `La fiche client de "${clientToEdit.company || clientToEdit.name}" a été définitivement supprimée.`,
+      kind: 'delete',
+      duration: 4000,
+    });
+    setShowDeleteConfirm(false);
     onClose();
   };
 
@@ -360,23 +374,76 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
           </div>
 
           {/* Action buttons */}
-          <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all"
-            >
-              <Check className="w-4 h-4" />
-              <span>{clientToEdit ? 'Enregistrer les modifications' : 'Enregistrer le Client'}</span>
-            </button>
+          <div className="pt-4 flex items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
+            {clientToEdit ? (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold cursor-pointer active:scale-95 transition-colors"
+                title="Supprimer définitivement ce client"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Supprimer</span>
+              </button>
+            ) : <div />}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>{clientToEdit ? 'Enregistrer les modifications' : 'Enregistrer le Client'}</span>
+              </button>
+            </div>
           </div>
         </form>
+
+        {/* Inner Delete Confirmation Modal */}
+        {showDeleteConfirm && clientToEdit && (
+          <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-[#111622] rounded-3xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-800 space-y-4 shadow-2xl text-center">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-800">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white text-base">
+                  Supprimer ce client ?
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {clientToEdit.company || clientToEdit.name}
+                </p>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Êtes-vous certain de vouloir supprimer cette fiche client ? Cette action est irréversible.
+              </p>
+              <div className="flex items-center justify-center gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteClient}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Confirmer</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

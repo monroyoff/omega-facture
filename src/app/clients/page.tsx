@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { NewClientModal } from '@/components/clients/NewClientModal';
-import { Plus, Search, Building2, Phone, Mail, MapPin, ExternalLink, ShieldCheck, Pencil, Check, X } from 'lucide-react';
+import { Plus, Search, Building2, Phone, Mail, MapPin, ExternalLink, ShieldCheck, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { Client } from '@/lib/types';
 import { ClientsGridSkeleton } from '@/components/ui/Skeleton';
 
@@ -14,8 +14,9 @@ export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
-  const { clients, isDataLoading } = useInvoices();
+  const { clients, isDataLoading, deleteClient, showToast } = useInvoices();
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -38,6 +39,19 @@ export default function ClientsPage() {
   const handleOpenEdit = (client: Client) => {
     setEditingClient(client);
     setIsModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!clientToDelete) return;
+    const clientName = clientToDelete.company || clientToDelete.name;
+    deleteClient?.(clientToDelete.id);
+    showToast({
+      title: 'Client supprimé !',
+      message: `La fiche client de "${clientName}" a été définitivement supprimée.`,
+      kind: 'delete',
+      duration: 4000,
+    });
+    setClientToDelete(null);
   };
 
   return (
@@ -141,18 +155,33 @@ export default function ClientsPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEdit(cli);
-                      }}
-                      className="p-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 group-hover:text-brand-600 group-hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors flex items-center gap-1 text-[11px] font-semibold"
-                      title="Modifier la fiche client"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Modifier</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEdit(cli);
+                        }}
+                        className="p-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 group-hover:text-brand-600 group-hover:border-brand-500/30 hover:bg-brand-50 dark:hover:bg-brand-950/40 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer active:scale-95"
+                        title="Modifier la fiche client"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Modifier</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setClientToDelete(cli);
+                        }}
+                        className="p-1.5 px-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer active:scale-95"
+                        title="Supprimer ce client"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Supprimer</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-3">
@@ -208,6 +237,51 @@ export default function ClientsPage() {
         }}
         clientToEdit={editingClient}
       />
+
+      {/* Delete Confirmation Modal */}
+      {clientToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-[#111622] rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-800">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Supprimer ce client
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {clientToDelete.company || clientToDelete.name}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Êtes-vous sûr de vouloir supprimer définitivement la fiche client de{' '}
+              <strong>{clientToDelete.company || clientToDelete.name}</strong> ({clientToDelete.city}, {clientToDelete.country}) ?
+              Cette action retirera ce contact de votre répertoire.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setClientToDelete(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white text-xs font-bold shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Confirmer la suppression</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
