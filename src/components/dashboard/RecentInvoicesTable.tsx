@@ -50,7 +50,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   onKindChange,
   id = 'invoices-section',
 }) => {
-  const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice, showToast } = useInvoices();
+  const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice, showToast, currentUser } = useInvoices();
   const [internalTab, setInternalTab] = useState<DashboardTableTab>('all');
   const selectedTab = activeTab !== undefined ? activeTab : internalTab;
   const handleTabChange = (tab: DashboardTableTab) => {
@@ -93,9 +93,16 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
         title: 'Téléchargement PDF en cours...',
         message: `Génération haute résolution du fichier ${inv.number}.pdf...`,
       });
+      const compName = inv.sellerName || currentUser?.organization || currentUser?.name || 'Mon Entreprise';
       await generateInvoicePDF({
         invoice: inv,
-        companyName: 'MONROY Business Solutions',
+        companyName: compName,
+        companyEmail: inv.sellerEmail || currentUser?.email || '',
+        companyPhone: inv.sellerPhone || currentUser?.phone || '',
+        companyAddress: inv.sellerAddress || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA'),
+        companyTaxId: inv.sellerTaxId || currentUser?.ifu || '',
+        signatoryName: inv.signatoryName || compName,
+        signatureImage: inv.signatureImage || currentUser?.signatureImage,
       });
       showToast({
         title: 'Document PDF officiel téléchargé !',

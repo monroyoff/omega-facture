@@ -68,9 +68,9 @@ export default function EditInvoicePage() {
   const [docStatus, setDocStatus] = useState<import('@/lib/types').InvoiceStatus>('draft');
 
   // Form states
-  const [sellerName, setSellerName] = useState(currentUser?.organization || 'MONROY Business Solutions');
-  const [sellerEmail, setSellerEmail] = useState(currentUser?.email || 'monmonnroyteam@gmail.com');
-  const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
+  const [sellerName, setSellerName] = useState(() => currentUser?.organization || currentUser?.name || 'Mon Entreprise');
+  const [sellerEmail, setSellerEmail] = useState(() => currentUser?.email || '');
+  const [sellerAddress, setSellerAddress] = useState(() => currentUser?.address || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA'));
 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [issueDate, setIssueDate] = useState('');
@@ -167,8 +167,13 @@ export default function EditInvoicePage() {
         setHasDiscount(true);
         setDiscountAmount(inv.discount);
       }
+      if (inv.sellerName) setSellerName(inv.sellerName);
+      else if (currentUser?.organization) setSellerName(currentUser.organization);
+      if (inv.sellerEmail) setSellerEmail(inv.sellerEmail);
+      else if (currentUser?.email) setSellerEmail(currentUser.email);
+      if (inv.sellerAddress) setSellerAddress(inv.sellerAddress);
     }
-  }, [invoiceId, getInvoice, clients, userCountry]);
+  }, [invoiceId, getInvoice, clients, userCountry, currentUser]);
 
   const currentClient = useMemo(() => {
     return clients.find((c) => c.id === selectedClientId) || clients[0];
@@ -219,6 +224,9 @@ export default function EditInvoicePage() {
       discount: totals.discountAmount,
       vatAmount: totals.vatAmount,
       total: totals.totalTTC,
+      sellerName,
+      sellerEmail,
+      sellerAddress,
       items: items.map((it, idx) => ({
         id: `item-${idx + 1}`,
         description: it.description,
@@ -256,6 +264,9 @@ export default function EditInvoicePage() {
       discount: totals.discountAmount,
       vatAmount: totals.vatAmount,
       total: totals.totalTTC,
+      sellerName,
+      sellerEmail,
+      sellerAddress,
       items: items.map((it, idx) => ({
         id: `item-${idx + 1}`,
         description: it.description,
@@ -298,6 +309,9 @@ export default function EditInvoicePage() {
       discount: totals.discountAmount,
       vatAmount: totals.vatAmount,
       total: totals.totalTTC,
+      sellerName,
+      sellerEmail,
+      sellerAddress,
       items: items.map((it, idx) => ({
         id: `item-${idx + 1}`,
         description: it.description,

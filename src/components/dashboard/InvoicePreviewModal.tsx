@@ -61,14 +61,26 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     invoice.documentKind ||
     (invoice.number.startsWith('DEV-') ? 'quote' : 'invoice');
 
+  const emitterName = invoice?.sellerName || currentUser?.organization || 'Mon Entreprise';
+  const emitterEmail = invoice?.sellerEmail || currentUser?.email || '';
+  const emitterPhone = invoice?.sellerPhone || currentUser?.phone || '';
+  const emitterAddress = invoice?.sellerAddress || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA');
+  const emitterTaxId = invoice?.sellerTaxId || currentUser?.ifu || '';
+  const signatory = invoice?.signatoryName || invoice?.sellerName || currentUser?.name || currentUser?.organization || 'La Direction';
+
   const handleDownloadPDF = async () => {
     if (!invoice || isDownloadingPDF) return;
     setIsDownloadingPDF(true);
     try {
       await generateInvoicePDF({
         invoice,
-        companyName: currentUser?.organization || 'MONROY Business Solutions',
-        companyEmail: currentUser?.email || 'monmonnroyteam@gmail.com',
+        companyName: emitterName,
+        companyEmail: emitterEmail,
+        companyPhone: emitterPhone,
+        companyAddress: emitterAddress,
+        companyTaxId: emitterTaxId,
+        signatoryName: signatory,
+        signatureImage: invoice.signatureImage || currentUser?.signatureImage,
       });
       showToast({
         title: 'Document PDF officiel téléchargé !',
@@ -366,13 +378,15 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Émis par :
                 </span>
                 <div className="font-bold text-slate-900 text-sm">
-                  {currentUser?.organization || 'MONROY Business Solutions'}
+                  {emitterName}
                 </div>
                 <div className="text-slate-600 mt-1 space-y-0.5 leading-relaxed">
-                  <p>Allada & Cotonou, République du Bénin</p>
-                  <p>IFU : 0202110485960 — RCCM : RB/COT/21 B 1042</p>
-                  <p>Email : {currentUser?.email || 'monmonnroyteam@gmail.com'}</p>
-                  <p>Tél : +229 01 95 44 44 30</p>
+                  {emitterAddress && <p>{emitterAddress}</p>}
+                  {emitterTaxId ? (
+                    <p>IFU / NIF : {emitterTaxId}</p>
+                  ) : null}
+                  {emitterEmail && <p>Email : {emitterEmail}</p>}
+                  {emitterPhone && <p>Tél : {emitterPhone}</p>}
                 </div>
               </div>
 
@@ -498,10 +512,12 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
                   Moyens de Règlement Acceptés :
                 </span>
                 <p className="font-semibold text-slate-800">
-                  Mobile Money (MTN / Moov) : +229 01 95 44 44 30
+                  {emitterPhone
+                    ? `Mobile Money (MTN / Moov / Wave / Orange) : ${emitterPhone}`
+                    : 'Mobile Money ou Virement Bancaire'}
                 </p>
                 <p className="text-slate-500 mt-0.5">
-                  Virement bancaire : Bank of Africa (BOA) Bénin
+                  Règlement à l'ordre de : {emitterName}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-2 italic">
                   {docKind === 'quote'
@@ -514,13 +530,24 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
               <div className="text-left sm:text-right flex flex-col items-start sm:items-end justify-between">
                 <div>
                   <span className="font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-                    Pour OMEGA FACTURE
+                    Pour {emitterName}
                   </span>
-                  <div className="text-brand-700 italic font-serif text-lg tracking-wider pt-1">
-                    Monroy J.
+                  {invoice.signatureImage ? (
+                    <div className="my-1.5 flex sm:justify-end">
+                      <img
+                        src={invoice.signatureImage}
+                        alt={`Signature ${signatory}`}
+                        className="h-12 w-auto max-w-[160px] object-contain border-b border-dashed border-slate-300 dark:border-slate-700"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="text-brand-700 dark:text-brand-400 italic font-serif text-base tracking-wider pt-0.5 font-bold">
+                    {signatory}
                   </div>
-                  <span className="text-[10px] text-slate-400">
-                    Signature & Cachet Électronique
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    {invoice.signedAt
+                      ? `Signé électroniquement le ${formatDateFR(invoice.signedAt)}`
+                      : 'Signature & Cachet Numérique'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold mt-3">

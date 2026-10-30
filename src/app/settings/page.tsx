@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
-import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X, Sparkles, Globe } from 'lucide-react';
+import { Settings, Building, ShieldCheck, CreditCard, Save, Check, X, Sparkles, Globe, PenTool, Eraser } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { UEMOA_COUNTRIES, findUemoaCountry, getCountryStandardVatRate, getCountryVatRates } from '@/lib/tax/uemoa-tax';
 
@@ -23,35 +23,95 @@ export default function SettingsPage() {
     defaultVatRate,
   } = useInvoices();
 
+  const settingsStorageKey = currentUser?.companyId ? `facturo:v1:${currentUser.companyId}:settings` : 'facturo:v1:settings';
+
   // Settings form states
   const [country, setCountry] = useState(currentUser?.country || userCountry || 'Bénin');
-  const [companyName, setCompanyName] = useState(currentUser?.organization || 'MONROY Business Solutions');
-  const [ifu, setIfu] = useState('0202110485960');
-  const [rccm, setRccm] = useState('RB/COT/21 B 1042');
-  const [email, setEmail] = useState(currentUser?.email || 'monmonnroyteam@gmail.com');
-  const [phone, setPhone] = useState('+229 01 95 44 44 30');
-  const [address, setAddress] = useState('Allada, République du Bénin');
+  const [companyName, setCompanyName] = useState(currentUser?.organization || currentUser?.name || 'Mon Entreprise');
+  const [ifu, setIfu] = useState(currentUser?.ifu || '');
+  const [rccm, setRccm] = useState(currentUser?.rccm || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [address, setAddress] = useState(currentUser?.address || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA'));
   const [defaultVat, setDefaultVat] = useState(currentUser?.defaultVatRate || defaultVatRate || 18);
   const [invoicePrefix, setInvoicePrefix] = useState('FAC');
   const [paymentTerms, setPaymentTerms] = useState(15);
-  const [momoNumber, setMomoNumber] = useState('+229 01 95 44 44 30');
+  const [momoNumber, setMomoNumber] = useState(currentUser?.momoNumber || currentUser?.phone || '');
+  const [signatoryName, setSignatoryName] = useState(currentUser?.signatoryName || currentUser?.name || currentUser?.organization || 'La Direction');
+  const [signatureImage, setSignatureImage] = useState<string>(currentUser?.signatureImage || '');
+
+  // Canvas drawing ref & handlers
+  const sigCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = React.useState(false);
+  const [hasDrawn, setHasDrawn] = React.useState(false);
+
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    setIsDrawing(true);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+    setHasDrawn(true);
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = sigCanvasRef.current;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL('image/png');
+      setSignatureImage(dataUrl);
+    }
+  };
+
+  const clearSignature = () => {
+    const canvas = sigCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    setHasDrawn(false);
+    setSignatureImage('');
+  };
 
   React.useEffect(() => {
     try {
-      const stored = localStorage.getItem('facturo:v1:settings');
+      const stored = localStorage.getItem(settingsStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.country) setCountry(parsed.country);
         if (parsed.companyName) setCompanyName(parsed.companyName);
-        if (parsed.ifu) setIfu(parsed.ifu);
-        if (parsed.rccm) setRccm(parsed.rccm);
+        if (parsed.ifu !== undefined) setIfu(parsed.ifu);
+        if (parsed.rccm !== undefined) setRccm(parsed.rccm);
         if (parsed.email) setEmail(parsed.email);
-        if (parsed.phone) setPhone(parsed.phone);
-        if (parsed.address) setAddress(parsed.address);
+        if (parsed.phone !== undefined) setPhone(parsed.phone);
+        if (parsed.address !== undefined) setAddress(parsed.address);
         if (parsed.defaultVat !== undefined) setDefaultVat(parsed.defaultVat);
         if (parsed.invoicePrefix) setInvoicePrefix(parsed.invoicePrefix);
         if (parsed.paymentTerms !== undefined) setPaymentTerms(parsed.paymentTerms);
-        if (parsed.momoNumber) setMomoNumber(parsed.momoNumber);
+        if (parsed.momoNumber !== undefined) setMomoNumber(parsed.momoNumber);
+        if (parsed.signatoryName) setSignatoryName(parsed.signatoryName);
+        if (parsed.signatureImage) setSignatureImage(parsed.signatureImage);
       }
     } catch (e) {}
 
@@ -59,9 +119,15 @@ export default function SettingsPage() {
       if (currentUser.country) setCountry(currentUser.country);
       if (currentUser.organization) setCompanyName(currentUser.organization);
       if (currentUser.email) setEmail(currentUser.email);
+      if (currentUser.phone && !phone) setPhone(currentUser.phone);
+      if (currentUser.ifu && !ifu) setIfu(currentUser.ifu);
+      if (currentUser.rccm && !rccm) setRccm(currentUser.rccm);
+      if (currentUser.address && !address) setAddress(currentUser.address);
       if (currentUser.defaultVatRate !== undefined) setDefaultVat(currentUser.defaultVatRate);
+      if (currentUser.signatoryName) setSignatoryName(currentUser.signatoryName);
+      if (currentUser.signatureImage) setSignatureImage(currentUser.signatureImage);
     }
-  }, [currentUser]);
+  }, [currentUser, settingsStorageKey]);
 
   React.useEffect(() => {
     return () => {
@@ -80,13 +146,20 @@ export default function SettingsPage() {
     updateUserProfile({
       organization: companyName,
       email: email,
+      phone: phone,
       country: country,
       defaultVatRate: defaultVat,
+      ifu: ifu,
+      rccm: rccm,
+      address: address,
+      momoNumber: momoNumber,
+      signatoryName: signatoryName,
+      signatureImage: signatureImage,
     });
     setUserCountry(country);
     try {
       localStorage.setItem(
-        'facturo:v1:settings',
+        settingsStorageKey,
         JSON.stringify({
           companyName,
           country,
@@ -99,6 +172,8 @@ export default function SettingsPage() {
           invoicePrefix,
           paymentTerms,
           momoNumber,
+          signatoryName,
+          signatureImage,
         })
       );
     } catch (e) {}
@@ -108,7 +183,7 @@ export default function SettingsPage() {
     }
     showToast({
       title: 'Paramètres enregistrés avec succès !',
-      message: `Vos informations pour le ${country} (TVA ${defaultVat}%) ont été mises à jour.`,
+      message: `Vos informations pour ${companyName} (${country}) ont été mises à jour.`,
       kind: 'success',
       duration: 3500,
     });
@@ -311,6 +386,62 @@ export default function SettingsPage() {
                     onChange={(e) => setAddress(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl"
                   />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Nom du Signataire & Titre Officiel
+                  </label>
+                  <input
+                    type="text"
+                    value={signatoryName}
+                    onChange={(e) => setSignatoryName(e.target.value)}
+                    placeholder="Ex: Kouamé Koffi — Gérant"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <PenTool className="w-3.5 h-3.5 text-brand-600" />
+                      <span>Signature & Cachet Électronique par Défaut</span>
+                    </label>
+                    {(hasDrawn || signatureImage) && (
+                      <button
+                        type="button"
+                        onClick={clearSignature}
+                        className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Eraser className="w-3 h-3" />
+                        <span>Effacer la signature</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 p-1 overflow-hidden">
+                    <canvas
+                      ref={sigCanvasRef}
+                      width={600}
+                      height={130}
+                      onPointerDown={startDrawing}
+                      onPointerMove={draw}
+                      onPointerUp={stopDrawing}
+                      onPointerLeave={stopDrawing}
+                      className="w-full h-28 touch-none cursor-crosshair bg-slate-50/50 dark:bg-slate-900/50 rounded-xl"
+                    />
+                    {!hasDrawn && !signatureImage && (
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-slate-400 text-xs">
+                        ✍️ Dessinez votre signature officielle ici (doigt ou souris)
+                      </div>
+                    )}
+                  </div>
+                  {signatureImage && !hasDrawn && (
+                    <div className="mt-2 flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-xs text-emerald-700 dark:text-emerald-300">
+                      <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600" />
+                      <span>Signature enregistrée et prête à être apposée sur toutes vos futures factures.</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

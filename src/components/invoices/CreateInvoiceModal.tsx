@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   User,
   Building2,
@@ -21,6 +21,9 @@ import {
   Globe,
   Percent,
   Check,
+  PenTool,
+  ShieldCheck,
+  Eraser,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { calculateInvoiceTotals, LineItemInput } from '@/lib/invoice/calc';
@@ -112,10 +115,69 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
   const [documentKind, setDocumentKind] = useState<DocumentKind>(initialKind);
   const [invoiceType, setInvoiceType] = useState<'standard' | 'split' | 'recurring'>('standard');
 
-  // Form states
-  const [sellerName, setSellerName] = useState(currentUser?.organization || 'MONROY Business Solutions');
-  const [sellerEmail, setSellerEmail] = useState(currentUser?.email || 'contact@monroy-agency.bj');
-  const [sellerAddress, setSellerAddress] = useState('Allada, République du Bénin');
+  // Form states - strict dynamic seller information
+  const [sellerName, setSellerName] = useState(() => currentUser?.organization || currentUser?.name || 'Mon Entreprise');
+  const [sellerEmail, setSellerEmail] = useState(() => currentUser?.email || '');
+  const [sellerAddress, setSellerAddress] = useState(() => currentUser?.address || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA'));
+  const [sellerPhone, setSellerPhone] = useState(() => currentUser?.phone || '');
+  const [sellerTaxId, setSellerTaxId] = useState(() => currentUser?.ifu || '');
+  const [signatoryName, setSignatoryName] = useState(() => currentUser?.signatoryName || currentUser?.name || currentUser?.organization || 'La Direction');
+  const [signatureImage, setSignatureImage] = useState<string>(() => currentUser?.signatureImage || '');
+  const [isSigned, setIsSigned] = useState<boolean>(true);
+
+  // Signature canvas states & handlers
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    setIsDrawing(true);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+    setHasDrawn(true);
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    const canvas = sigCanvasRef.current;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL('image/png');
+      setSignatureImage(dataUrl);
+    }
+  };
+
+  const clearSignature = () => {
+    const canvas = sigCanvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    setHasDrawn(false);
+    setSignatureImage('');
+  };
 
   // Split / Acompte state
   const [splitPreset, setSplitPreset] = useState<'30-70' | '40-30-30' | '50-50' | '4x25' | 'custom'>('30-70');
@@ -300,8 +362,20 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
       }
 
       // 7. Émetteur issu du profil de l'utilisateur connecté
-      if (currentUser?.organization) setSellerName(currentUser.organization);
-      if (currentUser?.email) setSellerEmail(currentUser.email);
+      const defaultOrg = currentUser?.organization || currentUser?.name || 'Mon Entreprise';
+      setSellerName(defaultOrg);
+      setSellerEmail(currentUser?.email || '');
+      setSellerPhone(currentUser?.phone || '');
+      setSellerAddress(currentUser?.address || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA'));
+      setSellerTaxId(currentUser?.ifu || '');
+      setSignatoryName(currentUser?.signatoryName || currentUser?.name || defaultOrg);
+      setSignatureImage(currentUser?.signatureImage || '');
+      setIsSigned(true);
+      setHasDrawn(false);
+      if (sigCanvasRef.current) {
+        const ctx = sigCanvasRef.current.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, sigCanvasRef.current.width, sigCanvasRef.current.height);
+      }
     },
     [initialKind, invoices, currentUser, userCountry, defaultVatRate]
   );
@@ -591,6 +665,14 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         vatRate: it.vatRate,
         total: Math.round(it.quantity * it.unitPrice * (1 - (it.discountPct || 0) / 100)),
       })),
+      sellerName: sellerName.trim() || currentUser?.organization || currentUser?.name || 'Mon Entreprise',
+      sellerEmail: sellerEmail.trim() || currentUser?.email || undefined,
+      sellerPhone: sellerPhone.trim() || currentUser?.phone || undefined,
+      sellerAddress: sellerAddress.trim() || undefined,
+      sellerTaxId: sellerTaxId.trim() || currentUser?.ifu || undefined,
+      signatoryName: signatoryName.trim() || sellerName || 'La Direction',
+      signatureImage: isSigned ? (signatureImage || currentUser?.signatureImage || undefined) : undefined,
+      signedAt: isSigned ? new Date().toISOString() : undefined,
     };
 
     addInvoice(newInv);
@@ -719,6 +801,14 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
         vatRate: it.vatRate,
         total: Math.round(it.quantity * it.unitPrice * (1 - (it.discountPct || 0) / 100)),
       })),
+      sellerName: sellerName.trim() || currentUser?.organization || currentUser?.name || 'Mon Entreprise',
+      sellerEmail: sellerEmail.trim() || currentUser?.email || undefined,
+      sellerPhone: sellerPhone.trim() || currentUser?.phone || undefined,
+      sellerAddress: sellerAddress.trim() || undefined,
+      sellerTaxId: sellerTaxId.trim() || currentUser?.ifu || undefined,
+      signatoryName: signatoryName.trim() || sellerName || 'La Direction',
+      signatureImage: isSigned ? (signatureImage || currentUser?.signatureImage || undefined) : undefined,
+      signedAt: isSigned ? new Date().toISOString() : undefined,
     };
 
     addInvoice(newDraft);
@@ -1657,6 +1747,109 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                   </div>
                 </div>
 
+                {/* SECTION 3: Signature Électronique de l'Émetteur */}
+                <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 flex items-center justify-center">
+                        <PenTool className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                          Signature Électronique de l'Émetteur
+                        </h4>
+                        <p className="text-[10px] text-slate-500">
+                          Apposée au bas de la facture et du document officiel PDF
+                        </p>
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={isSigned}
+                        onChange={(e) => setIsSigned(e.target.checked)}
+                        className="rounded text-brand-600 focus:ring-brand-500 w-4 h-4 cursor-pointer"
+                      />
+                      <span>Signer</span>
+                    </label>
+                  </div>
+
+                  {isSigned && (
+                    <div className="space-y-3 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                            Nom du Signataire & Fonction *
+                          </label>
+                          <input
+                            type="text"
+                            value={signatoryName}
+                            onChange={(e) => setSignatoryName(e.target.value)}
+                            placeholder="Ex: Kouamé Koffi — Gérant"
+                            className="w-full px-3 py-2 text-xs bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">
+                            N° Mobile Money (Règlement)
+                          </label>
+                          <input
+                            type="text"
+                            value={sellerPhone}
+                            onChange={(e) => setSellerPhone(e.target.value)}
+                            placeholder="Ex: +229 01 95 00 00 00"
+                            className="w-full px-3 py-2 text-xs bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Interactive Canvas for Drawing Signature */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Tracer votre signature manuscrite (Doigt ou Souris)
+                          </span>
+                          {(hasDrawn || signatureImage) && (
+                            <button
+                              type="button"
+                              onClick={clearSignature}
+                              className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 flex items-center gap-1 cursor-pointer"
+                            >
+                              <Eraser className="w-3 h-3" />
+                              <span>Effacer</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="relative border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-[#111622] overflow-hidden">
+                          <canvas
+                            ref={sigCanvasRef}
+                            width={500}
+                            height={120}
+                            onPointerDown={startDrawing}
+                            onPointerMove={draw}
+                            onPointerUp={stopDrawing}
+                            onPointerLeave={stopDrawing}
+                            className="w-full h-24 touch-none cursor-crosshair"
+                          />
+                          {!hasDrawn && !signatureImage && (
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-slate-400 text-xs">
+                              ✍️ Tracez votre signature manuscrite ici
+                            </div>
+                          )}
+                        </div>
+
+                        {signatureImage && !hasDrawn && (
+                          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Signature électronique active</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Submit Actions */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-slate-200/80 dark:border-slate-800">
                   <button
@@ -1783,8 +1976,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                         {sellerName}
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
-                        <p>{sellerEmail}</p>
-                        <p>{sellerAddress}</p>
+                        {sellerEmail && <p>{sellerEmail}</p>}
+                        {sellerPhone && <p>Tél : {sellerPhone}</p>}
+                        {sellerAddress && <p>{sellerAddress}</p>}
                       </div>
                     </div>
 
@@ -2002,13 +2196,31 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                     <div className="mt-3 flex items-end justify-between">
                       <div>
                         <strong className="block text-slate-700">Moyen de règlement :</strong>
-                        <span>Mobile Money MTN / Moov : +229 01 95 44 44 30</span>
+                        <span>
+                          {sellerPhone
+                            ? `Mobile Money : ${sellerPhone}`
+                            : `Règlement à l'ordre de ${sellerName}`}
+                        </span>
                       </div>
                       <div className="text-right">
-                        <span className="italic font-serif text-sm font-bold text-slate-800 block">
-                          Monroy J.
+                        <span className="block text-[10px] text-slate-400 uppercase font-semibold">
+                          Pour {sellerName}
                         </span>
-                        <span className="text-slate-400">Signature certifiée</span>
+                        {isSigned && signatureImage ? (
+                          <div className="my-1 flex justify-end">
+                            <img
+                              src={signatureImage}
+                              alt="Signature"
+                              className="h-8 w-auto max-w-[120px] object-contain border-b border-dashed border-slate-300"
+                            />
+                          </div>
+                        ) : null}
+                        <span className="italic font-serif text-sm font-bold text-slate-800 block">
+                          {signatoryName || sellerName}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {isSigned ? 'Signature certifiée' : 'Sans signature'}
+                        </span>
                       </div>
                     </div>
                   </div>

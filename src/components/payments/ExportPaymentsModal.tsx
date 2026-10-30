@@ -59,10 +59,15 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { payments = [], periodPayments = [], periodLabel, selectedPeriod, setSelectedPeriod } = useInvoices();
+  const { payments = [], periodPayments = [], periodLabel, selectedPeriod, setSelectedPeriod, currentUser } = useInvoices();
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [exportScope, setExportScope] = useState<'period' | 'all'>('period');
   const printRef = useRef<HTMLDivElement>(null);
+
+  const companyName = currentUser?.organization || currentUser?.name || 'Mon Entreprise';
+  const signatoryName = currentUser?.signatoryName || currentUser?.name || companyName || 'La Direction';
+  const companyTaxId = currentUser?.ifu ? `IFU : ${currentUser.ifu}` : '';
+  const companyAddress = currentUser?.address || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA');
 
   // Active payments to export based on scope
   const activeList: PaymentRecord[] = useMemo(() => {
@@ -158,9 +163,9 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
 
     ctx.fillStyle = '#334155';
     ctx.font = 'bold 13px system-ui, sans-serif';
-    ctx.fillText('Émetteur : MONROY Business Solutions SARL', 60, 184);
+    ctx.fillText(`Émetteur : ${companyName}`, 60, 184);
     ctx.font = '13px system-ui, sans-serif';
-    ctx.fillText('IFU : 3202412894567 • Cotonou, Bénin', 420, 184);
+    ctx.fillText(`${companyTaxId ? `${companyTaxId} • ` : ''}${companyAddress}`, 420, 184);
     ctx.fillText(`Périmètre : ${exportScope === 'period' ? periodLabel : 'Toutes les transactions (Exercice 2026)'}`, 780, 184);
 
     // 4 KPI Summary Cards
@@ -306,8 +311,8 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
     ctx.font = 'bold 13px system-ui, sans-serif';
     ctx.fillText('Visa de la Trésorerie & Direction :', 820, rowY);
     ctx.fillStyle = '#059669';
-    ctx.font = 'italic bold 22px serif';
-    ctx.fillText('Monroy J.', 820, rowY + 34);
+    ctx.font = 'italic bold 20px serif';
+    ctx.fillText(signatoryName, 820, rowY + 34);
     ctx.fillStyle = '#94a3b8';
     ctx.font = '10px system-ui, sans-serif';
     ctx.fillText('Certifié électroniquement', 820, rowY + 50);
@@ -534,10 +539,10 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
                 </p>
                 <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 space-y-0.5">
                   <p className="font-semibold text-slate-800 dark:text-slate-200">
-                    MONROY Business Solutions SARL
+                    {companyName}
                   </p>
-                  <p>IFU : 3202412894567 • RCCM : RB/COT/24 B 12345</p>
-                  <p>Cotonou, République du Bénin</p>
+                  {companyTaxId && <p>{companyTaxId}</p>}
+                  <p>{companyAddress}</p>
                 </div>
               </div>
 
@@ -716,7 +721,7 @@ export const ExportPaymentsModal: React.FC<ExportPaymentsModalProps> = ({
 
               <div className="text-right">
                 <p className="text-[11px] font-bold text-slate-400 uppercase">Visa de la Direction</p>
-                <p className="font-serif italic font-bold text-lg text-emerald-600">Monroy J.</p>
+                <p className="font-serif italic font-bold text-lg text-emerald-600">{signatoryName}</p>
                 <p className="text-[10px] text-slate-400">Signature Électronique Certifiée</p>
               </div>
             </div>

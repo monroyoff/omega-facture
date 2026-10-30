@@ -64,7 +64,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
     setRecipientPhone(clientPhone);
     setRecipientEmail(clientEmail);
 
-    const orgName = currentUser?.organization || 'MONROY Business Solutions';
+    const orgName = invoice.sellerName || currentUser?.organization || currentUser?.name || 'Mon Entreprise';
     const clientDisplayName = invoice.client?.name || invoice.client?.company || 'Cher Client';
     const remaining = Math.max(0, invoice.total - (invoice.amountPaid || 0));
 
@@ -111,7 +111,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
     setChannel(newChannel);
     if (!invoice) return;
 
-    const orgName = currentUser?.organization || 'MONROY Business Solutions';
+    const orgName = invoice.sellerName || currentUser?.organization || currentUser?.name || 'Mon Entreprise';
     const clientDisplayName = invoice.client?.name || invoice.client?.company || 'Cher Client';
     const remaining = Math.max(0, invoice.total - (invoice.amountPaid || 0));
 

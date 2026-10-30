@@ -95,7 +95,12 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   const [endDate, setEndDate] = useState<string>('2026-12-31');
   const printRef = useRef<HTMLDivElement>(null);
 
-  const { invoices = [], payments = [] } = useInvoices();
+  const { invoices = [], payments = [], currentUser } = useInvoices();
+
+  const companyName = currentUser?.organization || currentUser?.name || 'Mon Entreprise';
+  const signatoryName = currentUser?.signatoryName || currentUser?.name || companyName || 'La Direction';
+  const companyTaxId = currentUser?.ifu ? `IFU : ${currentUser.ifu}` : '';
+  const companyAddress = currentUser?.address || (currentUser?.country ? `${currentUser.country}` : 'Zone UEMOA');
 
   // Preset definitions
   const handleSelectPreset = (preset: PeriodPreset) => {
@@ -228,7 +233,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     // Header Texts
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 26px system-ui, sans-serif';
-    ctx.fillText('MONROY Business Solutions', 145, 62);
+    ctx.fillText(companyName, 145, 62);
     ctx.fillStyle = '#94a3b8';
     ctx.font = '14px system-ui, sans-serif';
     ctx.fillText('BILAN FINANCIER & TABLEAU DE BORD KPI — UEMOA / FCFA', 145, 90);
@@ -244,7 +249,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
     ctx.fillStyle = '#475569';
     ctx.font = '13px system-ui, sans-serif';
-    ctx.fillText('Émetteur : MONROY Business Solutions SARL', 60, 168);
+    ctx.fillText(`Émetteur : ${companyName}`, 60, 168);
     ctx.fillText(`Période : ${periodLabel}`, 420, 168);
     ctx.fillText(`Édité le : ${new Date().toLocaleDateString('fr-FR')}`, 980, 168);
 
@@ -387,8 +392,8 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
     ctx.font = 'bold 14px system-ui, sans-serif';
     ctx.fillText('Visa et Certification de la Direction :', 820, rowY);
     ctx.fillStyle = '#059669';
-    ctx.font = 'italic bold 24px serif';
-    ctx.fillText('Monroy J.', 820, rowY + 38);
+    ctx.font = 'italic bold 22px serif';
+    ctx.fillText(signatoryName, 820, rowY + 38);
     ctx.fillStyle = '#94a3b8';
     ctx.font = '11px system-ui, sans-serif';
     ctx.fillText('Signature électronique authentifiée', 820, rowY + 56);
@@ -796,10 +801,10 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                     </div>
                     <div>
                       <span className="font-extrabold text-sm sm:text-base text-slate-900 block leading-tight">
-                        MONROY Business Solutions
+                        {companyName}
                       </span>
                       <span className="text-[11px] text-slate-500 block">
-                        Cotonou & Allada, Bénin
+                        {companyTaxId ? `${companyTaxId} • ` : ''}{companyAddress}
                       </span>
                     </div>
                   </div>
@@ -997,7 +1002,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                     Visa de la Direction Générale :
                   </span>
                   <span className="italic font-serif text-lg font-bold text-slate-900 block my-1">
-                    Monroy J.
+                    {signatoryName}
                   </span>
                   <span className="text-[10px] text-slate-400 block">
                     Signature certifiée électroniquement

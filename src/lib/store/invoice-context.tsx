@@ -179,6 +179,12 @@ export interface UserProfile {
   emailVerified?: boolean;
   password?: string;
   plan?: SubscriptionPlan;
+  ifu?: string;
+  rccm?: string;
+  address?: string;
+  signatoryName?: string;
+  signatureImage?: string;
+  momoNumber?: string;
 }
 
 export interface PlanConfig {
@@ -260,47 +266,7 @@ export const DEFAULT_USER: UserProfile = {
   plan: 'free',
 };
 
-export const KNOWN_USERS_SEED: Record<string, UserProfile> = {
-  'monmonnroyteam@gmail.com': {
-    id: 'fc1ff9e5-80d6-4bcf-8794-c4bb463e148d',
-    companyId: 'c0000000-0000-0000-0000-000000000001',
-    name: 'Mari-ella Manille',
-    firstName: 'Mari-ella',
-    lastName: 'Manille',
-    email: 'monmonnroyteam@gmail.com',
-    phone: '+229 01 95 44 44 30',
-    role: 'Administrateur / Gérante',
-    organization: 'MONROY AGENCY',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
-    emailVerified: true,
-  },
-  'laradamourr@gmail.com': {
-    id: '292fab7a-a210-44b9-bee4-a54aca4321e9',
-    companyId: 'c0000000-0000-0000-0000-000000000002',
-    name: 'TFTGCFXF JHJHGU',
-    firstName: 'TFTGCFXF',
-    lastName: 'JHJHGU',
-    email: 'laradamourr@gmail.com',
-    phone: '+229 97 12 34 56',
-    role: 'Administrateur / Gérant',
-    organization: 'KJKHGGJ',
-    avatar: 'https://ui-avatars.com/api/?name=TFTGCFXF+JHJHGU&background=2563eb&color=fff&size=160&bold=true',
-    emailVerified: true,
-  },
-  'jobovog@gmail.com': {
-    id: '6c146673-29b7-4b00-9df8-9ff27224b617',
-    companyId: 'c0000000-0000-0000-0000-000000000003',
-    name: 'MONROY Business',
-    firstName: 'MONROY',
-    lastName: 'Business',
-    email: 'jobovog@gmail.com',
-    phone: '+229 97 00 00 00',
-    role: 'Directeur Général',
-    organization: 'MONROY Business Solutions',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop&q=80',
-    emailVerified: true,
-  },
-};
+export const KNOWN_USERS_SEED: Record<string, UserProfile> = {};
 
 export const getUserRegistry = (): Record<string, UserProfile> => {
   if (typeof window === 'undefined') return { ...KNOWN_USERS_SEED };

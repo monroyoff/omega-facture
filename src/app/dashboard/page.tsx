@@ -309,7 +309,7 @@ export default function DashboardPage() {
               <ShieldCheck className="w-4 h-4 text-emerald-500" />
               <span>Conforme aux normes de facturation UEMOA (Bénin, Côte d’Ivoire, Sénégal, Togo, etc.)</span>
             </div>
-            <span>© 2026 OMEGA FACTURE — Par MONROY</span>
+            <span>© 2026 OMEGA FACTURE — Tous droits réservés</span>
           </div>
         </main>
       </div>

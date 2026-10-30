@@ -64,6 +64,15 @@ export interface Invoice {
   splitSchedule?: SplitScheduleItem[];
   recurrence?: RecurrenceConfig;
   items: InvoiceItem[];
+  // Informations de l'entreprise émettrice & Signature électronique
+  sellerName?: string;
+  sellerEmail?: string;
+  sellerPhone?: string;
+  sellerAddress?: string;
+  sellerTaxId?: string; // IFU / RCCM
+  signatoryName?: string; // Nom du signataire / Qualité
+  signatureImage?: string; // Data URL de la signature électronique
+  signedAt?: string; // Horodatage ISO de la signature
 }
 
 export interface DashboardKPIs {

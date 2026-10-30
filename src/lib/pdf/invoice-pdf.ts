@@ -38,20 +38,49 @@ export interface GenerateInvoicePDFOptions {
   companyTaxId?: string;
   companyPhone?: string;
   companyEmail?: string;
+  signatoryName?: string;
+  signatureImage?: string;
+}
+
+/**
+ * Helper de chargement d'image pour signature électronique
+ */
+function loadSignatureImg(dataUrl?: string): Promise<HTMLImageElement | null> {
+  if (!dataUrl || typeof window === 'undefined') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
 }
 
 /**
  * Générateur officiel de PDF haute résolution pour Factures et Devis OMEGA FACTURE
  * Conforme aux normes graphiques et comptables UEMOA (SYSCOHADA).
  */
-export function generateInvoicePDF({
+export async function generateInvoicePDF({
   invoice,
-  companyName = 'MONROY Business Solutions',
-  companyAddress = 'Allada & Cotonou, République du Bénin',
-  companyTaxId = '0202110485960 — RCCM : RB/COT/21 B 1042',
-  companyPhone = '+229 01 95 44 44 30',
-  companyEmail = 'monmonnroyteam@gmail.com',
+  companyName: propCompanyName,
+  companyAddress: propCompanyAddress,
+  companyTaxId: propCompanyTaxId,
+  companyPhone: propCompanyPhone,
+  companyEmail: propCompanyEmail,
+  signatoryName: propSignatoryName,
+  signatureImage: propSignatureImage,
 }: GenerateInvoicePDFOptions): Promise<boolean> {
+  const companyName = propCompanyName || invoice.sellerName || 'Mon Entreprise';
+  const companyAddress = propCompanyAddress || invoice.sellerAddress || 'Zone UEMOA';
+  const companyTaxId = propCompanyTaxId || invoice.sellerTaxId || '';
+  const companyPhone = propCompanyPhone || invoice.sellerPhone || '';
+  const companyEmail = propCompanyEmail || invoice.sellerEmail || '';
+  const signatoryName = propSignatoryName || invoice.signatoryName || invoice.sellerName || companyName || 'La Direction';
+  const signatureImage = propSignatureImage || invoice.signatureImage;
+
+  // Pré-charger la signature électronique si fournie
+  const sigImg = await loadSignatureImg(signatureImage);
+
   return new Promise((resolve, reject) => {
     try {
       const isQuote =
@@ -367,20 +396,21 @@ export function generateInvoicePDF({
       ctx.font = '12px system-ui, sans-serif';
       let nY = tableY + 68;
 
-      ctx.fillText('• Mobile Money Bénin & UEMOA (Paiement instantané recommandé) :', notesX + 25, nY);
+      ctx.fillText('• Modalités de paiement :', notesX + 25, nY);
       nY += 22;
       ctx.fillStyle = '#059669';
       ctx.font = 'bold 12px monospace';
-      ctx.fillText('  MTN Mobile Money : +229 01 95 44 44 30  |  Moov Money : +229 01 97 00 00 00', notesX + 25, nY);
+      const momoStr = companyPhone ? `Mobile Money (MTN / Moov / Wave / Orange) : ${companyPhone}` : 'Mobile Money ou Virement Bancaire direct';
+      ctx.fillText(`  ${momoStr}`, notesX + 25, nY);
       nY += 26;
 
       ctx.fillStyle = '#475569';
       ctx.font = '12px system-ui, sans-serif';
-      ctx.fillText('• Virement Bancaire :', notesX + 25, nY);
+      ctx.fillText('• Conditions de règlement :', notesX + 25, nY);
       nY += 22;
       ctx.fillStyle = '#2563eb';
-      ctx.font = 'bold 12px monospace';
-      ctx.fillText('  Banque : BOA Bénin  |  RIB : BJ061 01001 001234567890 45', notesX + 25, nY);
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText(`  Règlement à l'ordre de : ${companyName}`, notesX + 25, nY);
       nY += 28;
 
       ctx.fillStyle = '#64748b';
@@ -421,16 +451,23 @@ export function generateInvoicePDF({
       );
 
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 13px system-ui, sans-serif';
-      ctx.fillText('Visa & Signature de la Direction :', 880, footerY + 30);
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      ctx.fillText(`Pour ${companyName} :`, 880, footerY + 26);
 
-      ctx.fillStyle = isQuote ? '#7c3aed' : '#2563eb';
-      ctx.font = 'italic bold 24px serif';
-      ctx.fillText('Monroy J.', 880, footerY + 65);
+      if (sigImg) {
+        ctx.drawImage(sigImg, 880, footerY + 32, 180, 48);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 11px system-ui, sans-serif';
+        ctx.fillText(signatoryName, 880, footerY + 90);
+      } else {
+        ctx.fillStyle = isQuote ? '#7c3aed' : '#2563eb';
+        ctx.font = 'italic bold 20px serif';
+        ctx.fillText(signatoryName, 880, footerY + 60);
 
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '10px system-ui, sans-serif';
-      ctx.fillText('Signature électronique authentifiée', 880, footerY + 84);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px system-ui, sans-serif';
+        ctx.fillText('Signature électronique certifiée', 880, footerY + 82);
+      }
 
       // Génération du fichier PDF via jsPDF
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
