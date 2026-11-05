@@ -1,12 +1,18 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.omegafacture.billing",
       "sha256_cert_fingerprints": [
         "4A:71:0A:04:11:ED:B8:43:FB:01:F9:FE:19:1D:91:17:15:A2:5C:BA:9B:8A:EE:37:22:E7:63:5D:3A:31:BC:58",
-        "14:6D:E9:7F:48:8B:2A:44:B6:5E:84:7B:3A:90:5B:67:8B:44:86:14:1D:95:48:0E:48:58:34:6A:B9:76:88:B8"
+        "14:6D:E9:7F:48:8B:2A:44:B6:5E:84:7B:3A:90:5B:67:8B:44:86:14:1D:95:48:0E:48:58:34:6A:B9:76:88:B8",
+        "34:6B:8D:39:08:B5:F3:E9:98:40:6A:A1:D3:94:1E:3D:27:A7:F2:50:A8:78:B4:92:FA:1F:AC:DE:5E:DD:2C:F6",
+        "6F:26:3C:93:1E:C4:21:B9:C4:72:AD:45:A6:71:1E:22:1A:E7:29:00:AE:A6:71:4D:4C:DF:D1:73:AF:38:BF:AA",
+        "A6:E3:87:05:6E:37:F1:DC:F5:00:18:04:7B:62:72:5C:B7:70:90:38:43:5A:81:23:0B:23:EA:79:05:FD:7A:17"
       ]
     }
   }
