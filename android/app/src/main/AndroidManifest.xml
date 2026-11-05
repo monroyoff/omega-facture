@@ -22,12 +22,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- App Links & Deep Linking officiel pour OMEGA FACTURE -->
+            <!-- App Links officiels validés sans redirection (autoVerify=true) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="www.omegafacture.site" />
+            </intent-filter>
+
+            <!-- Liens d'ouverture directe pour le domaine court apex -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="omegafacture.site" />
             </intent-filter>
 
