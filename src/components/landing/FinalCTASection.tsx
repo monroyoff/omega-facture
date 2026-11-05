@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { GooglePlayBadge } from '@/components/common/GooglePlayBadge';
 
 export const FinalCTASection: React.FC = () => {
   return (
@@ -27,6 +28,8 @@ export const FinalCTASection: React.FC = () => {
             <span>Commencer gratuitement</span>
             <ArrowRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
           </Link>
+
+          <GooglePlayBadge className="w-full sm:w-auto justify-center" />
         </div>
 
         <p className="text-xs text-gray-400 mt-5">

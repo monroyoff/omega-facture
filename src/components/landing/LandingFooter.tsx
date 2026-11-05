@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { GooglePlayBadge } from '@/components/common/GooglePlayBadge';
 
 export const LandingFooter: React.FC = () => {
   return (
@@ -21,8 +22,9 @@ export const LandingFooter: React.FC = () => {
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm mb-6">
               La facturation moderne conçue pour l’Afrique francophone. Conforme OHADA, TVA en fonction de votre pays automatique et encaissements suivis en temps réel.
             </p>
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-2 text-xs text-gray-300 bg-gray-800/80 px-3.5 py-1.5 rounded-full border border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <GooglePlayBadge variant="footer" />
+              <span className="inline-flex items-center gap-2 text-xs text-gray-300 bg-gray-800/80 px-3.5 py-2 rounded-2xl border border-gray-700 self-start sm:self-auto">
                 <span>Fait avec fierté en Afrique 🌍</span>
               </span>
             </div>

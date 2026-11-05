@@ -18,6 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
+import { GooglePlayBadge } from '@/components/common/GooglePlayBadge';
 
 export const HeroSection: React.FC = () => {
   const { isAuthenticated } = useInvoices();
@@ -89,10 +90,10 @@ export const HeroSection: React.FC = () => {
         </div>
 
         {/* Call To Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-6">
           <Link
             href={isAuthenticated ? '/dashboard' : '/register'}
-            className="hero-cta-button w-full sm:w-auto inline-flex items-center justify-center gap-3 px-9 py-4 rounded-full font-extrabold text-base cursor-pointer group bg-brand-600 hover:bg-brand-700 text-white shadow-xl shadow-brand-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+            className="hero-cta-button w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-extrabold text-base cursor-pointer group bg-brand-600 hover:bg-brand-700 text-white shadow-xl shadow-brand-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span>{isAuthenticated ? 'Accéder à mon tableau de bord' : 'Créer ma première facture gratuite'}</span>
             <ArrowRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1" />
@@ -101,11 +102,13 @@ export const HeroSection: React.FC = () => {
           <a
             href="#visite"
             onClick={scrollToVisite}
-            className="secondary-cta-button w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full font-bold text-base cursor-pointer group bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-xs"
+            className="secondary-cta-button w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full font-bold text-sm sm:text-base cursor-pointer group bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all shadow-xs"
           >
             <Play className="w-4 h-4 text-brand-600 fill-brand-600 transition-transform duration-200 group-hover:scale-110" />
-            <span>Découvrir la plateforme en images</span>
+            <span>Découvrir en images</span>
           </a>
+
+          <GooglePlayBadge className="w-full sm:w-auto justify-center" />
         </div>
 
         {/* Reassurance Micro-Badges */}

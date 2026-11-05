@@ -29,6 +29,7 @@ import {
   Sparkles,
   ChevronRight,
   ArrowLeft,
+  Smartphone,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { GlobalSearchModal } from '@/components/common/GlobalSearchModal';
@@ -280,6 +281,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bottom Section: Help, Settings, Dark Mode, Profile */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+          {/* App Android Google Play */}
+          <a
+            href="https://play.google.com/store/apps/details?id=com.omegafacture.billing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group"
+            title="Installer l'application officielle OMEGA FACTURE sur Google Play"
+          >
+            <div className="flex items-center gap-3">
+              <Smartphone className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+              <span>App Android</span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+              Play Store
+            </span>
+          </a>
+
           {/* Help & Support */}
           <Link
             href="/support"
