@@ -65,3 +65,10 @@ jobs:
           name: omega-facture-playstore-aab
           path: android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
+
+      - name: Upload ProGuard Mapping File
+        uses: actions/upload-artifact@v4
+        with:
+          name: omega-facture-mapping-txt
+          path: android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
