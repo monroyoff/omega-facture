@@ -33,7 +33,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(
     defaultPlan === 'free' ? 'pro' : defaultPlan
   );
-  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'mtn' | 'moov' | 'card'>('wave');
+  const [paymentMethod, setPaymentMethod] = useState<'mtn' | 'moov' | 'celtiis' | 'wave' | 'card'>('mtn');
   const [phoneNumber, setPhoneNumber] = useState('0195444430');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -65,7 +65,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/payments/paydunya/create-checkout', {
+      const res = await fetch('/api/payments/fedapay/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,6 +90,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
               plan: selectedPlan,
               userId: currentUser?.id,
               companyId: currentUser?.companyId,
+              transactionId: data.transactionId,
               timestamp: Date.now(),
             })
           );
@@ -97,28 +98,28 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
         showToast({
           kind: 'info',
-          title: 'Redirection vers PayDunya',
-          message: 'Ouverture du guichet officiel (Wave, MTN MoMo, Orange Money, Moov, Carte)...',
+          title: 'Redirection vers FedaPay',
+          message: 'Ouverture du guichet officiel sécurisé (MTN, Moov, Celtiis, Wave, Carte)...',
           duration: 3500,
         });
-        // Redirection immédiate vers le guichet officiel PayDunya
+        // Redirection immédiate vers le guichet officiel FedaPay
         window.location.assign(data.checkoutUrl);
         return;
       }
 
       showToast({
         kind: 'warning',
-        title: 'Erreur PayDunya',
+        title: 'Erreur FedaPay',
         message: data.error || 'Impossible d’initialiser le paiement sécurisé.',
         duration: 5000,
       });
       setLoading(false);
     } catch (e: any) {
-      console.error('[UpgradePlanModal] Erreur connexion PayDunya :', e);
+      console.error('[UpgradePlanModal] Erreur connexion FedaPay :', e);
       showToast({
         kind: 'error',
         title: 'Erreur réseau',
-        message: 'Impossible de joindre la passerelle PayDunya. Veuillez réessayer.',
+        message: 'Impossible de joindre la passerelle FedaPay. Veuillez réessayer.',
         duration: 5000,
       });
       setLoading(false);
@@ -308,10 +309,10 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-4">
               {[
-                { id: 'wave', label: 'Wave', badge: '🌊 Wave', color: 'border-blue-400' },
-                { id: 'orange_money', label: 'Orange', badge: '🟧 Orange Money', color: 'border-amber-400' },
                 { id: 'mtn', label: 'MTN MoMo', badge: '🟨 MTN MoMo', color: 'border-yellow-400' },
                 { id: 'moov', label: 'Moov', badge: '🟦 Moov Money', color: 'border-blue-500' },
+                { id: 'celtiis', label: 'Celtiis', badge: '🟩 Celtiis Cash', color: 'border-emerald-500' },
+                { id: 'wave', label: 'Wave', badge: '🌊 Wave', color: 'border-blue-400' },
                 { id: 'card', label: 'Carte', badge: '💳 Carte Visa', color: 'border-slate-400' },
               ].map((m) => (
                 <button
@@ -357,7 +358,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Redirection vers PayDunya...</span>
+                      <span>Redirection vers FedaPay...</span>
                     </>
                   ) : success ? (
                     <>

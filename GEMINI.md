@@ -160,12 +160,14 @@
   3. **Image Haute Définition PNG (`.png`)** : Synthèse visuelle grand format (1200px) générée par Canvas pour transmission rapide via WhatsApp ou email.
   4. **Impression Directe (`Print`)** : Dialogue d'impression optimisé A4 avec mise en page dédiée.
   - **Sélecteur de Périmètre d'Export** : Bascule instantanée entre « Période active » (filtrée par le calendrier) et « Toutes les transactions » (Exercice complet).
-- **Passerelle de Paiement Mobile Money & Webhooks IPN (`/api/payments/paydunya/ipn`)** :
-  - **Endpoint IPN Officiel PayDunya** : `https://www.omegafacture.site/api/payments/paydunya/ipn` (ou `https://omegafacture.site/api/payments/paydunya/ipn`).
-  - **Endpoint IPN Universel** : `https://www.omegafacture.site/api/payments/ipn` pour l'intégration de toute passerelle de paiement (PayDunya, Wave, FedaPay, CinetPay).
-  - **Endpoint d'Initialisation de Paiement (`/api/payments/paydunya/create-checkout`)** : Génère en direct une session de paiement officielle PayDunya (Sandbox / Live) et renvoie le lien de redirection vers le guichet multi-opérateurs (MTN, Orange, Moov, Wave, Carte).
-  - **Endpoint de Vérification Instantanée (`/api/payments/paydunya/verify`)** : Interroge en temps réel `checkout-invoice/confirm/{token}` sur l'API PayDunya, confirme le statut de la transaction, met à jour la colonne `subscription_plan` dans la table `companies` de Supabase et consigne l'opération dans la table `payments`.
-  - **Traitement Automatique en Temps Réel** : Réception des notifications asynchrones instantanées (`completed`), vérification de la signature cryptographique SHA-512 PayDunya avec la Clé Principale (`PAYDUNYA_MASTER_KEY`), rapprochement de la facture (`invoices.amount_paid`, bascule automatique à `paid`), activation immédiate des abonnements SaaS (`companies.subscription_plan = 'pro' | 'business'`), et enregistrement dans la table `payments`.
+- **Passerelle de Paiement Mobile Money & Webhooks IPN (FedaPay & PayDunya)** :
+  - **Passerelle Principale FedaPay (Zone UEMOA / Bénin & Afrique de l'Ouest)** :
+    - Intégration native de l'API REST FedaPay Sandbox & Production via `@/lib/payments/fedapay`.
+    - **Endpoint d'Initialisation de Paiement (`/api/payments/fedapay/create-checkout`)** : Crée la transaction et génère le token/URL de redirection vers le guichet sécurisé FedaPay (MTN MoMo, Moov Money, Celtiis Cash, Wave, Carte bancaire).
+    - **Endpoint de Vérification Instantanée (`/api/payments/fedapay/verify`)** : Interroge `GET /v1/transactions/{id}` sur l'API FedaPay, valide le statut `approved`, met à jour le plan d'abonnement dans Supabase (`companies.subscription_plan = 'pro' | 'business'`) et enregistre le paiement dans la table `payments`.
+    - **Endpoint Webhook Officiel FedaPay (`/api/payments/fedapay/webhook`)** : Reçoit les notifications asynchrones instantanées (`transaction.approved`), valide la signature HMAC SHA-256 (`X-FEDAPAY-SIGNATURE`), met à jour l'abonnement ou solde automatiquement la facture ciblée.
+  - **Endpoint IPN Universel (`/api/payments/ipn`)** : Achemine intelligemment les webhooks vers FedaPay ou PayDunya selon la passerelle émettrice.
+  - **Passerelle Alternative PayDunya** : Endpoints conservés pour rétrocompatibilité (`/api/payments/paydunya/create-checkout`, `/api/payments/paydunya/verify`, `/api/payments/paydunya/ipn`).
   - **URLs de Redirection Associées & Synchronisation Automatique** :
     - *Callback / Retour après paiement* : `https://www.omegafacture.site/payments/callback?plan=pro&amount=5000&...` — active immédiatement le nouveau plan dans le profil utilisateur local et distant, lève la limite de facturation et affiche l'écran de bienvenue sur le plan actif avec accès direct au Dashboard.
     - *Annulation* : `https://www.omegafacture.site/payments/cancel`

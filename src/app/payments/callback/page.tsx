@@ -21,6 +21,7 @@ import { formatFCFA } from '@/lib/money/format';
 function PaymentCallbackContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') || searchParams.get('invoice_token') || '';
+  const transactionId = searchParams.get('id') || searchParams.get('transaction_id') || '';
   const paramPlan = searchParams.get('plan') || '';
   const paramCompanyId = searchParams.get('companyId') || '';
   const paramUserId = searchParams.get('userId') || '';
@@ -39,6 +40,8 @@ function PaymentCallbackContent() {
     const processPayment = async () => {
       // 1. Détermination du plan cible
       let targetPlan: SubscriptionPlan = 'pro';
+      let pendingTxId = transactionId;
+
       if (paramPlan === 'pro' || paramPlan === 'business') {
         targetPlan = paramPlan as SubscriptionPlan;
       } else {
@@ -49,18 +52,26 @@ function PaymentCallbackContent() {
             if (parsed.plan === 'pro' || parsed.plan === 'business') {
               targetPlan = parsed.plan;
             }
+            if (!pendingTxId && parsed.transactionId) {
+              pendingTxId = String(parsed.transactionId);
+            }
           }
         } catch (e) {}
       }
 
       setActivePlan(targetPlan);
 
-      // 2. Appel serveur pour confirmer le paiement avec PayDunya et mettre à jour la BDD
+      // 2. Appel serveur pour confirmer le paiement avec FedaPay (ou PayDunya en fallback) et mettre à jour la BDD
       try {
-        const verifyRes = await fetch('/api/payments/paydunya/verify', {
+        const verifyEndpoint = pendingTxId || !token
+          ? '/api/payments/fedapay/verify'
+          : '/api/payments/paydunya/verify';
+
+        const verifyRes = await fetch(verifyEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            transactionId: pendingTxId || transactionId,
             token,
             plan: targetPlan,
             companyId: paramCompanyId || currentUser?.companyId,
@@ -75,7 +86,7 @@ function PaymentCallbackContent() {
           setActivePlan(targetPlan);
         }
       } catch (err) {
-        console.warn('[PaymentCallback] Erreur confirmation serveur PayDunya :', err);
+        console.warn('[PaymentCallback] Erreur confirmation serveur FedaPay :', err);
       }
 
       // 3. Basculement garanti de l'état client local
@@ -128,7 +139,7 @@ function PaymentCallbackContent() {
               Finalisation de votre abonnement...
             </h2>
             <p className="text-xs text-slate-500">
-              Vérification de la transaction PayDunya et déblocage de vos fonctionnalités.
+              Vérification de la transaction sécurisée et déblocage de vos fonctionnalités.
             </p>
           </div>
         ) : (
@@ -140,7 +151,7 @@ function PaymentCallbackContent() {
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-3 border border-emerald-200/80 dark:border-emerald-800">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Règlement PayDunya Enregistré avec Succès</span>
+              <span>Règlement Sécurisé Enregistré avec Succès</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
@@ -188,10 +199,12 @@ function PaymentCallbackContent() {
               </ul>
             </div>
 
-            {token && (
+            {(transactionId || token) && (
               <div className="mb-6 p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-900/40 text-[11px] text-slate-500 font-mono flex items-center justify-between">
-                <span>Réf. PayDunya :</span>
-                <span className="font-bold text-slate-700 dark:text-slate-300">{token.slice(0, 18)}...</span>
+                <span>Réf. Paiement :</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">
+                  {transactionId ? `FedaPay #${transactionId}` : `${token.slice(0, 18)}...`}
+                </span>
               </div>
             )}
 
@@ -228,7 +241,7 @@ export default function PaymentCallbackPage() {
         <div className="min-h-screen bg-slate-50 dark:bg-[#070a0f] flex items-center justify-center">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
             <Loader2 className="w-4 h-4 animate-spin text-brand-600" />
-            <span>Chargement de la confirmation PayDunya...</span>
+            <span>Chargement de la confirmation de paiement...</span>
           </div>
         </div>
       }

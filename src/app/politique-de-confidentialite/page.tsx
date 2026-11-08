@@ -84,7 +84,7 @@ export default function PolitiqueConfidentialitePage() {
             <ul className="list-disc pl-5 space-y-1.5 text-slate-300">
               <li>La création, l&apos;édition, l&apos;export PDF et le suivi des factures et devis commerciaux.</li>
               <li>La synchronisation multi-appareils sécurisée en temps réel de votre espace de facturation.</li>
-              <li>L&apos;émission de reçus de paiement et la vérification des abonnements via nos partenaires de paiement agréés (PayDunya, Mobile Money).</li>
+              <li>L&apos;émission de reçus de paiement et la vérification des abonnements via nos partenaires de paiement agréés (FedaPay, PayDunya, Mobile Money).</li>
               <li>L&apos;envoi de relances de facturation par e-mail ou WhatsApp à l&apos;initiative expresse de l&apos;utilisateur.</li>
               <li>Le support client et la maintenance technique du service.</li>
             </ul>
@@ -121,7 +121,7 @@ export default function PolitiqueConfidentialitePage() {
               <strong>OMEGA FACTURE ne vend, ne loue, ni ne cède aucune donnée personnelle ou financière à des tiers à des fins publicitaires.</strong>
             </p>
             <p className="mt-2">
-              Les données ne sont partagées qu&apos;avec nos sous-traitants techniques hautement certifiés et indispensables au service : hébergeurs d&apos;infrastructure sécurisée (Supabase/PostgreSQL) et passerelles de paiement bancaires et Mobile Money agréées (PayDunya) pour la validation des règlements.
+              Les données ne sont partagées qu&apos;avec nos sous-traitants techniques hautement certifiés et indispensables au service : hébergeurs d&apos;infrastructure sécurisée (Supabase/PostgreSQL) et passerelles de paiement bancaires et Mobile Money agréées (FedaPay, PayDunya) pour la validation des règlements.
             </p>
           </section>
 
