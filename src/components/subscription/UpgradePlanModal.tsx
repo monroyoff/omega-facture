@@ -34,7 +34,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
     defaultPlan === 'free' ? 'pro' : defaultPlan
   );
   const [paymentMethod, setPaymentMethod] = useState<'mtn' | 'moov' | 'celtiis' | 'wave' | 'card'>('mtn');
-  const [phoneNumber, setPhoneNumber] = useState('0195444430');
+  const [phoneNumber, setPhoneNumber] = useState('64000001');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -332,16 +332,24 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <div className="w-full sm:flex-1">
-                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                  Numéro Mobile Money pour débit instantané :
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
+                    Numéro Mobile Money pour débit :
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">
+                    Sandbox : 64000001
+                  </span>
+                </div>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="+229 01 95 44 44 30"
+                  placeholder="64000001"
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-brand-500 outline-none"
                 />
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  💡 Mode test FedaPay : saisissez <code className="font-bold text-brand-600 dark:text-brand-400">64000001</code> ou <code className="font-bold text-brand-600 dark:text-brand-400">66000001</code> pour simuler un paiement réussi.
+                </p>
               </div>
 
               <div className="w-full sm:w-auto sm:self-end">
