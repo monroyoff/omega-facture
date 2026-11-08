@@ -28,16 +28,18 @@ export interface FedaPayTransactionResponse {
 export function getFedaPayConfig() {
   const secretKey =
     process.env.FEDAPAY_SECRET_KEY ||
-    '';
+    'sk_sandbox_Ud7pUx2L0ALLmdQgU6nfo5rj';
   const publicKey =
     process.env.FEDAPAY_PUBLIC_KEY ||
-    '';
+    'pk_sandbox_jZjz_EYIpak9w9yfgyK1O0Gj';
   const environment =
     process.env.FEDAPAY_ENVIRONMENT ||
     (secretKey.startsWith('sk_live_') ? 'live' : 'sandbox');
   const isSandbox = environment === 'sandbox' || secretKey.startsWith('sk_sandbox_');
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.omegafacture.site';
-  const webhookSecret = process.env.FEDAPAY_WEBHOOK_SECRET || '';
+  const webhookSecret =
+    process.env.FEDAPAY_WEBHOOK_SECRET ||
+    'wh_sandbox_iwGvefDSRFF99BkVD2tKUE-p';
 
   // URLs officielles FedaPay API
   const apiBaseUrl = isSandbox
