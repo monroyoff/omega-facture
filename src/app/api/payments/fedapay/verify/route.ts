@@ -36,11 +36,12 @@ export async function POST(req: NextRequest) {
     let isConfirmed = false;
     let confirmedPlan = requestedPlan || 'pro';
     let transactionAmount = body.amount ? Number(body.amount) : 5000;
-    let transactionStatus = 'completed';
+    let transactionStatus = 'pending';
 
     // 1. Interrogation de l'API FedaPay si un ID est fourni
     if (transactionId) {
       const verifyRes = await confirmFedaPayTransaction(transactionId);
+      transactionStatus = verifyRes.status || 'pending';
       if (verifyRes.customMetadata?.plan) {
         confirmedPlan = verifyRes.customMetadata.plan;
       }
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       }
     } else if (requestedPlan) {
       isConfirmed = true;
+      transactionStatus = 'completed';
     }
 
     if (!isConfirmed) {
