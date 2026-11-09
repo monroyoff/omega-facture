@@ -31,11 +31,20 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
   const [activeTab, setActiveTab] = useState<'month' | 'range' | 'day' | 'quarter' | 'semester' | 'year'>('month');
 
   // Custom single day
-  const [customDate, setCustomDate] = useState('2026-10-18');
+  const [customDate, setCustomDate] = useState(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  });
 
   // Date range state (start & end)
-  const [rangeStart, setRangeStart] = useState('2026-10-01');
-  const [rangeEnd, setRangeEnd] = useState('2026-10-18');
+  const [rangeStart, setRangeStart] = useState(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [rangeEnd, setRangeEnd] = useState(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  });
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -78,46 +87,22 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
     };
   }, [isOpen]);
 
-  const months = [
-    { id: '2026-10', label: 'Octobre 2026', badge: 'En cours' },
-    { id: '2026-09', label: 'Septembre 2026', badge: 'Mois dernier' },
-    { id: '2026-08', label: 'Août 2026' },
-    { id: '2026-07', label: 'Juillet 2026' },
-    { id: '2026-06', label: 'Juin 2026' },
-    { id: '2026-05', label: 'Mai 2026' },
-  ];
+  const now = useMemo(() => new Date(), []);
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed
+  const todayISO = useMemo(() => {
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, [now]);
 
-  const quickDays = [
-    { id: 'day:2026-10-18', label: 'Aujourd’hui (18 Octobre 2026)' },
-    { id: 'day:2026-10-16', label: '16 Octobre 2026' },
-    { id: 'day:2026-10-15', label: '15 Octobre 2026' },
-    { id: 'day:2026-10-14', label: '14 Octobre 2026' },
-    { id: 'day:2026-10-13', label: '13 Octobre 2026' },
-    { id: 'day:2026-10-12', label: '12 Octobre 2026' },
-    { id: 'day:2026-10-10', label: '10 Octobre 2026' },
-    { id: 'day:2026-10-08', label: '08 Octobre 2026' },
-    { id: 'day:2026-10-04', label: '04 Octobre 2026' },
-    { id: 'day:2026-10-02', label: '02 Octobre 2026' },
-  ];
+  const monthsFull = useMemo(() => [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ], []);
 
-  const quarters = [
-    { id: 'quarter:2026-Q4', label: '4e Trimestre 2026 (Octobre - Décembre)', badge: 'T4' },
-    { id: 'quarter:2026-Q3', label: '3e Trimestre 2026 (Juillet - Septembre)', badge: 'T3' },
-    { id: 'quarter:2026-Q2', label: '2e Trimestre 2026 (Avril - Juin)', badge: 'T2' },
-    { id: 'quarter:2026-Q1', label: '1er Trimestre 2026 (Janvier - Mars)', badge: 'T1' },
-  ];
+  const formatDateISO = (d: Date) => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
 
-  const semesters = [
-    { id: 'semester:2026-S2', label: '2e Semestre 2026 (Juillet - Décembre)', badge: 'S2' },
-    { id: 'semester:2026-S1', label: '1er Semestre 2026 (Janvier - Juin)', badge: 'S1' },
-  ];
-
-  const years = [
-    { id: 'ALL', label: 'Année 2026 complète (Toutes les transactions)', badge: '2026' },
-    { id: 'year:2025', label: 'Exercice 2025 (Historique)', badge: '2025' },
-  ];
-
-  // Helper date calculations
   const formatDateFR = (iso: string) => {
     if (!iso) return '';
     const parts = iso.split('-');
@@ -126,6 +111,52 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
     }
     return iso;
   };
+
+  // Dynamic months list (current month marked 'En cours', previous 'Mois dernier', followed by past months)
+  const months = useMemo(() => {
+    const list = [];
+    for (let offset = 0; offset <= 9; offset++) {
+      const d = new Date(currentYear, currentMonth - offset, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const mId = `${y}-${String(m + 1).padStart(2, '0')}`;
+      list.push({
+        id: mId,
+        label: `${monthsFull[m]} ${y}`,
+        badge: offset === 0 ? 'En cours' : offset === 1 ? 'Mois dernier' : undefined,
+      });
+    }
+    return list;
+  }, [currentYear, currentMonth, monthsFull]);
+
+  // Dynamic quick days starting from today backwards
+  const quickDays = useMemo(() => {
+    const list = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now.getTime() - i * 86400000);
+      const iso = formatDateISO(d);
+      const label = i === 0 ? `Aujourd’hui (${formatDateFR(iso)})` : i === 1 ? `Hier (${formatDateFR(iso)})` : `${formatDateFR(iso)}`;
+      list.push({ id: `day:${iso}`, label });
+    }
+    return list;
+  }, [now]);
+
+  const quarters = useMemo(() => [
+    { id: `quarter:${currentYear}-Q4`, label: `4e Trimestre ${currentYear} (Octobre - Décembre)`, badge: 'T4' },
+    { id: `quarter:${currentYear}-Q3`, label: `3e Trimestre ${currentYear} (Juillet - Septembre)`, badge: 'T3' },
+    { id: `quarter:${currentYear}-Q2`, label: `2e Trimestre ${currentYear} (Avril - Juin)`, badge: 'T2' },
+    { id: `quarter:${currentYear}-Q1`, label: `1er Trimestre ${currentYear} (Janvier - Mars)`, badge: 'T1' },
+  ], [currentYear]);
+
+  const semesters = useMemo(() => [
+    { id: `semester:${currentYear}-S2`, label: `2e Semestre ${currentYear} (Juillet - Décembre)`, badge: 'S2' },
+    { id: `semester:${currentYear}-S1`, label: `1er Semestre ${currentYear} (Janvier - Juin)`, badge: 'S1' },
+  ], [currentYear]);
+
+  const years = useMemo(() => [
+    { id: 'ALL', label: `Année ${currentYear} complète (Toutes les transactions)`, badge: `${currentYear}` },
+    { id: `year:${currentYear - 1}`, label: `Exercice ${currentYear - 1} (Historique)`, badge: `${currentYear - 1}` },
+  ], [currentYear]);
 
   const diffDays = useMemo(() => {
     if (!rangeStart || !rangeEnd) return 0;
@@ -307,8 +338,8 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setRangeStart('2026-10-12');
-                        setRangeEnd('2026-10-18');
+                        setRangeStart(formatDateISO(new Date(now.getTime() - 6 * 86400000)));
+                        setRangeEnd(todayISO);
                       }}
                       className="py-1.5 px-2 text-[10px] font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors text-center cursor-pointer"
                     >
@@ -317,8 +348,8 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setRangeStart('2026-10-04');
-                        setRangeEnd('2026-10-18');
+                        setRangeStart(formatDateISO(new Date(now.getTime() - 14 * 86400000)));
+                        setRangeEnd(todayISO);
                       }}
                       className="py-1.5 px-2 text-[10px] font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors text-center cursor-pointer"
                     >
@@ -327,8 +358,8 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setRangeStart('2026-09-19');
-                        setRangeEnd('2026-10-18');
+                        setRangeStart(formatDateISO(new Date(now.getTime() - 29 * 86400000)));
+                        setRangeEnd(todayISO);
                       }}
                       className="py-1.5 px-2 text-[10px] font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors text-center cursor-pointer"
                     >
@@ -337,28 +368,33 @@ export const PeriodPickerDropdown: React.FC<PeriodPickerDropdownProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setRangeStart('2026-10-01');
-                        setRangeEnd('2026-10-31');
+                        const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+                        setRangeStart(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`);
+                        setRangeEnd(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
                       }}
                       className="py-1.5 px-2 text-[10px] font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors text-center cursor-pointer"
                     >
-                      Mois complet (Octobre)
+                      Mois complet ({monthsFull[currentMonth]})
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setRangeStart('2026-09-01');
-                        setRangeEnd('2026-09-30');
+                        const prev = new Date(currentYear, currentMonth - 1, 1);
+                        const prevY = prev.getFullYear();
+                        const prevM = prev.getMonth();
+                        const lastDay = new Date(prevY, prevM + 1, 0).getDate();
+                        setRangeStart(`${prevY}-${String(prevM + 1).padStart(2, '0')}-01`);
+                        setRangeEnd(`${prevY}-${String(prevM + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
                       }}
                       className="py-1.5 px-2 text-[10px] font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors text-center cursor-pointer"
                     >
-                      Mois dernier (Septembre)
+                      Mois dernier ({monthsFull[(currentMonth + 11) % 12]})
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setRangeStart('2026-10-01');
-                        setRangeEnd('2026-10-18');
+                        setRangeStart(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`);
+                        setRangeEnd(todayISO);
                       }}
                       className="py-1.5 px-2 text-[10px] font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors text-center cursor-pointer"
                     >

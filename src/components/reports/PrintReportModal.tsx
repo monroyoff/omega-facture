@@ -71,9 +71,12 @@ interface PrintReportModalProps {
 
 type PeriodPreset =
   | 'ALL_2026'
+  | 'CURRENT_MONTH'
   | 'CURRENT_OCT_2026'
+  | 'LAST_MONTH'
   | 'LAST_SEP_2026'
   | 'AUG_2026'
+  | 'Q4_2026'
   | 'Q3_2026'
   | 'Q2_2026'
   | 'Q1_2026'
@@ -105,34 +108,52 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   // Preset definitions
   const handleSelectPreset = (preset: PeriodPreset) => {
     setSelectedPreset(preset);
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth();
     switch (preset) {
       case 'ALL_2026':
-        setStartDate('2026-01-01');
-        setEndDate('2026-12-31');
+        setStartDate(`${curY}-01-01`);
+        setEndDate(`${curY}-12-31`);
         break;
-      case 'CURRENT_OCT_2026':
-        setStartDate('2026-10-01');
-        setEndDate('2026-10-31');
+      case 'CURRENT_MONTH':
+      case 'CURRENT_OCT_2026': {
+        const mStr = String(curM + 1).padStart(2, '0');
+        const lastDay = new Date(curY, curM + 1, 0).getDate();
+        setStartDate(`${curY}-${mStr}-01`);
+        setEndDate(`${curY}-${mStr}-${String(lastDay).padStart(2, '0')}`);
         break;
-      case 'LAST_SEP_2026':
-        setStartDate('2026-09-01');
-        setEndDate('2026-09-30');
+      }
+      case 'LAST_MONTH':
+      case 'LAST_SEP_2026': {
+        const prev = new Date(curY, curM - 1, 1);
+        const pY = prev.getFullYear();
+        const pM = prev.getMonth();
+        const pMStr = String(pM + 1).padStart(2, '0');
+        const lastDay = new Date(pY, pM + 1, 0).getDate();
+        setStartDate(`${pY}-${pMStr}-01`);
+        setEndDate(`${pY}-${pMStr}-${String(lastDay).padStart(2, '0')}`);
+        break;
+      }
+      case 'Q4_2026':
+        setStartDate(`${curY}-10-01`);
+        setEndDate(`${curY}-12-31`);
         break;
       case 'AUG_2026':
-        setStartDate('2026-08-01');
-        setEndDate('2026-08-31');
+        setStartDate(`${curY}-08-01`);
+        setEndDate(`${curY}-08-31`);
         break;
       case 'Q3_2026':
-        setStartDate('2026-07-01');
-        setEndDate('2026-09-30');
+        setStartDate(`${curY}-07-01`);
+        setEndDate(`${curY}-09-30`);
         break;
       case 'Q2_2026':
-        setStartDate('2026-04-01');
-        setEndDate('2026-06-30');
+        setStartDate(`${curY}-04-01`);
+        setEndDate(`${curY}-06-30`);
         break;
       case 'Q1_2026':
-        setStartDate('2026-01-01');
-        setEndDate('2026-03-31');
+        setStartDate(`${curY}-01-01`);
+        setEndDate(`${curY}-03-31`);
         break;
       case 'CUSTOM':
         // Keep current custom start and end dates
@@ -176,21 +197,31 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
   // Dynamic label for period
   const periodLabel = useMemo(() => {
+    const monthsFull = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth();
+    const prev = new Date(curY, curM - 1, 1);
+
     switch (selectedPreset) {
       case 'ALL_2026':
-        return 'Exercice Annuel 2026 Complet';
+        return `Exercice Annuel ${curY} Complet`;
+      case 'CURRENT_MONTH':
       case 'CURRENT_OCT_2026':
-        return 'Mois d’Octobre 2026 (En cours)';
+        return `Mois de ${monthsFull[curM]} ${curY} (En cours)`;
+      case 'LAST_MONTH':
       case 'LAST_SEP_2026':
-        return 'Mois de Septembre 2026';
+        return `Mois de ${monthsFull[prev.getMonth()]} ${prev.getFullYear()}`;
       case 'AUG_2026':
         return 'Mois d’Août 2026';
+      case 'Q4_2026':
+        return `4e Trimestre ${curY} (Oct-Déc)`;
       case 'Q3_2026':
-        return '3e Trimestre 2026 (Juil-Sept)';
+        return `3e Trimestre ${curY} (Juil-Sept)`;
       case 'Q2_2026':
-        return '2e Trimestre 2026 (Avr-Juin)';
+        return `2e Trimestre ${curY} (Avr-Juin)`;
       case 'Q1_2026':
-        return '1er Trimestre 2026 (Jan-Mar)';
+        return `1er Trimestre ${curY} (Jan-Mar)`;
       case 'CUSTOM':
       default:
         return `Période du ${formatDateFR(startDate)} au ${formatDateFR(endDate)}`;
@@ -727,9 +758,9 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               <div className="flex items-center gap-1.5 flex-wrap">
                 {[
                   { id: 'ALL_2026', label: 'Année 2026' },
-                  { id: 'CURRENT_OCT_2026', label: 'Octobre 2026' },
-                  { id: 'LAST_SEP_2026', label: 'Septembre 2026' },
-                  { id: 'AUG_2026', label: 'Août 2026' },
+                  { id: 'CURRENT_MONTH', label: 'Mois en cours' },
+                  { id: 'LAST_MONTH', label: 'Mois dernier' },
+                  { id: 'Q4_2026', label: '4e Trimestre' },
                   { id: 'Q3_2026', label: '3e Trimestre' },
                   { id: 'CUSTOM', label: '📅 Dates Libres' },
                 ].map((p) => (

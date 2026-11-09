@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart3, PieChart, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { formatFCFA } from '@/lib/money/format';
 import { useInvoices } from '@/lib/store/invoice-context';
@@ -18,15 +18,38 @@ export const RevenueOverview: React.FC<RevenueOverviewProps> = ({
 }) => {
   const { invoices, selectedPeriod, setSelectedPeriod, periodLabel, periodKPIs } = useInvoices();
 
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  const monthToPeriodMap: Record<string, string> = useMemo(() => ({
+    Jan: `${currentYear}-01`,
+    Fév: `${currentYear}-02`,
+    Mar: `${currentYear}-03`,
+    Avr: `${currentYear}-04`,
+    Mai: `${currentYear}-05`,
+    Juin: `${currentYear}-06`,
+    Juil: `${currentYear}-07`,
+    Août: `${currentYear}-08`,
+    Sept: `${currentYear}-09`,
+    Oct: `${currentYear}-10`,
+    Nov: `${currentYear}-11`,
+    Déc: `${currentYear}-12`,
+  }), [currentYear]);
+
   const monthlyRevenueData = React.useMemo(() => {
-    const months = [
-      { key: '2026-05', month: 'Mai' },
-      { key: '2026-06', month: 'Juin' },
-      { key: '2026-07', month: 'Juil' },
-      { key: '2026-08', month: 'Août' },
-      { key: '2026-09', month: 'Sept' },
-      { key: '2026-10', month: 'Oct' },
-    ];
+    const now = new Date();
+    const curM = now.getMonth(); // 0-indexed
+    const monthShorts = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+
+    // Rolling 6 à 7 mois centrés sur le mois en cours
+    const startIdx = Math.max(0, curM - 5);
+    const endIdx = Math.min(11, Math.max(curM, 5));
+
+    const months = [];
+    for (let i = startIdx; i <= endIdx; i++) {
+      const mStr = String(i + 1).padStart(2, '0');
+      months.push({ key: `${currentYear}-${mStr}`, month: monthShorts[i] });
+    }
+
     return months.map((m) => {
       const monthInvoices = invoices.filter(
         (inv) =>
@@ -38,29 +61,21 @@ export const RevenueOverview: React.FC<RevenueOverviewProps> = ({
       const amount = monthInvoices.reduce((sum, inv) => sum + inv.total, 0);
       return { month: m.month, amount, periodKey: m.key };
     });
-  }, [invoices]);
+  }, [invoices, currentYear]);
 
   const rawMax = Math.max(...monthlyRevenueData.map((d) => d.amount), 0);
   const maxAmount = rawMax > 0 ? rawMax : 1;
 
   // Determine active month in chart
-  const activeMonthCode = {
-    '2026-10': 'Oct',
-    '2026-09': 'Sept',
-    '2026-08': 'Août',
-    '2026-07': 'Juil',
-    '2026-06': 'Juin',
-    '2026-05': 'Mai',
-  }[selectedPeriod] || (selectedPeriod.startsWith('day:2026-10') ? 'Oct' : '');
-
-  const monthToPeriodMap: Record<string, string> = {
-    Oct: '2026-10',
-    Sept: '2026-09',
-    Août: '2026-08',
-    Juil: '2026-07',
-    Juin: '2026-06',
-    Mai: '2026-05',
-  };
+  const activeMonthCode = useMemo(() => {
+    const clean = selectedPeriod.replace('month:', '');
+    for (const [code, pId] of Object.entries(monthToPeriodMap)) {
+      if (clean === pId || selectedPeriod.startsWith(`day:${pId}`)) {
+        return code;
+      }
+    }
+    return '';
+  }, [selectedPeriod, monthToPeriodMap]);
 
   const handleBarClick = (month: string) => {
     const periodId = monthToPeriodMap[month];

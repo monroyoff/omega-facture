@@ -132,9 +132,9 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
     }
   }, [section]);
 
-  // Aging calculation based on reference date (2026-10-20)
+  // Aging calculation based on current date
   const getInvoiceAgeDays = (issueDate: string) => {
-    const ref = new Date('2026-10-20').getTime();
+    const ref = Date.now();
     const issue = new Date(issueDate).getTime();
     return Math.max(0, Math.floor((ref - issue) / (1000 * 60 * 60 * 24)));
   };

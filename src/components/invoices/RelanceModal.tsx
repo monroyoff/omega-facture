@@ -45,7 +45,7 @@ export const RelanceModal: React.FC<RelanceModalProps> = ({
     if (!invoice?.dueDate) return 0;
     try {
       const due = new Date(invoice.dueDate);
-      const now = new Date('2026-10-18');
+      const now = new Date();
       const diff = Math.max(0, now.getTime() - due.getTime());
       return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)));
     } catch {

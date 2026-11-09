@@ -93,8 +93,20 @@ export interface PeriodOption {
   type?: 'day' | 'month' | 'quarter' | 'semester' | 'year';
 }
 
+export function getCurrentMonthPeriodId(): string {
+  try {
+    const now = new Date();
+    const yy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `${yy}-${mm}`;
+  } catch {
+    return '2026-11';
+  }
+}
+
 export const formatPeriodLabel = (periodId: string): string => {
-  if (periodId === 'ALL') return 'Année 2026 complète';
+  const currentYear = new Date().getFullYear();
+  if (periodId === 'ALL') return `Année ${currentYear} complète`;
   if (periodId.startsWith('range:')) {
     const parts = periodId.split(':');
     if (parts.length === 3) {
@@ -120,45 +132,119 @@ export const formatPeriodLabel = (periodId: string): string => {
   }
   if (periodId.startsWith('quarter:') || periodId.includes('-Q')) {
     const q = periodId.replace('quarter:', '');
-    if (q === '2026-Q4') return '4e Trimestre 2026 (Oct-Déc)';
-    if (q === '2026-Q3') return '3e Trimestre 2026 (Juil-Sept)';
-    if (q === '2026-Q2') return '2e Trimestre 2026 (Avr-Juin)';
-    if (q === '2026-Q1') return '1er Trimestre 2026 (Jan-Mar)';
+    const match = q.match(/^(\d{4})-Q([1-4])$/);
+    if (match) {
+      const [_, yr, qNum] = match;
+      const qLabels: Record<string, string> = {
+        '1': `1er Trimestre ${yr} (Jan-Mar)`,
+        '2': `2e Trimestre ${yr} (Avr-Juin)`,
+        '3': `3e Trimestre ${yr} (Juil-Sept)`,
+        '4': `4e Trimestre ${yr} (Oct-Déc)`,
+      };
+      return qLabels[qNum] || `Trimestre ${q}`;
+    }
     return `Trimestre ${q}`;
   }
   if (periodId.startsWith('semester:')) {
     const s = periodId.replace('semester:', '');
-    if (s === '2026-S2') return '2e Semestre 2026 (Juil-Déc)';
-    if (s === '2026-S1') return '1er Semestre 2026 (Jan-Juin)';
+    const match = s.match(/^(\d{4})-S([1-2])$/);
+    if (match) {
+      const [_, yr, sNum] = match;
+      if (sNum === '1') return `1er Semestre ${yr} (Jan-Juin)`;
+      if (sNum === '2') return `2e Semestre ${yr} (Juil-Déc)`;
+    }
     return `Semestre ${s}`;
   }
   if (periodId.startsWith('year:')) {
     const y = periodId.replace('year:', '');
     return `Année ${y}`;
   }
-  const monthMap: Record<string, string> = {
-    '2026-10': 'Octobre 2026',
-    '2026-09': 'Septembre 2026',
-    '2026-08': 'Août 2026',
-    '2026-07': 'Juillet 2026',
-    '2026-06': 'Juin 2026',
-    '2026-05': 'Mai 2026',
-    '2026-04': 'Avril 2026',
-    '2026-03': 'Mars 2026',
-    '2026-02': 'Février 2026',
-    '2026-01': 'Janvier 2026',
-  };
-  return monthMap[periodId] || periodId;
+
+  // Format dynamically any YYYY-MM
+  const cleanMonth = periodId.replace('month:', '');
+  const monthMatch = cleanMonth.match(/^(\d{4})-(\d{2})$/);
+  if (monthMatch) {
+    const [_, y, m] = monthMatch;
+    const monthsFull = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+    const mIdx = parseInt(m, 10) - 1;
+    if (mIdx >= 0 && mIdx < 12) {
+      return `${monthsFull[mIdx]} ${y}`;
+    }
+  }
+
+  return periodId;
 };
 
-export const PERIOD_OPTIONS: PeriodOption[] = [
-  { id: '2026-10', label: 'Octobre 2026 (En cours)', shortLabel: 'Octobre 2026', badge: 'Mois en cours', type: 'month' },
-  { id: '2026-09', label: 'Septembre 2026', shortLabel: 'Septembre 2026', badge: 'Mois dernier', type: 'month' },
-  { id: '2026-08', label: 'Août 2026', shortLabel: 'Août 2026', type: 'month' },
-  { id: '2026-07', label: 'Juillet 2026', shortLabel: 'Juillet 2026', type: 'month' },
-  { id: '2026-Q3', label: '3e Trimestre 2026 (Juil-Sept)', shortLabel: '3e Trimestre 2026', type: 'quarter' },
-  { id: 'ALL', label: 'Année 2026 (Toutes les factures)', shortLabel: 'Année 2026 complète', type: 'year' },
-];
+export function getDynamicPeriodOptions(): PeriodOption[] {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed (10 for Nov)
+
+  const monthsFull = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ];
+
+  const options: PeriodOption[] = [];
+
+  // 1. Current month
+  const curMStr = String(currentMonth + 1).padStart(2, '0');
+  const curId = `${currentYear}-${curMStr}`;
+  options.push({
+    id: curId,
+    label: `${monthsFull[currentMonth]} ${currentYear} (En cours)`,
+    shortLabel: `${monthsFull[currentMonth]} ${currentYear}`,
+    badge: 'Mois en cours',
+    type: 'month',
+  });
+
+  // 2. Previous months
+  for (let offset = 1; offset <= 5; offset++) {
+    const prevDate = new Date(currentYear, currentMonth - offset, 1);
+    const pYear = prevDate.getFullYear();
+    const pMonth = prevDate.getMonth();
+    const pMStr = String(pMonth + 1).padStart(2, '0');
+    const pId = `${pYear}-${pMStr}`;
+    options.push({
+      id: pId,
+      label: `${monthsFull[pMonth]} ${pYear}`,
+      shortLabel: `${monthsFull[pMonth]} ${pYear}`,
+      badge: offset === 1 ? 'Mois dernier' : undefined,
+      type: 'month',
+    });
+  }
+
+  // 3. Current Quarter
+  const qNum = Math.floor(currentMonth / 3) + 1;
+  const qId = `${currentYear}-Q${qNum}`;
+  const qLabels: Record<number, string> = {
+    1: '1er Trimestre (Jan-Mar)',
+    2: '2e Trimestre (Avr-Juin)',
+    3: '3e Trimestre (Juil-Sept)',
+    4: '4e Trimestre (Oct-Déc)',
+  };
+  options.push({
+    id: qId,
+    label: `${qLabels[qNum]} ${currentYear}`,
+    shortLabel: `${qNum}e Trimestre ${currentYear}`,
+    type: 'quarter',
+  });
+
+  // 4. Whole year
+  options.push({
+    id: 'ALL',
+    label: `Année ${currentYear} (Toutes les factures)`,
+    shortLabel: `Année ${currentYear} complète`,
+    type: 'year',
+  });
+
+  return options;
+}
+
+export const PERIOD_OPTIONS: PeriodOption[] = getDynamicPeriodOptions();
 
 const initialNotifications: AppNotification[] = [];
 
@@ -447,7 +533,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [products, setProducts] = useState<Product[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('2026-10');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(() => getCurrentMonthPeriodId());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
@@ -1516,6 +1602,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const updated = [invoice, ...invoices];
     saveInvoices(updated);
 
+    // Si la période filtrée actuelle ne correspond pas au mois du nouveau document (ex: filtre resté sur un ancien mois),
+    // basculer automatiquement sur le mois du document afin qu'il apparaisse instantanément à l'écran
+    const invMonth = invoice.issueDate ? invoice.issueDate.slice(0, 7) : '';
+    if (invMonth && selectedPeriod !== 'ALL' && !selectedPeriod.startsWith('range:') && !selectedPeriod.startsWith('year:') && !selectedPeriod.includes(invMonth)) {
+      setSelectedPeriod(invMonth);
+    }
+
     // Persistance asynchrone dans Supabase avec isolation par société
     supabaseAddInvoice(invoice, currentUser?.companyId).catch((err) => {
       console.warn('[InvoiceContext] Échec enregistrement facture Supabase :', err);
@@ -1797,32 +1890,33 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return invoices.filter((inv) => inv.issueDate === targetDate);
     }
 
-    // Quarter filter: 'quarter:2026-Q3' or '2026-Q3'
+    // Quarter filter: 'quarter:YYYY-Q#' or 'YYYY-Q#'
     if (selectedPeriod.startsWith('quarter:') || selectedPeriod.includes('-Q')) {
       const q = selectedPeriod.replace('quarter:', '');
-      const quarterMonths: Record<string, string[]> = {
-        '2026-Q4': ['2026-10', '2026-11', '2026-12'],
-        '2026-Q3': ['2026-07', '2026-08', '2026-09'],
-        '2026-Q2': ['2026-04', '2026-05', '2026-06'],
-        '2026-Q1': ['2026-01', '2026-02', '2026-03'],
-      };
-      const validMonths = quarterMonths[q] || [];
-      return invoices.filter((inv) => validMonths.some((m) => inv.issueDate.startsWith(m)));
+      const match = q.match(/^(\d{4})-Q([1-4])$/);
+      if (match) {
+        const [_, yr, qNum] = match;
+        const qInt = parseInt(qNum, 10);
+        const startM = (qInt - 1) * 3 + 1;
+        const validMonths = [
+          `${yr}-${String(startM).padStart(2, '0')}`,
+          `${yr}-${String(startM + 1).padStart(2, '0')}`,
+          `${yr}-${String(startM + 2).padStart(2, '0')}`,
+        ];
+        return invoices.filter((inv) => validMonths.some((m) => inv.issueDate.startsWith(m)));
+      }
     }
 
-    // Semester filter: 'semester:2026-S1' or 'semester:2026-S2'
+    // Semester filter: 'semester:YYYY-S#'
     if (selectedPeriod.startsWith('semester:')) {
       const s = selectedPeriod.replace('semester:', '');
-      if (s === '2026-S2') {
+      const match = s.match(/^(\d{4})-S([1-2])$/);
+      if (match) {
+        const [_, yr, sNum] = match;
+        const isS2 = sNum === '2';
         return invoices.filter((inv) => {
           const monthNum = parseInt(inv.issueDate.slice(5, 7), 10);
-          return inv.issueDate.startsWith('2026') && monthNum >= 7 && monthNum <= 12;
-        });
-      }
-      if (s === '2026-S1') {
-        return invoices.filter((inv) => {
-          const monthNum = parseInt(inv.issueDate.slice(5, 7), 10);
-          return inv.issueDate.startsWith('2026') && monthNum >= 1 && monthNum <= 6;
+          return inv.issueDate.startsWith(yr) && (isS2 ? monthNum >= 7 && monthNum <= 12 : monthNum >= 1 && monthNum <= 6);
         });
       }
     }
@@ -1857,32 +1951,33 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return payments.filter((p) => p.date === targetDate);
     }
 
-    // Quarter filter: 'quarter:2026-Q4' or '2026-Q4'
+    // Quarter filter: 'quarter:YYYY-Q#' or 'YYYY-Q#'
     if (selectedPeriod.startsWith('quarter:') || selectedPeriod.includes('-Q')) {
       const q = selectedPeriod.replace('quarter:', '');
-      const quarterMonths: Record<string, string[]> = {
-        '2026-Q4': ['2026-10', '2026-11', '2026-12'],
-        '2026-Q3': ['2026-07', '2026-08', '2026-09'],
-        '2026-Q2': ['2026-04', '2026-05', '2026-06'],
-        '2026-Q1': ['2026-01', '2026-02', '2026-03'],
-      };
-      const validMonths = quarterMonths[q] || [];
-      return payments.filter((p) => validMonths.some((m) => p.date.startsWith(m)));
+      const match = q.match(/^(\d{4})-Q([1-4])$/);
+      if (match) {
+        const [_, yr, qNum] = match;
+        const qInt = parseInt(qNum, 10);
+        const startM = (qInt - 1) * 3 + 1;
+        const validMonths = [
+          `${yr}-${String(startM).padStart(2, '0')}`,
+          `${yr}-${String(startM + 1).padStart(2, '0')}`,
+          `${yr}-${String(startM + 2).padStart(2, '0')}`,
+        ];
+        return payments.filter((p) => validMonths.some((m) => p.date.startsWith(m)));
+      }
     }
 
-    // Semester filter: 'semester:2026-S1' or 'semester:2026-S2'
+    // Semester filter: 'semester:YYYY-S#'
     if (selectedPeriod.startsWith('semester:')) {
       const s = selectedPeriod.replace('semester:', '');
-      if (s === '2026-S2') {
+      const match = s.match(/^(\d{4})-S([1-2])$/);
+      if (match) {
+        const [_, yr, sNum] = match;
+        const isS2 = sNum === '2';
         return payments.filter((p) => {
           const monthNum = parseInt(p.date.slice(5, 7), 10);
-          return p.date.startsWith('2026') && monthNum >= 7 && monthNum <= 12;
-        });
-      }
-      if (s === '2026-S1') {
-        return payments.filter((p) => {
-          const monthNum = parseInt(p.date.slice(5, 7), 10);
-          return p.date.startsWith('2026') && monthNum >= 1 && monthNum <= 6;
+          return p.date.startsWith(yr) && (isS2 ? monthNum >= 7 && monthNum <= 12 : monthNum >= 1 && monthNum <= 6);
         });
       }
     }
