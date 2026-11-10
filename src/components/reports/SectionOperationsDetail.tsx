@@ -408,7 +408,7 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
               {[
                 { id: 'all', label: 'Toutes' },
                 { id: 'paid', label: 'Payées' },
-                { id: 'sent', label: 'Envoyées' },
+                { id: 'sent', label: 'En attente' },
                 { id: 'overdue', label: 'En retard' },
               ].map((tab) => (
                 <button

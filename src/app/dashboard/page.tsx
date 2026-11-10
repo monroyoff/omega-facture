@@ -97,7 +97,12 @@ export default function DashboardPage() {
       scrollToInvoices();
     } else if (cardType === 'pending') {
       setActiveTab('sent');
-      scrollToInvoices();
+      setTimeout(() => {
+        const el = document.getElementById('pending-month-filter') || document.getElementById('invoices-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
     } else if (cardType === 'overdue') {
       setActiveTab('overdue');
       scrollToInvoices();

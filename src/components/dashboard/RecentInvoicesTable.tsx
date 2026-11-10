@@ -20,6 +20,9 @@ import {
   FileText,
   Send,
   CheckCircle2,
+  Calendar,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 import { Invoice, InvoiceStatus } from '@/lib/types';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
@@ -50,7 +53,16 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   onKindChange,
   id = 'invoices-section',
 }) => {
-  const { periodLabel, selectedPeriod, setSelectedPeriod, deleteInvoice, convertQuoteToInvoice, showToast, currentUser } = useInvoices();
+  const {
+    invoices: allGlobalInvoices,
+    periodLabel,
+    selectedPeriod,
+    setSelectedPeriod,
+    deleteInvoice,
+    convertQuoteToInvoice,
+    showToast,
+    currentUser,
+  } = useInvoices();
   const [internalTab, setInternalTab] = useState<DashboardTableTab>('all');
   const selectedTab = activeTab !== undefined ? activeTab : internalTab;
   const handleTabChange = (tab: DashboardTableTab) => {
@@ -228,6 +240,97 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     });
   }, [scopedInvoices, selectedTab, searchQuery]);
 
+  // Dynamic calculation of months and pending stats for pending invoices filtering
+  const { allMonthsOptions, availablePendingMonths, totalPendingAllMonthsCount } = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed
+    const monthNamesFull = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+    ];
+    const monthNamesShort = [
+      'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+      'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc',
+    ];
+
+    const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+
+    // Collect all unique months from all global invoices
+    const invoiceMonths = new Set<string>();
+    (allGlobalInvoices || []).forEach((inv) => {
+      if (inv.issueDate && inv.issueDate.length >= 7) {
+        invoiceMonths.add(inv.issueDate.substring(0, 7));
+      }
+    });
+
+    // Ensure the last 6 months of current year exist in the set
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(currentYear, currentMonth - i, 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      invoiceMonths.add(`${y}-${m}`);
+    }
+
+    const sortedMonthKeys = Array.from(invoiceMonths).sort((a, b) => b.localeCompare(a));
+
+    // Calculate pending stats per month
+    const monthStatsMap: Record<string, { count: number; totalPending: number }> = {};
+    let totalPendingAll = 0;
+
+    (allGlobalInvoices || []).forEach((inv) => {
+      const isQuoteDoc = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
+      const isTarget = selectedKind === 'quote' ? isQuoteDoc : !isQuoteDoc;
+      if (isTarget && inv.status === 'sent') {
+        const remaining = Math.max(0, inv.total - (inv.amountPaid || 0));
+        totalPendingAll += 1;
+
+        const mKey = inv.issueDate ? inv.issueDate.substring(0, 7) : '';
+        if (mKey) {
+          if (!monthStatsMap[mKey]) {
+            monthStatsMap[mKey] = { count: 0, totalPending: 0 };
+          }
+          monthStatsMap[mKey].count += 1;
+          monthStatsMap[mKey].totalPending += remaining;
+        }
+      }
+    });
+
+    const options = sortedMonthKeys.map((mKey) => {
+      const [yr, mo] = mKey.split('-');
+      const moIdx = parseInt(mo, 10) - 1;
+      const moName = monthNamesFull[moIdx] || mo;
+      const isCurrent = mKey === currentMonthKey;
+      return {
+        id: mKey,
+        label: `${moName} ${yr}${isCurrent ? ' (Mois en cours)' : ''}`,
+        shortLabel: `${monthNamesShort[moIdx] || mo} ${yr}`,
+        count: monthStatsMap[mKey]?.count || 0,
+        amount: monthStatsMap[mKey]?.totalPending || 0,
+        isCurrent,
+      };
+    });
+
+    // Pills for quick filter: take the top 4 recent months PLUS any month with pending count > 0 (max 7)
+    const pillsList = options.filter((opt, index) => index < 4 || opt.count > 0).slice(0, 7);
+
+    return {
+      allMonthsOptions: options,
+      availablePendingMonths: pillsList,
+      totalPendingAllMonthsCount: totalPendingAll,
+    };
+  }, [allGlobalInvoices, selectedKind]);
+
+  const pendingTotalForCurrentPeriod = useMemo(() => {
+    return filteredInvoices
+      .filter((inv) => {
+        const isQuoteDoc = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
+        const isTarget = selectedKind === 'quote' ? isQuoteDoc : !isQuoteDoc;
+        return isTarget && inv.status === 'sent';
+      })
+      .reduce((sum, inv) => sum + Math.max(0, inv.total - (inv.amountPaid || 0)), 0);
+  }, [filteredInvoices, selectedKind]);
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       setSelectedIds(filteredInvoices.map((i) => i.id));
@@ -261,7 +364,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
         { key: 'all', label: 'Toutes les factures', count: counts.all },
         { key: 'paid', label: 'Payées', count: counts.paid },
         { key: 'acompte', label: 'Acomptes reçus', count: counts.acompte },
-        { key: 'sent', label: 'Factures envoyées', count: counts.sent },
+        { key: 'sent', label: 'Factures en attente', count: counts.sent },
         { key: 'overdue', label: 'En retard', count: counts.overdue },
         { key: 'draft', label: 'Brouillons', count: counts.draft },
       ];
@@ -272,7 +375,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
       { key: 'all', label: 'Tous les documents', count: counts.all },
       { key: 'paid', label: 'Factures payées', count: counts.paid },
       { key: 'acompte', label: 'Acomptes reçus', count: counts.acompte },
-      { key: 'sent', label: 'Envoyés', count: counts.sent },
+      { key: 'sent', label: 'En attente', count: counts.sent },
       { key: 'overdue', label: 'En retard / Expirés', count: counts.overdue },
       { key: 'draft', label: 'Brouillons', count: counts.draft },
     ];
@@ -329,6 +432,30 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
           {/* Search & Filter tools */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
+            {/* Month Dropdown Filter */}
+            <div className="relative w-full sm:w-auto">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="w-full sm:w-auto py-2 sm:py-1.5 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                title="Filtrer les documents par mois"
+              >
+                <option value="ALL">📅 Tous les mois (Année complète)</option>
+                {allMonthsOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    📅 {opt.label}
+                  </option>
+                ))}
+                {selectedPeriod !== 'ALL' &&
+                  !allMonthsOptions.some((o) => o.id === selectedPeriod) && (
+                    <option value={selectedPeriod}>
+                      📅 {periodLabel}
+                    </option>
+                  )}
+              </select>
+            </div>
+
             {/* Status Dropdown Filter */}
             <div className="relative w-full sm:w-auto">
               <select
@@ -350,7 +477,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                     <option value="all">Toutes les factures ({counts.all})</option>
                     <option value="paid">🟢 Factures payées ({counts.paid})</option>
                     <option value="acompte">💰 Acomptes reçus ({counts.acompte})</option>
-                    <option value="sent">🟠 Factures envoyées ({counts.sent})</option>
+                    <option value="sent">🟠 Factures en attente ({counts.sent})</option>
                     <option value="overdue">🔴 Factures en retard ({counts.overdue})</option>
                     <option value="draft">⚪ Brouillons ({counts.draft})</option>
                   </>
@@ -359,7 +486,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                     <option value="all">Tous les documents ({counts.all})</option>
                     <option value="paid">🟢 Factures payées ({counts.paid})</option>
                     <option value="acompte">💰 Acomptes reçus ({counts.acompte})</option>
-                    <option value="sent">🟠 Documents envoyés ({counts.sent})</option>
+                    <option value="sent">🟠 En attente ({counts.sent})</option>
                     <option value="overdue">🔴 En retard / Expirés ({counts.overdue})</option>
                     <option value="draft">⚪ Brouillons ({counts.draft})</option>
                   </>
@@ -471,35 +598,171 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
             );
           })}
         </div>
+
+        {/* Dedicated Month Filter Bar for Pending Invoices / Quotes */}
+        {selectedTab === 'sent' && (
+          <div
+            id="pending-month-filter"
+            className="mt-3.5 p-3.5 sm:p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/90 dark:border-amber-800/80 shadow-2xs transition-all animate-fadeIn"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Title & context */}
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 shadow-2xs">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-amber-950 dark:text-amber-100 uppercase tracking-wider">
+                      {selectedKind === 'quote' ? 'Devis en attente de validation' : 'Factures en attente de règlement'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200 text-[10px] font-black">
+                      {filteredInvoices.length} pièce{filteredInvoices.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-800/90 dark:text-amber-300/80 mt-0.5">
+                    Sélectionnez un mois pour afficher les {selectedKind === 'quote' ? 'devis' : 'créances en attente'} correspondantes :
+                  </p>
+                </div>
+              </div>
+
+              {/* Financial remaining balance */}
+              {selectedKind !== 'quote' && (
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-950 dark:text-amber-100 shrink-0 self-start sm:self-auto">
+                  <span className="text-amber-800 dark:text-amber-300 font-semibold">Solde en attente :</span>
+                  <span className="text-sm font-extrabold px-2.5 py-1 rounded-xl bg-white dark:bg-amber-900/50 border border-amber-200 dark:border-amber-700/80 text-amber-800 dark:text-amber-200 shadow-2xs">
+                    {formatFCFA(pendingTotalForCurrentPeriod)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Month Filter Pills */}
+            <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1 no-scrollbar flex-wrap">
+              {/* Button: Tous les mois */}
+              <button
+                type="button"
+                onClick={() => setSelectedPeriod('ALL')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  selectedPeriod === 'ALL'
+                    ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30 ring-2 ring-amber-500/50 scale-[1.02]'
+                    : 'bg-white dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border border-amber-200/90 dark:border-amber-900 hover:bg-amber-100/60'
+                }`}
+                title="Afficher toutes les factures en attente de l'année"
+              >
+                <span>✨ Tous les mois</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                    selectedPeriod === 'ALL'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300'
+                  }`}
+                >
+                  {totalPendingAllMonthsCount}
+                </span>
+              </button>
+
+              {/* Dynamic Month Pills */}
+              {availablePendingMonths.map((m) => {
+                const isSelected = selectedPeriod === m.id || selectedPeriod === `month:${m.id}`;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedPeriod(m.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30 ring-2 ring-amber-500/50 scale-[1.02]'
+                        : 'bg-white dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border border-amber-200/90 dark:border-amber-900 hover:bg-amber-100/60'
+                    }`}
+                  >
+                    <span>{m.shortLabel}</span>
+                    {m.isCurrent && (
+                      <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 font-extrabold">
+                        En cours
+                      </span>
+                    )}
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : m.count > 0
+                          ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-300'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      {m.count}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Selector for other months */}
+              <div className="relative shrink-0">
+                <select
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  className="text-xs font-bold py-1.5 pl-2.5 pr-6 bg-white dark:bg-slate-900/90 border border-amber-200/90 dark:border-amber-900 rounded-xl text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                >
+                  <option value="ALL">📅 Autre mois...</option>
+                  {allMonthsOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label} ({opt.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content Area: Centered Empty State vs Invoices (Mobile Cards + Desktop Table) */}
       {filteredInvoices.length === 0 ? (
         <div className="py-12 sm:py-16 px-4 text-center flex flex-col items-center justify-center">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-400 mb-3 ring-8 ring-slate-100/50 dark:ring-slate-800/30">
-            <FileCheck2 className="w-7 h-7 text-slate-400 dark:text-slate-500" />
+            {selectedTab === 'sent' ? (
+              <Clock className="w-7 h-7 text-amber-500 dark:text-amber-400" />
+            ) : (
+              <FileCheck2 className="w-7 h-7 text-slate-400 dark:text-slate-500" />
+            )}
           </div>
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-            {selectedKind === 'quote'
+            {selectedTab === 'sent'
+              ? selectedKind === 'quote'
+                ? 'Aucun devis en attente pour cette période'
+                : 'Aucune facture en attente pour cette période'
+              : selectedKind === 'quote'
               ? 'Aucun devis trouvé'
               : selectedKind === 'invoice'
               ? 'Aucune facture trouvée'
               : 'Aucun document trouvé'}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
-            {searchQuery || selectedTab !== 'all'
+            {selectedTab === 'sent'
+              ? `Toutes les ${selectedKind === 'quote' ? 'offres de devis' : 'factures'} de ${periodLabel} ont été traitées ou sont soldées.`
+              : searchQuery || selectedTab !== 'all'
               ? `Aucun ${selectedKind === 'quote' ? 'devis' : 'document'} ne correspond à votre filtre ou terme de recherche actuel.`
               : `Aucun ${selectedKind === 'quote' ? 'devis' : 'document'} enregistré pour la période sélectionnée (${periodLabel}).`}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-            {selectedPeriod !== 'ALL' && (
+            {selectedTab === 'sent' && selectedPeriod !== 'ALL' && (
+              <button
+                type="button"
+                onClick={() => setSelectedPeriod('ALL')}
+                className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md shadow-amber-600/20 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>✨ Voir les factures en attente de tous les mois ({totalPendingAllMonthsCount})</span>
+              </button>
+            )}
+            {selectedTab !== 'sent' && selectedPeriod !== 'ALL' && (
               <button
                 type="button"
                 onClick={() => setSelectedPeriod('ALL')}
                 className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md shadow-brand-500/20 flex items-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Voir toute l'année 2026</span>
+                <span>Voir toute l'année</span>
               </button>
             )}
             {(searchQuery || selectedTab !== 'all') && (

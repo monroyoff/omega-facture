@@ -10,9 +10,11 @@ import {
   AlertCircle,
   ArrowRight,
   ExternalLink,
+  Calendar,
 } from 'lucide-react';
 import { DashboardKPIs } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
+import { useInvoices } from '@/lib/store/invoice-context';
 
 interface StatCardsProps {
   kpis: DashboardKPIs;
@@ -20,6 +22,7 @@ interface StatCardsProps {
 }
 
 export const StatCards: React.FC<StatCardsProps> = ({ kpis, onCardClick }) => {
+  const { periodLabel } = useInvoices();
   const cards = [
     {
       key: 'invoiced' as const,
@@ -79,10 +82,20 @@ export const StatCards: React.FC<StatCardsProps> = ({ kpis, onCardClick }) => {
           >
             {/* Header: Title + Icon */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {card.title}
-              </span>
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${card.iconBg} transition-transform group-hover:scale-110 shadow-2xs`}>
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {card.title}
+                </span>
+                {card.key === 'pending' && (
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 truncate max-w-[130px]"
+                    title={`Période filtrée : ${periodLabel}`}
+                  >
+                    📅 {periodLabel}
+                  </span>
+                )}
+              </div>
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${card.iconBg} transition-transform group-hover:scale-110 shadow-2xs shrink-0`}>
                 <Icon className="w-4 h-4" />
               </div>
             </div>
@@ -122,7 +135,11 @@ export const StatCards: React.FC<StatCardsProps> = ({ kpis, onCardClick }) => {
 
             {/* Bottom link: voir les factures ou opérations concernées */}
             <div className="pt-2.5 mt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[11px] font-medium text-brand-600 dark:text-brand-400 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
-              <span>voir les factures ou opérations concernées</span>
+              <span>
+                {card.key === 'pending'
+                  ? 'Filtrer et voir les factures en attente par mois'
+                  : 'voir les factures ou opérations concernées'}
+              </span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
