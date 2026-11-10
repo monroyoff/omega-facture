@@ -32,6 +32,7 @@ import {
   cleanPhoneDigits,
   getPhoneAuthEmail,
 } from '@/lib/auth/phone-utils';
+import { formatFCFA, formatDateFR, getDueDateDiffDays } from '@/lib/money/format';
 
 export interface PendingVerificationUser {
   email?: string;
@@ -70,7 +71,7 @@ export interface PaymentRecord {
 
 export interface AppNotification {
   id: string;
-  type: 'overdue' | 'payment' | 'draft';
+  type: 'overdue' | 'payment' | 'draft' | 'due_soon' | 'due_today';
   title: string;
   desc: string;
   time: string;
@@ -1491,7 +1492,118 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const dismissNotification = (id: string) => {
     const updated = notifications.filter((n) => n.id !== id);
     saveNotifications(updated);
+    try {
+      const raw = localStorage.getItem('facturo:v1:dismissed_notifs');
+      const list: string[] = raw ? JSON.parse(raw) : [];
+      if (!list.includes(id)) {
+        list.push(id);
+        localStorage.setItem('facturo:v1:dismissed_notifs', JSON.stringify(list));
+      }
+    } catch (e) {}
   };
+
+  // Surveillance intelligente des échéances : Génération automatique des notifications J-1, J et J+1
+  useEffect(() => {
+    if (!invoices || invoices.length === 0) return;
+
+    let dismissedIds: string[] = [];
+    try {
+      const raw = localStorage.getItem('facturo:v1:dismissed_notifs');
+      if (raw) dismissedIds = JSON.parse(raw);
+    } catch (e) {}
+
+    const generatedNotifs: AppNotification[] = [];
+
+    invoices.forEach((inv) => {
+      // Uniquement les factures réelles non soldées et non brouillons
+      const isQuote = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
+      if (isQuote || inv.status === 'paid' || inv.status === 'draft') return;
+
+      const remaining = Math.max(0, inv.total - (inv.amountPaid || 0));
+      if (remaining <= 0 || !inv.dueDate) return;
+
+      const diff = getDueDateDiffDays(inv.dueDate);
+
+      if (diff === 1) {
+        // J-1 : Veille de l'échéance (Rappel préventif)
+        const notifId = `notif-j-minus-1-${inv.id}`;
+        if (!dismissedIds.includes(notifId)) {
+          generatedNotifs.push({
+            id: notifId,
+            type: 'due_soon',
+            title: `⏰ Échéance demain : ${inv.number}`,
+            desc: `La facture ${inv.number} pour ${inv.client.name} (${formatFCFA(remaining)}) arrive à échéance demain (${formatDateFR(inv.dueDate)}). Envoyez un rappel préventif.`,
+            time: 'Échéance demain (J-1)',
+            unread: true,
+            invoiceId: inv.id,
+            invoiceNumber: inv.number,
+            clientName: inv.client.name,
+            clientPhone: inv.client.phone,
+            clientCompany: inv.client.company,
+            amount: inv.total,
+            remainingAmount: remaining,
+            dueDate: formatDateFR(inv.dueDate),
+          });
+        }
+      } else if (diff === 0) {
+        // Jour J : Échéance aujourd'hui
+        const notifId = `notif-day-j-${inv.id}`;
+        if (!dismissedIds.includes(notifId)) {
+          generatedNotifs.push({
+            id: notifId,
+            type: 'due_today',
+            title: `⚠️ Échéance aujourd'hui : ${inv.number}`,
+            desc: `La facture ${inv.number} pour ${inv.client.name} (${formatFCFA(remaining)}) est exigible aujourd'hui (${formatDateFR(inv.dueDate)}).`,
+            time: "Aujourd'hui (Jour J)",
+            unread: true,
+            invoiceId: inv.id,
+            invoiceNumber: inv.number,
+            clientName: inv.client.name,
+            clientPhone: inv.client.phone,
+            clientCompany: inv.client.company,
+            amount: inv.total,
+            remainingAmount: remaining,
+            dueDate: formatDateFR(inv.dueDate),
+          });
+        }
+      } else if (diff < 0) {
+        // J+1 et au-delà : Échéance dépassée (Retard)
+        const days = Math.abs(diff);
+        const notifId = `notif-overdue-${inv.id}`;
+        if (!dismissedIds.includes(notifId)) {
+          generatedNotifs.push({
+            id: notifId,
+            type: 'overdue',
+            title: `🔴 Facture en retard : ${inv.number}`,
+            desc: `La facture ${inv.number} pour ${inv.client.name} (${formatFCFA(remaining)}) est échue depuis le ${formatDateFR(inv.dueDate)} (+${days}j de retard). Relance recommandée.`,
+            time: `+${days}j de retard`,
+            unread: true,
+            invoiceId: inv.id,
+            invoiceNumber: inv.number,
+            clientName: inv.client.name,
+            clientPhone: inv.client.phone,
+            clientCompany: inv.client.company,
+            amount: inv.total,
+            remainingAmount: remaining,
+            dueDate: formatDateFR(inv.dueDate),
+          });
+        }
+      }
+    });
+
+    if (generatedNotifs.length > 0) {
+      setNotifications((prev) => {
+        const existingIds = new Set(prev.map((n) => n.id));
+        const newOnes = generatedNotifs.filter((n) => !existingIds.has(n.id));
+        if (newOnes.length === 0) return prev;
+        const merged = [...newOnes, ...prev];
+        try {
+          localStorage.setItem('facturo:v1:notifications', JSON.stringify(merged));
+        } catch (e) {}
+        return merged;
+      });
+    }
+  }, [invoices]);
 
   const unreadNotificationCount = notifications.filter((n) => n.unread).length;
 
@@ -2004,12 +2116,24 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Montant encaissé au tableau de bord : cumule les règlements des factures ainsi que les acomptes perçus (y compris acomptes sur devis/commandes)
     const totalPaid = periodInvoices.reduce((acc, i) => acc + (i.amountPaid || 0), 0);
 
-    const totalPending = realInvoices
-      .filter((i) => i.status === 'sent')
-      .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
-    const totalOverdue = realInvoices
-      .filter((i) => i.status === 'overdue')
-      .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
+    // RÈGLE MÉTIER : Le montant global de factures en attente prend en compte
+    // TOUTES les factures en attente de TOUS les mois
+    const allRealInvoices = invoices.filter(isRealInvoice);
+    const totalPending = allRealInvoices
+      .filter((i) => i.status === 'sent' && (i.total - (i.amountPaid || 0) > 0))
+      .reduce((acc, i) => acc + Math.max(0, i.total - (i.amountPaid || 0)), 0);
+
+    const totalOverdue = allRealInvoices
+      .filter((i) => {
+        if (i.status === 'paid' || i.status === 'draft') return false;
+        if (i.status === 'overdue') return true;
+        if (i.dueDate) {
+          const diff = getDueDateDiffDays(i.dueDate);
+          return diff < 0 && (i.total - (i.amountPaid || 0) > 0);
+        }
+        return false;
+      })
+      .reduce((acc, i) => acc + Math.max(0, i.total - (i.amountPaid || 0)), 0);
 
     let paidTrend = 0;
     let invoicedTrend = 0;
@@ -2049,7 +2173,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       pendingTrend,
       overdueTrend,
     };
-  }, [periodInvoices, selectedPeriod]);
+  }, [periodInvoices, invoices, selectedPeriod]);
 
   // Overall KPIs (full year, uniquement sur les factures pour le CA, inclut tous les règlements et acomptes reçus)
   const kpis: DashboardKPIs = React.useMemo(() => {
@@ -2060,12 +2184,24 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Montant encaissé : total des factures soldées et de tous les acomptes perçus
     const totalPaid = invoices.reduce((acc, i) => acc + (i.amountPaid || 0), 0);
 
-    const totalPending = realInvoices
-      .filter((i) => i.status === 'sent')
-      .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
-    const totalOverdue = realInvoices
-      .filter((i) => i.status === 'overdue')
-      .reduce((acc, i) => acc + (i.total - i.amountPaid), 0);
+    // RÈGLE MÉTIER : Le montant global de factures en attente prend en compte
+    // TOUTES les factures en attente de TOUS les mois
+    const allRealInvoices = invoices.filter(isRealInvoice);
+    const totalPending = allRealInvoices
+      .filter((i) => i.status === 'sent' && (i.total - (i.amountPaid || 0) > 0))
+      .reduce((acc, i) => acc + Math.max(0, i.total - (i.amountPaid || 0)), 0);
+
+    const totalOverdue = allRealInvoices
+      .filter((i) => {
+        if (i.status === 'paid' || i.status === 'draft') return false;
+        if (i.status === 'overdue') return true;
+        if (i.dueDate) {
+          const diff = getDueDateDiffDays(i.dueDate);
+          return diff < 0 && (i.total - (i.amountPaid || 0) > 0);
+        }
+        return false;
+      })
+      .reduce((acc, i) => acc + Math.max(0, i.total - (i.amountPaid || 0)), 0);
 
     return {
       totalInvoiced,

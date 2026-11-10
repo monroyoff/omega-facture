@@ -48,3 +48,26 @@ export function formatDateFR(dateString: string): string {
   if (!day || !month || !year) return dateString;
   return `${day}/${month}/${year}`;
 }
+
+/**
+ * Calculates calendar day difference between dueDate and today:
+ * diff = dueDate - today
+ * diff === 1  -> J-1 (Veille de l'échéance / Échéance demain)
+ * diff === 0  -> J (Jour J de l'échéance / Échéance aujourd'hui)
+ * diff < 0    -> J+1 et plus (Échéance dépassée / En retard)
+ * diff > 1    -> Échéance future saine (dans plus de 24h)
+ */
+export function getDueDateDiffDays(dueDateStr: string): number {
+  if (!dueDateStr) return 999;
+  try {
+    const now = new Date();
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const [y, m, d] = dueDateStr.split('-').map(Number);
+    if (!y || !m || !d) return 999;
+    const targetDate = new Date(y, m - 1, d);
+    const diffTime = targetDate.getTime() - todayDate.getTime();
+    return Math.round(diffTime / (1000 * 60 * 60 * 24));
+  } catch {
+    return 999;
+  }
+}

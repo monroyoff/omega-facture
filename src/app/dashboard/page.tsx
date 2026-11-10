@@ -34,6 +34,7 @@ export default function DashboardPage() {
     periodInvoices,
     periodKPIs,
     periodLabel,
+    setSelectedPeriod,
     currentUser,
     pendingVerificationUser,
     isDataLoading,
@@ -96,7 +97,10 @@ export default function DashboardPage() {
       setActiveTab('paid');
       scrollToInvoices();
     } else if (cardType === 'pending') {
+      setActiveKind('invoice');
       setActiveTab('sent');
+      // Pour les factures en attente, afficher toutes les factures en attente de tous les mois
+      setSelectedPeriod('ALL');
       setTimeout(() => {
         const el = document.getElementById('pending-month-filter') || document.getElementById('invoices-section');
         if (el) {

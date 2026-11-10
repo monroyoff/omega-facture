@@ -25,7 +25,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Invoice, InvoiceStatus } from '@/lib/types';
-import { formatFCFA, formatDateFR } from '@/lib/money/format';
+import { formatFCFA, formatDateFR, getDueDateDiffDays } from '@/lib/money/format';
 import { StatusBadge } from '@/components/ui/Badge';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { RelanceModal } from '@/components/invoices/RelanceModal';
@@ -196,14 +196,26 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     return invoices;
   }, [invoices, selectedKind]);
 
+  // Helper to identify overdue invoices (dueDate in the past and unpaid)
+  const isInvoiceOverdue = (inv: Invoice): boolean => {
+    if (inv.status === 'paid' || inv.status === 'draft') return false;
+    if (inv.status === 'overdue') return true;
+    if (inv.dueDate) {
+      const diff = getDueDateDiffDays(inv.dueDate);
+      const remaining = Math.max(0, inv.total - (inv.amountPaid || 0));
+      return diff < 0 && remaining > 0;
+    }
+    return false;
+  };
+
   // Counts strictly calculated for the active document kind
   const counts = useMemo(() => {
     return {
       all: scopedInvoices.length,
       paid: scopedInvoices.filter((i) => i.status === 'paid').length,
       acompte: scopedInvoices.filter((i) => i.amountPaid > 0 && i.status !== 'paid').length,
-      sent: scopedInvoices.filter((i) => i.status === 'sent').length,
-      overdue: scopedInvoices.filter((i) => i.status === 'overdue').length,
+      sent: scopedInvoices.filter((i) => (i.status === 'sent' || isInvoiceOverdue(i)) && i.status !== 'paid').length,
+      overdue: scopedInvoices.filter(isInvoiceOverdue).length,
       draft: scopedInvoices.filter((i) => i.status === 'draft').length,
     };
   }, [scopedInvoices]);
@@ -217,12 +229,18 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
-    return scopedInvoices.filter((inv) => {
+    const list = scopedInvoices.filter((inv) => {
       // Tab filter
       if (selectedTab === 'paid') {
         if (inv.status !== 'paid') return false;
       } else if (selectedTab === 'acompte') {
         if (!(inv.amountPaid > 0 && inv.status !== 'paid')) return false;
+      } else if (selectedTab === 'overdue') {
+        // Factures en retard : échéance dépassée (J+1 et plus) ou statut overdue
+        if (!isInvoiceOverdue(inv)) return false;
+      } else if (selectedTab === 'sent') {
+        // Factures en attente : statut envoyé OU échéance dépassée non soldée
+        if (inv.status !== 'sent' && !isInvoiceOverdue(inv)) return false;
       } else if (selectedTab !== 'all') {
         if (inv.status !== selectedTab) return false;
       }
@@ -238,6 +256,26 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
       return true;
     });
+
+    // Tri pour les factures en attente :
+    // 1. Factures du mois en cours EN PREMIER
+    // 2. Factures des mois précédents SUIVRONT
+    if (selectedTab === 'sent') {
+      const now = new Date();
+      const curMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      return list.sort((a, b) => {
+        const aIsCurrent = Boolean(a.issueDate?.startsWith(curMonthKey));
+        const bIsCurrent = Boolean(b.issueDate?.startsWith(curMonthKey));
+
+        if (aIsCurrent && !bIsCurrent) return -1;
+        if (!aIsCurrent && bIsCurrent) return 1;
+
+        return (b.issueDate || '').localeCompare(a.issueDate || '');
+      });
+    }
+
+    return list;
   }, [scopedInvoices, selectedTab, searchQuery]);
 
   // Dynamic calculation of months and pending stats for pending invoices filtering
@@ -281,7 +319,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     (allGlobalInvoices || []).forEach((inv) => {
       const isQuoteDoc = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
       const isTarget = selectedKind === 'quote' ? isQuoteDoc : !isQuoteDoc;
-      if (isTarget && inv.status === 'sent') {
+      if (isTarget && (inv.status === 'sent' || isInvoiceOverdue(inv)) && inv.status !== 'paid') {
         const remaining = Math.max(0, inv.total - (inv.amountPaid || 0));
         totalPendingAll += 1;
 
@@ -326,7 +364,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
       .filter((inv) => {
         const isQuoteDoc = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
         const isTarget = selectedKind === 'quote' ? isQuoteDoc : !isQuoteDoc;
-        return isTarget && inv.status === 'sent';
+        return isTarget && (inv.status === 'sent' || isInvoiceOverdue(inv)) && inv.status !== 'paid';
       })
       .reduce((sum, inv) => sum + Math.max(0, inv.total - (inv.amountPaid || 0)), 0);
   }, [filteredInvoices, selectedKind]);
@@ -785,6 +823,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
           <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/60">
             {filteredInvoices.map((inv) => {
               const isSelected = selectedIds.includes(inv.id);
+              const isQuoteDoc = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
+              const isUnpaid = !isQuoteDoc && inv.status !== 'paid' && inv.status !== 'draft';
+              const diffDays = inv.dueDate ? getDueDateDiffDays(inv.dueDate) : 999;
+              const shouldShowRelance = isUnpaid && diffDays <= 1;
+
               return (
                 <div
                   key={inv.id}
@@ -879,10 +922,27 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
                   {/* Dates & Quick Actions */}
                   <div className="pt-2.5 border-t border-slate-100/80 dark:border-slate-800/60 space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>
-                        Échéance : <strong className={inv.status === 'overdue' ? 'text-rose-600 font-bold' : 'text-slate-700 dark:text-slate-300'}>{formatDateFR(inv.dueDate)}</strong>
-                      </span>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 flex-wrap gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>
+                          Échéance : <strong className={diffDays < 0 ? 'text-rose-600 font-bold' : 'text-slate-700 dark:text-slate-300'}>{formatDateFR(inv.dueDate)}</strong>
+                        </span>
+                        {isUnpaid && (
+                          diffDays === 1 ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              ⏰ Demain (J-1)
+                            </span>
+                          ) : diffDays === 0 ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">
+                              ⚠️ Aujourd'hui (Jour J)
+                            </span>
+                          ) : diffDays < 0 ? (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                              🔴 Retard (+{Math.abs(diffDays)}j)
+                            </span>
+                          ) : null
+                        )}
+                      </div>
                       <span className="text-[10px] text-slate-400">
                         Émis le {formatDateFR(inv.issueDate)}
                       </span>
@@ -890,14 +950,30 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
                     <div className="flex items-center justify-between gap-1.5 flex-wrap">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {inv.status === 'overdue' && (
+                        {shouldShowRelance && (
                           <button
                             type="button"
-                            onClick={() => setRelanceInvoice(inv)}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[11px] font-bold active:scale-95 transition-all shadow-2xs cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRelanceInvoice(inv);
+                            }}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold active:scale-95 transition-all shadow-2xs cursor-pointer ${
+                              diffDays === 1
+                                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                : diffDays === 0
+                                ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                            }`}
+                            title={
+                              diffDays === 1
+                                ? 'Rappel préventif d\'échéance (J-1)'
+                                : diffDays === 0
+                                ? "Exigible aujourd'hui (Jour J)"
+                                : `Relancer le client (+${Math.abs(diffDays)}j de retard)`
+                            }
                           >
-                            <BellRing className="w-3 h-3 text-rose-500 animate-pulse" />
-                            <span>Relancer</span>
+                            <BellRing className={`w-3 h-3 ${diffDays <= 0 ? 'text-rose-500 animate-pulse' : 'text-amber-600'}`} />
+                            <span>{diffDays === 1 ? 'Rappel J-1' : diffDays === 0 ? 'Relance Jour J' : 'Relancer'}</span>
                           </button>
                         )}
                         {(inv.status === 'draft' || inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) && (
@@ -1002,6 +1078,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {filteredInvoices.map((inv) => {
                   const isSelected = selectedIds.includes(inv.id);
+                  const isQuoteDoc = inv.documentKind === 'quote' || inv.number.startsWith('DEV-');
+                  const isUnpaid = !isQuoteDoc && inv.status !== 'paid' && inv.status !== 'draft';
+                  const diffDays = inv.dueDate ? getDueDateDiffDays(inv.dueDate) : 999;
+                  const shouldShowRelance = isUnpaid && diffDays <= 1;
+
                   return (
                     <tr
                       key={inv.id}
@@ -1086,15 +1167,32 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
                       {/* Due Date */}
                       <td className="py-3.5 px-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                        <span
-                          className={
-                            inv.status === 'overdue'
-                              ? 'text-rose-600 dark:text-rose-400 font-semibold'
-                              : ''
-                          }
-                        >
-                          {formatDateFR(inv.dueDate)}
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className={
+                              diffDays < 0
+                                ? 'text-rose-600 dark:text-rose-400 font-semibold'
+                                : ''
+                            }
+                          >
+                            {formatDateFR(inv.dueDate)}
+                          </span>
+                          {isUnpaid && (
+                            diffDays === 1 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                                ⏰ Demain (J-1)
+                              </span>
+                            ) : diffDays === 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700 dark:text-orange-400">
+                                ⚠️ Aujourd'hui (Jour J)
+                              </span>
+                            ) : diffDays < 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                                🔴 Retard (+{Math.abs(diffDays)}j)
+                              </span>
+                            ) : null
+                          )}
+                        </div>
                       </td>
 
                       {/* Total Amount & Acomptes in FCFA */}
@@ -1128,15 +1226,30 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                               Acompte {Math.round((inv.amountPaid / inv.total) * 100)}%
                             </span>
                           )}
-                          {inv.status === 'overdue' && (
+                          {shouldShowRelance && (
                             <button
                               type="button"
-                              onClick={() => setRelanceInvoice(inv)}
-                              className="xl:hidden flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[10px] font-bold shadow-2xs hover:bg-rose-100 transition-colors"
-                              title="Relancer cette facture en retard"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRelanceInvoice(inv);
+                              }}
+                              className={`xl:hidden flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-2xs transition-colors cursor-pointer ${
+                                diffDays === 1
+                                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                  : diffDays === 0
+                                  ? 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                              }`}
+                              title={
+                                diffDays === 1
+                                  ? "Rappel préventif d'échéance (J-1)"
+                                  : diffDays === 0
+                                  ? "Exigible aujourd'hui (Jour J)"
+                                  : `Relancer cette facture (+${Math.abs(diffDays)}j de retard)`
+                              }
                             >
-                              <BellRing className="w-3 h-3 text-rose-500 animate-pulse" />
-                              <span>Relancer</span>
+                              <BellRing className={`w-3 h-3 ${diffDays <= 0 ? 'text-rose-500 animate-pulse' : 'text-amber-600'}`} />
+                              <span>{diffDays === 1 ? 'J-1' : diffDays === 0 ? 'Jour J' : 'Relancer'}</span>
                             </button>
                           )}
                         </div>
@@ -1156,16 +1269,31 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
                             </Link>
                           )}
 
-                          {/* Bouton Relance pour les factures en retard */}
-                          {inv.status === 'overdue' && (
+                          {/* Bouton Relance pour les factures en attente échues ou proches (J-1, J, J+1+) */}
+                          {shouldShowRelance && (
                             <button
                               type="button"
-                              onClick={() => setRelanceInvoice(inv)}
-                              className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-xs font-bold transition-all shadow-2xs mr-1 active:scale-95 cursor-pointer group"
-                              title="Relancer le client pour cette facture en retard"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRelanceInvoice(inv);
+                              }}
+                              className={`hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all shadow-2xs mr-1 active:scale-95 cursor-pointer group ${
+                                diffDays === 1
+                                  ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                                  : diffDays === 0
+                                  ? 'bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/40'
+                                  : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40'
+                              }`}
+                              title={
+                                diffDays === 1
+                                  ? "Rappel préventif d'échéance (J-1)"
+                                  : diffDays === 0
+                                  ? "Exigible aujourd'hui (Jour J)"
+                                  : `Relancer le client pour cette facture (+${Math.abs(diffDays)}j de retard)`
+                              }
                             >
-                              <BellRing className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
-                              <span>Relancer</span>
+                              <BellRing className={`w-3.5 h-3.5 ${diffDays <= 0 ? 'text-rose-500 animate-pulse' : 'text-amber-600'}`} />
+                              <span>{diffDays === 1 ? 'Rappel J-1' : diffDays === 0 ? 'Relance Jour J' : 'Relancer'}</span>
                             </button>
                           )}
 

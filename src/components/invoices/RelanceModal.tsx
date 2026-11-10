@@ -17,7 +17,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { Invoice } from '@/lib/types';
-import { formatFCFA, formatDateFR } from '@/lib/money/format';
+import { formatFCFA, formatDateFR, getDueDateDiffDays } from '@/lib/money/format';
 
 interface RelanceModalProps {
   invoice: Invoice | null;
@@ -41,27 +41,37 @@ export const RelanceModal: React.FC<RelanceModalProps> = ({
     return Math.max(0, invoice.total - (invoice.amountPaid || 0));
   }, [invoice]);
 
-  const daysOverdue = useMemo(() => {
-    if (!invoice?.dueDate) return 0;
-    try {
-      const due = new Date(invoice.dueDate);
-      const now = new Date();
-      const diff = Math.max(0, now.getTime() - due.getTime());
-      return Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)));
-    } catch {
-      return 1;
-    }
+  const diffDays = useMemo(() => {
+    if (!invoice?.dueDate) return 999;
+    return getDueDateDiffDays(invoice.dueDate);
   }, [invoice]);
+
+  const daysOverdue = useMemo(() => {
+    return diffDays < 0 ? Math.abs(diffDays) : 0;
+  }, [diffDays]);
 
   // Sync default message when invoice changes
   useEffect(() => {
     if (invoice) {
-      setCustomMessage(
-        `Bonjour ${invoice.client.name} (${invoice.client.company}),\n\nSauf erreur de notre part, nous constatons que la facture *${invoice.number}* d'un montant de *${formatFCFA(remainingAmount)}*, échue le ${formatDateFR(invoice.dueDate)} (soit ${daysOverdue} jours de retard), reste impayée à ce jour.\n\nMerci de bien vouloir procéder à son règlement au plus vite par Mobile Money MTN/Moov ou virement bancaire.\n\nNous restons à votre disposition pour toute question.\nCordialement,\nLa Direction Financière`
-      );
+      if (diffDays === 1) {
+        // J-1 (Veille de l'échéance)
+        setCustomMessage(
+          `Bonjour ${invoice.client.name} (${invoice.client.company}),\n\nNous vous rappelons courtoisement que la facture *${invoice.number}* d'un montant de *${formatFCFA(remainingAmount)}* arrive à échéance demain le ${formatDateFR(invoice.dueDate)}.\n\nMerci de bien vouloir préparer son règlement par Mobile Money MTN/Moov ou virement bancaire.\n\nNous restons à votre entière disposition pour toute question.\nCordialement,\nLa Direction Financière`
+        );
+      } else if (diffDays === 0) {
+        // Jour J (Échéance aujourd'hui)
+        setCustomMessage(
+          `Bonjour ${invoice.client.name} (${invoice.client.company}),\n\nNous vous informons que la facture *${invoice.number}* d'un montant de *${formatFCFA(remainingAmount)}* arrive à échéance aujourd'hui (${formatDateFR(invoice.dueDate)}).\n\nMerci de bien vouloir procéder à son règlement par Mobile Money MTN/Moov ou virement bancaire.\n\nCordialement,\nLa Direction Financière`
+        );
+      } else {
+        // J+1 et au-delà (Retard constaté)
+        setCustomMessage(
+          `Bonjour ${invoice.client.name} (${invoice.client.company}),\n\nSauf erreur de notre part, nous constatons que la facture *${invoice.number}* d'un montant de *${formatFCFA(remainingAmount)}*, échue le ${formatDateFR(invoice.dueDate)} (soit ${Math.max(1, daysOverdue)} jours de retard), reste impayée à ce jour.\n\nMerci de bien vouloir procéder à son règlement au plus vite par Mobile Money MTN/Moov ou virement bancaire.\n\nNous restons à votre disposition pour toute question.\nCordialement,\nLa Direction Financière`
+        );
+      }
       setRelanceSuccess(null);
     }
-  }, [invoice, remainingAmount, daysOverdue]);
+  }, [invoice, remainingAmount, diffDays, daysOverdue]);
 
   if (!isOpen || !invoice) return null;
 
@@ -89,19 +99,45 @@ export const RelanceModal: React.FC<RelanceModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
       <div className="relative w-full max-w-lg bg-white dark:bg-[#111622] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto animate-in zoom-in-95 duration-200 flex flex-col">
-        {/* Header with Red Warning Theme */}
-        <div className="px-6 py-5 bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent border-b border-rose-100 dark:border-rose-950/60 flex items-center justify-between">
+        {/* Header with Adaptive Theme based on urgency */}
+        <div className={`px-6 py-5 border-b flex items-center justify-between ${
+          diffDays === 1
+            ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-100 dark:border-amber-950/60'
+            : diffDays === 0
+            ? 'bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent border-orange-100 dark:border-orange-950/60'
+            : 'bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-transparent border-rose-100 dark:border-rose-950/60'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 shadow-inner">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${
+              diffDays === 1
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                : diffDays === 0
+                ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400'
+                : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
+            }`}>
               <BellRing className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
-                  Relance Facture en Retard
+                  {diffDays === 1
+                    ? 'Rappel Préventif (Échéance Demain)'
+                    : diffDays === 0
+                    ? "Alerte Échéance du Jour (Jour J)"
+                    : 'Relance Facture en Retard'}
                 </h3>
-                <span className="text-[10px] bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
-                  +{daysOverdue} j de retard
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  diffDays === 1
+                    ? 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                    : diffDays === 0
+                    ? 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                    : 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                }`}>
+                  {diffDays === 1
+                    ? 'Veille J-1'
+                    : diffDays === 0
+                    ? "Exigible Aujourd'hui"
+                    : `+${daysOverdue} j de retard`}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

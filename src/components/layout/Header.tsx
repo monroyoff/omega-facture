@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Check,
   AlertTriangle,
+  AlertCircle,
   CheckCircle2,
   FileText,
   Clock,
@@ -212,16 +213,30 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                     <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-96 overflow-y-auto py-1">
                       {notifications.map((n) => {
                         const isOverdue = n.type === 'overdue';
+                        const isDueToday = n.type === 'due_today';
+                        const isDueSoon = n.type === 'due_soon';
                         const isPayment = n.type === 'payment';
                         const isDraft = n.type === 'draft';
 
                         const iconBg = isOverdue
                           ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40'
+                          : isDueToday
+                          ? 'text-orange-500 bg-orange-50 dark:bg-orange-950/40'
+                          : isDueSoon
+                          ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
                           : isPayment
                           ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40'
-                          : 'text-amber-500 bg-amber-50 dark:bg-amber-950/40';
+                          : 'text-slate-500 bg-slate-50 dark:bg-slate-950/40';
 
-                        const Icon = isOverdue ? AlertTriangle : isPayment ? CheckCircle2 : FileText;
+                        const Icon = isOverdue
+                          ? AlertTriangle
+                          : isDueToday
+                          ? AlertCircle
+                          : isDueSoon
+                          ? Clock
+                          : isPayment
+                          ? CheckCircle2
+                          : FileText;
 
                         return (
                           <div
@@ -273,7 +288,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                                 </span>
 
                                 {/* Dedicated Operational Action Buttons */}
-                                {isOverdue && (
+                                {(isOverdue || isDueToday || isDueSoon) && (
                                   <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
                                     <button
                                       type="button"
@@ -281,16 +296,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                                         e.stopPropagation();
                                         markNotificationAsRead(n.id);
                                         const phone = n.clientPhone?.replace(/[^0-9]/g, '') || '2290166889911';
-                                        const text = `Bonjour ${n.clientName || 'Cher client'}, sauf erreur de notre part, la facture ${n.invoiceNumber} d'un montant restant de ${formatFCFA(n.remainingAmount || 0)} échue le ${n.dueDate || ''} reste impayée. Merci de bien vouloir procéder à la régularisation. OMEGA FACTURE.`;
+                                        let text = '';
+                                        if (n.type === 'due_soon') {
+                                          text = `Bonjour ${n.clientName || 'Cher client'}, nous vous rappelons courtoisement que la facture ${n.invoiceNumber} d'un montant de ${formatFCFA(n.remainingAmount || 0)} arrive à échéance demain (${n.dueDate || ''}). Merci de votre confiance ! OMEGA FACTURE.`;
+                                        } else if (n.type === 'due_today') {
+                                          text = `Bonjour ${n.clientName || 'Cher client'}, la facture ${n.invoiceNumber} d'un montant de ${formatFCFA(n.remainingAmount || 0)} arrive à échéance aujourd'hui (${n.dueDate || ''}). Merci de bien vouloir procéder à son règlement. OMEGA FACTURE.`;
+                                        } else {
+                                          text = `Bonjour ${n.clientName || 'Cher client'}, sauf erreur de notre part, la facture ${n.invoiceNumber} d'un montant restant de ${formatFCFA(n.remainingAmount || 0)} échue le ${n.dueDate || ''} reste impayée. Merci de bien vouloir procéder à la régularisation. OMEGA FACTURE.`;
+                                        }
                                         window.open(
                                           `https://wa.me/${phone}?text=${encodeURIComponent(text)}`,
                                           '_blank'
                                         );
                                       }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold transition-colors shadow-2xs"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold transition-colors shadow-2xs cursor-pointer"
                                     >
                                       <MessageSquare className="w-3 h-3 text-emerald-600" />
-                                      <span>Relancer WhatsApp</span>
+                                      <span>{n.type === 'due_soon' ? 'Rappel WhatsApp' : 'Relancer WhatsApp'}</span>
                                     </button>
 
                                     <button
