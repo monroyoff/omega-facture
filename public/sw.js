@@ -32,6 +32,13 @@ self.addEventListener('activate', (event) => {
     }).then(() => {
       // Prise de contrôle immédiate de tous les onglets / WebView actifs
       return self.clients.claim();
+    }).then(() => {
+      // Informer les pages ouvertes qu'une nouvelle version a pris le relais
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_ACTIVATED', cache: CACHE_NAME });
+        });
+      });
     })
   );
 });
@@ -45,9 +52,10 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // Contournement direct pour les API, paiements FedaPay / PayDunya et Supabase
+  // Contournement direct pour les vérifications de version, API, paiements et Supabase
   if (
     event.request.method !== 'GET' ||
+    url.includes('version.json') ||
     url.includes('/api/') ||
     url.includes('fedapay.com') ||
     url.includes('paydunya.com') ||

@@ -46,6 +46,28 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/version.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/json',
+          },
+        ],
+      },
+      {
+        source: '/api/version',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          },
+        ],
+      },
     ];
   },
 };

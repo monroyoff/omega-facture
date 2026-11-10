@@ -53,6 +53,7 @@ export const metadata: Metadata = {
 };
 
 import { GlobalUpgradeModal } from '@/components/subscription/GlobalUpgradeModal';
+import { AutoUpdateWatcher } from '@/components/common/AutoUpdateWatcher';
 
 export default function RootLayout({
   children,
@@ -130,6 +131,7 @@ export default function RootLayout({
         className="h-full bg-slate-50/70 dark:bg-[#070a0f] text-slate-900 dark:text-slate-100 antialiased font-sans"
         suppressHydrationWarning
       >
+        <AutoUpdateWatcher />
         <InvoiceProvider>
           <AuthGuard>{children}</AuthGuard>
           <GlobalUpgradeModal />

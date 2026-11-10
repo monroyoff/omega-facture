@@ -30,6 +30,7 @@
 | **Persistance locale** | **LocalStorage (versionné `facturo:v1:*`)** | Fonctionnement autonome hors-ligne et persistance immédiate des données démo. |
 | **Formatage financier** | Utilitaires dédiés (`@/lib/money/format`) | Formatage monétaire `formatFCFA` avec espaces insécables et dates `formatDateFR`. |
 | **Conteneur Android** | **Capacitor 6 (@capacitor/android)** + **PWA** | Architecture native Android (`/android`), Google Play Store (`site.omegafacture.app`), Service Worker et Digital Asset Links. |
+| **Auto-Mise à Jour Transparente** | **`AutoUpdateWatcher` + `/version.json`** | Détection en temps réel sans rechargement manuel requis, purge automatique des caches, synchronisation multi-plateforme Web, Mobile et Android. |
 
 ---
 
