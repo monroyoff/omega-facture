@@ -543,8 +543,8 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /**
    * Charge les données de facturation strictement isolées pour une société donnée
    */
-  const loadUserData = async (user: UserProfile) => {
-    setIsDataLoading(true);
+  const loadUserData = async (user: UserProfile, isSilent: boolean = false) => {
+    if (!isSilent) setIsDataLoading(true);
     let companyId = user.companyId;
     if (!companyId) {
       companyId = await getOrCreateUserCompany(
@@ -690,7 +690,7 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {
       console.warn('[loadUserData] Erreur de synchronisation Supabase :', e);
     } finally {
-      setIsDataLoading(false);
+      if (!isSilent) setIsDataLoading(false);
     }
   };
 
@@ -855,6 +855,49 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Synchronisation automatique en arrière-plan sans rafraîchissement manuel
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let syncInProgress = false;
+    const silentSync = async () => {
+      if (syncInProgress || !navigator.onLine) return;
+      syncInProgress = true;
+      try {
+        await loadUserData(currentUser, true);
+      } catch (e) {
+      } finally {
+        syncInProgress = false;
+      }
+    };
+
+    // 1. Déverrouillage ou retour sur l'onglet/l'application (smartphone ou desktop)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        silentSync();
+      }
+    };
+
+    // 2. Focus sur la fenêtre
+    const handleFocus = () => {
+      silentSync();
+    };
+
+    // 3. Heartbeat périodique (toutes les 45 secondes)
+    const interval = setInterval(() => {
+      silentSync();
+    }, 45000);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentUser?.id, currentUser?.companyId]);
 
   // Sauvegarde des modifications dans le cache spécifique à l'utilisateur
   const saveInvoices = (newInvoices: Invoice[]) => {

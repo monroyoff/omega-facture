@@ -6,28 +6,25 @@ import { usePathname } from 'next/navigation';
 /**
  * AutoUpdateWatcher
  * 
- * Surveille en continu l'état des déploiements et applique instantanément
- * les nouvelles versions sans aucune action requise de la part de l'utilisateur.
- * 
- * Déclencheurs de vérification automatique :
- * 1. Au chargement initial
- * 2. Changement de route (navigation interne)
- * 3. Retour au premier plan (sur smartphone lors du déverrouillage ou retour sur l'app)
- * 4. Événement focus de la fenêtre
- * 5. Heartbeat périodique (toutes les 40 secondes)
- * 6. Réception de message Service Worker (SW_ACTIVATED)
- * 
- * Sécurité ergonomique :
- * Ne recharge pas au milieu d'une saisie dans un champ texte (input/textarea)
- * pour éviter d'interrompre l'utilisateur en cours de travail.
+ * Système d'auto-mise à jour transparente et autonome.
+ * Garantit que TOUTE modification, correction de bug ou déploiement
+ * actuel ou futur est pris en compte instantanément sur Web, Mobile (Safari/Chrome),
+ * PWA et application native Android SANS AUCUNE ACTION requise de la part de l'utilisateur
+ * (aucun rafraîchissement manuel, aucun vidage de cache nécessaire).
  */
+
+// Version injectée à la compilation dans le bundle client Next.js
+const COMPILED_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '';
+const COMPILED_BUILD_TIME = Number(process.env.NEXT_PUBLIC_BUILD_TIME || 0);
+
 export const AutoUpdateWatcher: React.FC = () => {
   const pathname = usePathname();
   const currentVersionRef = useRef<string | null>(null);
   const isReloadingRef = useRef<boolean>(false);
   const pendingReloadRef = useRef<boolean>(false);
+  const lastCheckTimestampRef = useRef<number>(0);
 
-  // Vérifie si l'utilisateur est en train d'écrire dans un champ de saisie
+  // Vérifie si l'utilisateur est activement en train de taper dans un formulaire
   const isUserTyping = (): boolean => {
     if (typeof document === 'undefined') return false;
     const activeEl = document.activeElement;
@@ -38,24 +35,28 @@ export const AutoUpdateWatcher: React.FC = () => {
     return isInput || isEditable;
   };
 
-  // Exécute la mise à jour transparente
-  const executeAutoReload = async () => {
+  // Exécute la mise à jour et la purge intégrale des caches
+  const executeAutoReload = async (reason: string = 'new_version') => {
     if (isReloadingRef.current) return;
+
+    // Protection ergonomique : si l'utilisateur est en cours de saisie, reporter à la fin
     if (isUserTyping()) {
-      // L'utilisateur est en cours de saisie, reporter à la fin de la saisie
+      console.log(`[AutoUpdate] Mise à jour (${reason}) en attente : utilisateur en cours de saisie.`);
       pendingReloadRef.current = true;
       return;
     }
 
     isReloadingRef.current = true;
+    console.log(`[AutoUpdate] Déclenchement de l'auto-mise à jour transparente (${reason})...`);
 
     try {
-      // Purge de tous les caches locaux
+      // 1. Purge complète de tous les caches CacheStorage (Service Worker)
       if (typeof window !== 'undefined' && 'caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map((k) => caches.delete(k)));
       }
-      // Actualisation immédiate du Service Worker
+
+      // 2. Déclenchement de la mise à jour des Service Workers actifs
       if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         const regs = await navigator.serviceWorker.getRegistrations();
         for (const reg of regs) {
@@ -63,26 +64,30 @@ export const AutoUpdateWatcher: React.FC = () => {
         }
       }
     } catch (e) {
-      console.warn('[AutoUpdate] Erreur purge cache:', e);
+      console.warn('[AutoUpdate] Nettoyage partiel du cache :', e);
     }
 
-    // Rechargement transparent
+    // 3. Rechargement immédiat et sans cache du document
     if (typeof window !== 'undefined') {
       window.location.reload();
     }
   };
 
-  // Fonction de vérification auprès du serveur
+  // Interroge le serveur pour vérifier l'existence d'une nouvelle version
   const checkForNewVersion = async () => {
     if (isReloadingRef.current) return;
     if (typeof window === 'undefined') return;
 
+    // Éviter les requêtes trop rapprochées (< 3s)
+    const now = Date.now();
+    if (now - lastCheckTimestampRef.current < 3000) return;
+    lastCheckTimestampRef.current = now;
+
     try {
-      // Appel direct sans cache
-      const response = await fetch(`/version.json?_t=${Date.now()}`, {
+      const response = await fetch(`/version.json?_t=${now}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
         },
       });
@@ -90,86 +95,135 @@ export const AutoUpdateWatcher: React.FC = () => {
       if (!response.ok) return;
 
       const data = await response.json();
-      const serverVersion = data?.version;
+      const serverVersion: string = data?.version;
+      const serverBuildTime: number = Number(data?.buildTime || 0);
 
       if (!serverVersion) return;
 
-      // Premier appel : initialisation
-      if (!currentVersionRef.current) {
-        currentVersionRef.current = serverVersion;
+      // 1. Comparaison avec la version compilée dans le bundle JavaScript actif
+      const isBundleOutdated = Boolean(
+        COMPILED_VERSION &&
+        COMPILED_VERSION !== 'dev' &&
+        serverVersion !== COMPILED_VERSION
+      );
+
+      const isBuildTimeOutdated = Boolean(
+        COMPILED_BUILD_TIME > 0 &&
+        serverBuildTime > 0 &&
+        serverBuildTime > COMPILED_BUILD_TIME + 2000
+      );
+
+      // 2. Comparaison avec la session en cours
+      const isSessionOutdated = Boolean(
+        currentVersionRef.current &&
+        currentVersionRef.current !== serverVersion
+      );
+
+      if (isBundleOutdated || isBuildTimeOutdated || isSessionOutdated) {
+        console.log(
+          `[AutoUpdate] Nouvelle version détectée sur le serveur : ${serverVersion} ` +
+          `(bundle: ${COMPILED_VERSION}, active: ${currentVersionRef.current})`
+        );
         sessionStorage.setItem('omega_client_version', serverVersion);
+        currentVersionRef.current = serverVersion;
+        await executeAutoReload('version_mismatch');
         return;
       }
 
-      // Version différente détectée !
-      if (serverVersion !== currentVersionRef.current) {
-        console.log(`[AutoUpdate] Nouvelle version détectée : ${serverVersion} (actuelle: ${currentVersionRef.current})`);
-        sessionStorage.setItem('omega_client_version', serverVersion);
+      // Initialisation de la version de référence pour la session
+      if (!currentVersionRef.current) {
         currentVersionRef.current = serverVersion;
-        await executeAutoReload();
+        sessionStorage.setItem('omega_client_version', serverVersion);
       }
     } catch {
-      // En cas de coupure réseau temporaire, ignorer silencieusement
+      // Ignorer silencieusement si coupure internet temporaire
     }
   };
 
-  // 1. Initialisation et surveillance périodique
   useEffect(() => {
-    // Récupérer la version déjà mémorisée dans la session si existante
+    // 1. Restauration de la session si existante
     const saved = sessionStorage.getItem('omega_client_version');
     if (saved) {
       currentVersionRef.current = saved;
     }
 
-    // Première vérification
+    // 2. Vérification immédiate au montage
     checkForNewVersion();
 
-    // Heartbeat périodique (toutes les 40 secondes)
+    // 3. Heartbeat régulier toutes les 25 secondes (très léger ~100 octets via CDN)
     const intervalId = setInterval(() => {
       checkForNewVersion();
-    }, 40000);
+    }, 25000);
 
-    // Retour au premier plan (smartphone déverrouillé, onglet réactivé)
+    // 4. Détection du retour au premier plan (smartphone déverrouillé, onglet réactivé)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkForNewVersion();
       }
     };
 
-    // Focus sur la fenêtre
+    // 5. Focus sur la fenêtre
     const handleFocus = () => {
       checkForNewVersion();
     };
 
-    // Retour de la connexion internet
+    // 6. Rétablissement de la connexion réseau
     const handleOnline = () => {
       checkForNewVersion();
     };
 
-    // Réception d'un message du Service Worker annonçant une mise à jour
+    // 7. Message du Service Worker (nouvelle version activée)
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && (event.data.type === 'SW_ACTIVATED' || event.data.type === 'NEW_VERSION')) {
-        console.log('[AutoUpdate] Signal Service Worker reçu, actualisation automatique...');
-        executeAutoReload();
+        console.log('[AutoUpdate] Signal SW reçu, application de la mise à jour...');
+        executeAutoReload('service_worker_activation');
       }
     };
 
-    // Détection de fin de saisie si un rechargement était en attente
-    const handleBlur = () => {
-      if (pendingReloadRef.current && !isUserTyping()) {
-        pendingReloadRef.current = false;
+    // 8. Détection de fin de saisie si une mise à jour était différée
+    const handleFocusOut = () => {
+      if (pendingReloadRef.current) {
         setTimeout(() => {
           if (!isUserTyping()) {
-            executeAutoReload();
+            pendingReloadRef.current = false;
+            executeAutoReload('delayed_after_typing');
           }
-        }, 1500);
+        }, 1200);
+      }
+    };
+
+    // 9. Auto-récupération instantanée en cas d'erreur de chargement de chunk Next.js
+    const handleGlobalError = (event: ErrorEvent) => {
+      const msg = event?.message || '';
+      const isChunkError =
+        msg.includes('Loading chunk') ||
+        msg.includes('ChunkLoadError') ||
+        msg.includes('Failed to fetch dynamically imported module');
+
+      if (isChunkError) {
+        console.warn('[AutoUpdate] Erreur de chunk détectée suite à un déploiement, actualisation...');
+        executeAutoReload('chunk_error_recovery');
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = String(event?.reason || '');
+      if (
+        reason.includes('Loading chunk') ||
+        reason.includes('ChunkLoadError') ||
+        reason.includes('Failed to fetch dynamically imported module')
+      ) {
+        console.warn('[AutoUpdate] Rejet de promesse de chunk détecté, actualisation...');
+        executeAutoReload('unhandled_chunk_recovery');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
-    document.addEventListener('focusout', handleBlur);
+    document.addEventListener('focusout', handleFocusOut);
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     if (navigator.serviceWorker) {
       navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
@@ -180,18 +234,19 @@ export const AutoUpdateWatcher: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleOnline);
-      document.removeEventListener('focusout', handleBlur);
+      document.removeEventListener('focusout', handleFocusOut);
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       if (navigator.serviceWorker) {
         navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
   }, []);
 
-  // 2. Vérification lors de chaque navigation entre pages
+  // 10. Vérification à chaque navigation de route dans l'application
   useEffect(() => {
     checkForNewVersion();
   }, [pathname]);
 
   return null;
 };
-

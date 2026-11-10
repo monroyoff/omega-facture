@@ -71,10 +71,15 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          // Les pages HTML ne sont pas stockées dans le cache persistant afin de garantir
+          // une mise à jour instantanée sans résidu dès chaque déploiement.
+          const isHtml = networkResponse.headers.get('content-type')?.includes('text/html');
+          if (!isHtml) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
         }
         return networkResponse;
       })
