@@ -1,47 +1,64 @@
-// OMEGA FACTURE Service Worker v1.0
-const CACHE_NAME = 'omega-facture-cache-v1';
+// OMEGA FACTURE Service Worker v2.0
+// Système de mise à jour automatique & purge de cache immédiate
+const CACHE_NAME = 'omega-facture-cache-v2';
 const PRECACHE_ASSETS = [
-  '/',
-  '/dashboard',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/images/landing/hero-preview.png',
 ];
 
 self.addEventListener('install', (event) => {
+  // Activation immédiate sans attendre la fermeture des onglets ouverts
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('[SW] Precache partial error:', err);
+        console.warn('[SW v2] Precache partiel:', err);
       });
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
+      // Purge absolue de TOUS les anciens caches (y compris v1)
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME).map((key) => {
+          console.log('[SW v2] Suppression ancien cache :', key);
+          return caches.delete(key);
+        })
       );
+    }).then(() => {
+      // Prise de contrôle immédiate de tous les onglets / WebView actifs
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let network handle API routes and external calls directly
+  const url = event.request.url;
+
+  // Contournement direct pour les API, paiements FedaPay / PayDunya et Supabase
   if (
     event.request.method !== 'GET' ||
-    event.request.url.includes('/api/') ||
-    event.request.url.includes('paydunya.com') ||
-    event.request.url.includes('supabase.co')
+    url.includes('/api/') ||
+    url.includes('fedapay.com') ||
+    url.includes('paydunya.com') ||
+    url.includes('supabase.co')
   ) {
     return;
   }
 
+  // Stratégie NETWORK-FIRST universelle :
+  // Toujours charger la dernière version fraîche depuis le serveur en priorité.
+  // En cas d'indisponibilité réseau (hors-ligne), utiliser le cache de secours.
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -59,7 +76,7 @@ self.addEventListener('fetch', (event) => {
         if (event.request.headers.get('accept')?.includes('text/html')) {
           return caches.match('/dashboard') || caches.match('/');
         }
-        return new Response('Network error and no cache available', { status: 503 });
+        return new Response('Contenu indisponible hors-ligne', { status: 503 });
       })
   );
 });

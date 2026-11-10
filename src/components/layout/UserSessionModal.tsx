@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Hash,
   Crown,
+  RotateCcw,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 
@@ -41,6 +42,26 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
   const [showPresets, setShowPresets] = useState(false);
   const [photoUpdated, setPhotoUpdated] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [refreshingApp, setRefreshingApp] = useState(false);
+
+  const handleForceRefresh = async () => {
+    setRefreshingApp(true);
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          await reg.unregister();
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur purge cache:', e);
+    }
+    window.location.reload();
+  };
 
   if (!isOpen || !currentUser) return null;
 
@@ -330,6 +351,20 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
             </Link>
+          </div>
+
+          {/* Refresh App & Clear Cache */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleForceRefresh}
+              disabled={refreshingApp}
+              className="w-full py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 cursor-pointer disabled:opacity-60"
+              title="Vider le cache local et télécharger la dernière version de l'application"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 text-brand-600 dark:text-brand-400 ${refreshingApp ? 'animate-spin' : ''}`} />
+              <span>{refreshingApp ? 'Actualisation en cours...' : 'Actualiser l’application (Vider le cache)'}</span>
+            </button>
           </div>
 
           {/* Logout Button */}

@@ -67,6 +67,9 @@ export default function RootLayout({
       style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
     >
       <head>
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -86,11 +89,36 @@ export default function RootLayout({
                 }
               }, true);
 
-              // Enregistrement du Service Worker PWA (Android / Chrome)
-              if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+              // Enregistrement et mise à jour dynamique du Service Worker PWA & Android WebView
+              if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    // Forcer la détection de mise à jour dès l'ouverture de l'application
+                    reg.update();
+
+                    // Détection et activation instantanée en cas de nouveau code
+                    reg.addEventListener('updatefound', function() {
+                      var installingWorker = reg.installing;
+                      if (installingWorker) {
+                        installingWorker.addEventListener('statechange', function() {
+                          if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('[SW] Nouvelle version prête, rechargement automatique...');
+                            window.location.reload();
+                          }
+                        });
+                      }
+                    });
+                  }).catch(function(err) {
                     console.warn('[SW Registration Error] :', err);
+                  });
+
+                  // Rechargement transparent dès que le contrôleur SW prend la main
+                  var refreshing = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    if (!refreshing) {
+                      refreshing = true;
+                      window.location.reload();
+                    }
                   });
                 });
               }
