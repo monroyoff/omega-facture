@@ -172,10 +172,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
             {notificationsOpen && (
               <>
                 <div
-                  className="fixed inset-0 z-40"
+                  className="fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-[1px] sm:bg-transparent sm:backdrop-blur-none"
                   onClick={() => setNotificationsOpen(false)}
                 />
-                <div className="absolute right-0 top-11 z-50 w-80 sm:w-96 bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-100">
+                <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-11 z-50 sm:w-96 max-w-[calc(100vw-24px)] bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-100 max-h-[85vh] flex flex-col">
                   {/* Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
@@ -188,14 +188,24 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                         </span>
                       )}
                     </div>
-                    {unreadNotificationCount > 0 && (
+                    <div className="flex items-center gap-2">
+                      {unreadNotificationCount > 0 && (
+                        <button
+                          onClick={markAllNotificationsAsRead}
+                          className="text-[11px] font-semibold text-brand-600 hover:underline cursor-pointer"
+                        >
+                          Tout marquer comme lu
+                        </button>
+                      )}
                       <button
-                        onClick={markAllNotificationsAsRead}
-                        className="text-[11px] font-semibold text-brand-600 hover:underline"
+                        type="button"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="sm:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        aria-label="Fermer"
                       >
-                        Tout marquer comme lu
+                        <X className="w-4 h-4" />
                       </button>
-                    )}
+                    </div>
                   </div>
 
                   {/* Notifications List */}
@@ -210,7 +220,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-96 overflow-y-auto py-1">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800 flex-1 min-h-0 max-h-[60vh] sm:max-h-96 overflow-y-auto py-1">
                       {notifications.map((n) => {
                         const isOverdue = n.type === 'overdue';
                         const isDueToday = n.type === 'due_today';
