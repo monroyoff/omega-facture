@@ -25,11 +25,13 @@ import {
   Landmark,
   Banknote,
   Receipt,
+  Calculator,
 } from 'lucide-react';
 import { Invoice, InvoiceStatus } from '@/lib/types';
 import { PaymentRecord, useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA, formatDateFR } from '@/lib/money/format';
 import { StatusBadge } from '@/components/ui/Badge';
+import { downloadCSV } from '@/lib/export/csv-export';
 
 export type ReportSectionType =
   | 'revenue'
@@ -54,14 +56,16 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
   onRelanceInvoice,
   onRecordPayment,
 }) => {
-  const { invoices, payments } = useInvoices();
+  const { invoices, payments, showToast } = useInvoices();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<string>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Reset tab and search when section changes
+  // Reset tab, search and selection when section changes
   React.useEffect(() => {
     setSearchQuery('');
     setActiveSubTab('all');
+    setSelectedIds([]);
   }, [section]);
 
   // Section meta information
@@ -249,6 +253,93 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
     });
   }, [recoveryPayments, searchQuery, activeSubTab]);
 
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(displayedInvoices.map((i) => i.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const selectedInvoices = useMemo(() => {
+    if (selectedIds.length === 0) return [];
+    const idSet = new Set(selectedIds);
+    return invoices.filter((i) => idSet.has(i.id));
+  }, [selectedIds, invoices]);
+
+  const selectedStats = useMemo(() => {
+    const count = selectedInvoices.length;
+    if (count === 0) return { count: 0, totalTTC: 0, amountPaid: 0, remaining: 0 };
+    const totalTTC = selectedInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
+    const amountPaid = selectedInvoices.reduce((sum, i) => sum + (i.amountPaid || 0), 0);
+    const remaining = Math.max(0, totalTTC - amountPaid);
+    return { count, totalTTC, amountPaid, remaining };
+  }, [selectedInvoices]);
+
+  const handleExportSelectedCSV = () => {
+    if (selectedInvoices.length === 0) return;
+    const rows: (string | number)[][] = [
+      [
+        'Numero',
+        'Client',
+        'Societe',
+        'Date_Emission',
+        'Date_Echeance',
+        'Total_TTC_FCFA',
+        'Montant_Paye_FCFA',
+        'Solde_Restant_FCFA',
+        'Statut',
+      ],
+      ...selectedInvoices.map((i) => {
+        const remaining = Math.max(0, i.total - (i.amountPaid || 0));
+        const statusLabel =
+          i.status === 'paid'
+            ? 'Soldée'
+            : i.status === 'sent'
+            ? 'Envoyée'
+            : i.status === 'overdue'
+            ? 'En retard'
+            : 'Brouillon';
+        return [
+          i.number,
+          i.client?.name || '',
+          i.client?.company || '',
+          i.issueDate,
+          i.dueDate,
+          i.total,
+          i.amountPaid || 0,
+          remaining,
+          statusLabel,
+        ];
+      }),
+      [
+        'TOTAL_SELECTION',
+        `Somme de ${selectedStats.count} documents sélectionnés`,
+        '',
+        '',
+        '',
+        selectedStats.totalTTC,
+        selectedStats.amountPaid,
+        selectedStats.remaining,
+        '',
+      ],
+    ];
+
+    downloadCSV(`selection_${selectedStats.count}_factures_rapports_${Date.now()}.csv`, rows);
+    showToast({
+      title: 'Sélection exportée en CSV',
+      message: `Bordereau avec la somme de ${formatFCFA(selectedStats.totalTTC)} exporté avec succès.`,
+      kind: 'info',
+      duration: 3500,
+    });
+  };
+
   if (!section || !sectionMeta) return null;
 
   const IconComponent = sectionMeta.icon;
@@ -429,6 +520,62 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
         </div>
       </div>
 
+      {/* Calculateur de sélection automatique pour les opérations */}
+      {selectedStats.count >= 2 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-50 via-indigo-50 to-purple-50 dark:from-brand-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-brand-200/90 dark:border-brand-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5 animate-fadeIn">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-600/25 shrink-0">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+                  Somme automatique de votre sélection
+                </span>
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-brand-600 text-white">
+                  {selectedStats.count} factures sélectionnées
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Total TTC :</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {formatFCFA(selectedStats.totalTTC)}
+                </span>
+                {selectedStats.amountPaid > 0 && (
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    Encaissé : {formatFCFA(selectedStats.amountPaid)}
+                  </span>
+                )}
+                {selectedStats.remaining > 0 && selectedStats.amountPaid > 0 && (
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                    Reste : {formatFCFA(selectedStats.remaining)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={handleExportSelectedCSV}
+              className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+              <span>Exporter CSV ({selectedStats.count})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 rounded-xl bg-slate-200/90 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Vider</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table Section */}
       <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
@@ -533,7 +680,15 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  <th className="py-3 px-4">N° Pièce</th>
+                  <th className="py-3 pl-4 pr-1 w-8">
+                    <input
+                      type="checkbox"
+                      checked={displayedInvoices.length > 0 && selectedIds.length === displayedInvoices.length}
+                      onChange={handleSelectAll}
+                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
+                    />
+                  </th>
+                  <th className="py-3 px-3">N° Pièce</th>
                   <th className="py-3 px-4">Client & Société</th>
                   <th className="py-3 px-4">Dates</th>
                   {section === 'delay' ? (
@@ -550,7 +705,7 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                 {displayedInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
                       Aucune opération ne correspond à votre recherche.
                     </td>
                   </tr>
@@ -559,13 +714,24 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
                     const remaining = Math.max(0, inv.total - inv.amountPaid);
                     const ageDays = getInvoiceAgeDays(inv.issueDate);
                     const delayInfo = section === 'delay' ? getPaymentDelay(inv) : null;
+                    const isSelected = selectedIds.includes(inv.id);
 
                     return (
                       <tr
                         key={inv.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors"
+                        className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors ${
+                          isSelected ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''
+                        }`}
                       >
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
+                        <td className="py-3.5 pl-4 pr-1">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelect(inv.id)}
+                            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
+                          />
+                        </td>
+                        <td className="py-3.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
                           <button
                             type="button"
                             onClick={() => onViewInvoice(inv)}
@@ -692,6 +858,48 @@ export const SectionOperationsDetail: React.FC<SectionOperationsDetailProps> = (
           </div>
         </div>
       </div>
+
+      {/* Barre Flottante Fixe pour le Calculateur de sélection dans les rapports (dès 2 factures sélectionnées) */}
+      {selectedStats.count >= 2 && (
+        <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] sm:w-auto max-w-2xl bg-slate-950/95 dark:bg-[#0c1017]/95 backdrop-blur-md text-white border border-slate-700/80 shadow-2xl rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 flex items-center justify-between gap-3 sm:gap-6 ring-1 ring-white/10 animate-slideUp">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-brand-600/30">
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0 truncate">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-semibold truncate">
+                <span>{selectedStats.count} sélectionnée{selectedStats.count > 1 ? 's' : ''}</span>
+                {selectedStats.remaining > 0 && selectedStats.amountPaid > 0 && (
+                  <span className="hidden sm:inline text-amber-400">• Reste dû : {formatFCFA(selectedStats.remaining)}</span>
+                )}
+              </div>
+              <div className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                Total : <span className="text-brand-300">{formatFCFA(selectedStats.totalTTC)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleExportSelectedCSV}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all active:scale-95 border border-white/15 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Exporter CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Désélectionner</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -23,14 +23,16 @@ import {
   Calendar,
   Clock,
   Sparkles,
+  Calculator,
 } from 'lucide-react';
 import { Invoice, InvoiceStatus } from '@/lib/types';
 import { formatFCFA, formatDateFR, getDueDateDiffDays } from '@/lib/money/format';
 import { StatusBadge } from '@/components/ui/Badge';
-import { useInvoices } from '@/lib/store/invoice-context';
+import { useInvoices, getCurrentMonthPeriodId } from '@/lib/store/invoice-context';
 import { RelanceModal } from '@/components/invoices/RelanceModal';
 import { ShareDocumentModal } from '@/components/invoices/ShareDocumentModal';
 import { generateInvoicePDF } from '@/lib/pdf/invoice-pdf';
+import { downloadCSV } from '@/lib/export/csv-export';
 
 export type DashboardTableTab = 'all' | 'paid' | 'acompte' | 'sent' | 'overdue' | 'draft';
 
@@ -65,9 +67,18 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
   } = useInvoices();
   const [internalTab, setInternalTab] = useState<DashboardTableTab>('all');
   const selectedTab = activeTab !== undefined ? activeTab : internalTab;
+
+  // Filtre de mois local pour l'onglet En attente (isolé, ne contamine jamais les autres boutons)
+  const [pendingMonthFilter, setPendingMonthFilter] = useState<string>('ALL');
+
   const handleTabChange = (tab: DashboardTableTab) => {
     setInternalTab(tab);
     onTabChange?.(tab);
+    // Dès qu'on quitte un bouton/onglet pour aller sur un autre, le filtre de mois s'annule
+    // pour revenir aux données réelles du mois en cours
+    setPendingMonthFilter('ALL');
+    setSelectedPeriod(getCurrentMonthPeriodId());
+    setSelectedIds([]);
   };
   const [searchQuery, setSearchQuery] = useState('');
   const [internalKind, setInternalKind] = useState<'all' | 'invoice' | 'quote'>('all');
@@ -186,15 +197,34 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     setInternalKind(kind);
     onKindChange?.(kind);
     handleTabChange('all');
+    setPendingMonthFilter('ALL');
+    setSelectedPeriod(getCurrentMonthPeriodId());
     setSelectedIds([]);
   };
 
+  // Annuler automatiquement le filtre de mois local et vider la sélection dès que l'onglet ou le type change
+  React.useEffect(() => {
+    setPendingMonthFilter('ALL');
+    setSelectedIds([]);
+  }, [selectedTab, selectedKind]);
+
+  // Source invoices depending on the active tab:
+  // - Pour 'sent' (en attente) et 'overdue' (en retard) : source depuis allGlobalInvoices (tous les mois)
+  //   pour voir l'ensemble des créances réelles sans masquer les créances des mois passés.
+  // - Pour les autres onglets ('all', 'paid', 'acompte', 'draft') : source depuis `invoices` (données réelles du mois en cours).
+  const sourceInvoices = useMemo(() => {
+    if (selectedTab === 'sent' || selectedTab === 'overdue') {
+      return allGlobalInvoices || [];
+    }
+    return invoices;
+  }, [selectedTab, allGlobalInvoices, invoices]);
+
   // Documents matching current kind selection
   const scopedInvoices = useMemo(() => {
-    if (selectedKind === 'quote') return invoices.filter(isQuote);
-    if (selectedKind === 'invoice') return invoices.filter((i) => !isQuote(i));
-    return invoices;
-  }, [invoices, selectedKind]);
+    if (selectedKind === 'quote') return sourceInvoices.filter(isQuote);
+    if (selectedKind === 'invoice') return sourceInvoices.filter((i) => !isQuote(i));
+    return sourceInvoices;
+  }, [sourceInvoices, selectedKind]);
 
   // Helper to identify overdue invoices (dueDate in the past and unpaid)
   const isInvoiceOverdue = (inv: Invoice): boolean => {
@@ -210,15 +240,18 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
   // Counts strictly calculated for the active document kind
   const counts = useMemo(() => {
+    const targetAll = (allGlobalInvoices || []).filter((i) => (selectedKind === 'quote' ? isQuote(i) : !isQuote(i)));
+    const targetPeriod = (invoices || []).filter((i) => (selectedKind === 'quote' ? isQuote(i) : !isQuote(i)));
+
     return {
-      all: scopedInvoices.length,
-      paid: scopedInvoices.filter((i) => i.status === 'paid').length,
-      acompte: scopedInvoices.filter((i) => i.amountPaid > 0 && i.status !== 'paid').length,
-      sent: scopedInvoices.filter((i) => (i.status === 'sent' || isInvoiceOverdue(i)) && i.status !== 'paid').length,
-      overdue: scopedInvoices.filter(isInvoiceOverdue).length,
-      draft: scopedInvoices.filter((i) => i.status === 'draft').length,
+      all: targetPeriod.length,
+      paid: targetPeriod.filter((i) => i.status === 'paid').length,
+      acompte: targetPeriod.filter((i) => i.amountPaid > 0 && i.status !== 'paid').length,
+      sent: targetAll.filter((i) => (i.status === 'sent' || isInvoiceOverdue(i)) && i.status !== 'paid').length,
+      overdue: targetAll.filter(isInvoiceOverdue).length,
+      draft: targetPeriod.filter((i) => i.status === 'draft').length,
     };
-  }, [scopedInvoices]);
+  }, [invoices, allGlobalInvoices, selectedKind]);
 
   // Safety safeguard: if on quote and selectedTab is paid or acompte, reset to all
   React.useEffect(() => {
@@ -241,6 +274,11 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
       } else if (selectedTab === 'sent') {
         // Factures en attente : statut envoyé OU échéance dépassée non soldée
         if (inv.status !== 'sent' && !isInvoiceOverdue(inv)) return false;
+
+        // Filtre spécifique de mois pour l'onglet En attente (strictement isolé, n'affecte aucun autre bouton)
+        if (pendingMonthFilter !== 'ALL') {
+          if (!inv.issueDate?.startsWith(pendingMonthFilter)) return false;
+        }
       } else if (selectedTab !== 'all') {
         if (inv.status !== selectedTab) return false;
       }
@@ -276,7 +314,7 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     }
 
     return list;
-  }, [scopedInvoices, selectedTab, searchQuery]);
+  }, [scopedInvoices, selectedTab, searchQuery, pendingMonthFilter]);
 
   // Dynamic calculation of months and pending stats for pending invoices filtering
   const { allMonthsOptions, availablePendingMonths, totalPendingAllMonthsCount } = useMemo(() => {
@@ -381,6 +419,116 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  // Calculateur automatique de somme pour les factures sélectionnées
+  const selectedInvoices = useMemo(() => {
+    if (selectedIds.length === 0) return [];
+    const idSet = new Set(selectedIds);
+    return (allGlobalInvoices || []).filter((inv) => idSet.has(inv.id));
+  }, [selectedIds, allGlobalInvoices]);
+
+  const selectedStats = useMemo(() => {
+    const count = selectedInvoices.length;
+    if (count === 0) {
+      return {
+        count: 0,
+        totalTTC: 0,
+        amountPaid: 0,
+        remaining: 0,
+        quotesCount: 0,
+        invoicesCount: 0,
+      };
+    }
+
+    let totalTTC = 0;
+    let amountPaid = 0;
+    let quotesCount = 0;
+    let invoicesCount = 0;
+
+    selectedInvoices.forEach((inv) => {
+      totalTTC += Number(inv.total) || 0;
+      amountPaid += Number(inv.amountPaid) || 0;
+      if (inv.documentKind === 'quote' || inv.number.startsWith('DEV-')) {
+        quotesCount += 1;
+      } else {
+        invoicesCount += 1;
+      }
+    });
+
+    const remaining = Math.max(0, totalTTC - amountPaid);
+
+    return {
+      count,
+      totalTTC,
+      amountPaid,
+      remaining,
+      quotesCount,
+      invoicesCount,
+    };
+  }, [selectedInvoices]);
+
+  const handleExportSelectedCSV = () => {
+    if (selectedInvoices.length === 0) return;
+    const rows: (string | number)[][] = [
+      [
+        'Type_Document',
+        'Numero',
+        'Client',
+        'Societe',
+        'Date_Emission',
+        'Date_Echeance',
+        'Total_TTC_FCFA',
+        'Montant_Paye_FCFA',
+        'Solde_Restant_FCFA',
+        'Statut',
+      ],
+      ...selectedInvoices.map((i) => {
+        const k = i.documentKind === 'quote' || i.number.startsWith('DEV-') ? 'Devis' : 'Facture';
+        const remaining = Math.max(0, i.total - (i.amountPaid || 0));
+        const statusLabel =
+          i.status === 'paid'
+            ? 'Soldée'
+            : i.status === 'sent'
+            ? 'Envoyée'
+            : i.status === 'overdue'
+            ? 'En retard'
+            : 'Brouillon';
+        return [
+          k,
+          i.number,
+          i.client?.name || '',
+          i.client?.company || '',
+          i.issueDate,
+          i.dueDate,
+          i.total,
+          i.amountPaid || 0,
+          remaining,
+          statusLabel,
+        ];
+      }),
+      // Ligne de récapitulation & somme totale
+      [
+        'TOTAL_SELECTION',
+        `Somme de ${selectedStats.count} documents sélectionnés`,
+        '',
+        '',
+        '',
+        '',
+        selectedStats.totalTTC,
+        selectedStats.amountPaid,
+        selectedStats.remaining,
+        '',
+      ],
+    ];
+
+    downloadCSV(`selection_${selectedStats.count}_factures_omega_${Date.now()}.csv`, rows);
+    showToast({
+      title: 'Sélection exportée en CSV',
+      message: `Bordereau avec la somme de ${formatFCFA(selectedStats.totalTTC)} exporté avec succès.`,
+      kind: 'info',
+      duration: 3500,
+    });
   };
 
   // Tabs tailored specifically to each document type (Devis vs Factures vs Tous)
@@ -675,23 +823,23 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               )}
             </div>
 
-            {/* Quick Month Filter Pills */}
+            {/* Quick Month Filter Pills (strictement isolées pour l'onglet En attente) */}
             <div className="flex items-center gap-1.5 mt-3 overflow-x-auto pb-1 no-scrollbar flex-wrap">
               {/* Button: Tous les mois */}
               <button
                 type="button"
-                onClick={() => setSelectedPeriod('ALL')}
+                onClick={() => setPendingMonthFilter('ALL')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  selectedPeriod === 'ALL'
+                  pendingMonthFilter === 'ALL'
                     ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30 ring-2 ring-amber-500/50 scale-[1.02]'
                     : 'bg-white dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border border-amber-200/90 dark:border-amber-900 hover:bg-amber-100/60'
                 }`}
-                title="Afficher toutes les factures en attente de l'année"
+                title="Afficher toutes les factures en attente de tous les mois"
               >
                 <span>✨ Tous les mois</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                    selectedPeriod === 'ALL'
+                    pendingMonthFilter === 'ALL'
                       ? 'bg-white/20 text-white'
                       : 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300'
                   }`}
@@ -702,12 +850,12 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
 
               {/* Dynamic Month Pills */}
               {availablePendingMonths.map((m) => {
-                const isSelected = selectedPeriod === m.id || selectedPeriod === `month:${m.id}`;
+                const isSelected = pendingMonthFilter === m.id;
                 return (
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => setSelectedPeriod(m.id)}
+                    onClick={() => setPendingMonthFilter(m.id)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                       isSelected
                         ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/30 ring-2 ring-amber-500/50 scale-[1.02]'
@@ -738,8 +886,8 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               {/* Selector for other months */}
               <div className="relative shrink-0">
                 <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  value={pendingMonthFilter}
+                  onChange={(e) => setPendingMonthFilter(e.target.value)}
                   className="text-xs font-bold py-1.5 pl-2.5 pr-6 bg-white dark:bg-slate-900/90 border border-amber-200/90 dark:border-amber-900 rounded-xl text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/30"
                 >
                   <option value="ALL">📅 Autre mois...</option>
@@ -754,6 +902,66 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
           </div>
         )}
       </div>
+
+      {/* Calculateur automatique de sélection (calcul en direct dès 2 factures sélectionnées) */}
+      {selectedStats.count >= 2 && (
+        <div className="mx-4 sm:mx-5 mb-4 p-4 rounded-2xl bg-gradient-to-r from-brand-50 via-indigo-50 to-purple-50 dark:from-brand-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-brand-200/90 dark:border-brand-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3.5 animate-fadeIn">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-md shadow-brand-600/25 shrink-0 ring-4 ring-brand-100 dark:ring-brand-950">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+                  Calculateur de sélection automatique
+                </span>
+                <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-brand-600 text-white shadow-2xs">
+                  {selectedStats.count} {selectedStats.quotesCount > 0 && selectedStats.invoicesCount === 0 ? 'devis sélectionnés' : 'factures sélectionnées'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Somme Totale TTC :</span>
+                <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {formatFCFA(selectedStats.totalTTC)}
+                </span>
+                {selectedStats.amountPaid > 0 && (
+                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    Encaissé : {formatFCFA(selectedStats.amountPaid)}
+                  </span>
+                )}
+                {selectedStats.remaining > 0 && selectedStats.amountPaid > 0 && (
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 px-2.5 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                    Reste à payer : {formatFCFA(selectedStats.remaining)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Actions rapides sur la sélection */}
+          <div className="flex items-center gap-2 shrink-0 self-end md:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={handleExportSelectedCSV}
+              className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
+              title="Télécharger un tableau CSV récapitulatif de cette sélection avec le total"
+            >
+              <Download className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+              <span>Exporter CSV ({selectedStats.count})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-2 rounded-xl bg-slate-200/90 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+              title="Désélectionner toutes les factures"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Vider</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content Area: Centered Empty State vs Invoices (Mobile Cards + Desktop Table) */}
       {filteredInvoices.length === 0 ? (
@@ -784,10 +992,10 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
               : `Aucun ${selectedKind === 'quote' ? 'devis' : 'document'} enregistré pour la période sélectionnée (${periodLabel}).`}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-            {selectedTab === 'sent' && selectedPeriod !== 'ALL' && (
+            {selectedTab === 'sent' && pendingMonthFilter !== 'ALL' && (
               <button
                 type="button"
-                onClick={() => setSelectedPeriod('ALL')}
+                onClick={() => setPendingMonthFilter('ALL')}
                 className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold transition-all shadow-md shadow-amber-600/20 flex items-center gap-1.5 cursor-pointer"
               >
                 <span>✨ Voir les factures en attente de tous les mois ({totalPendingAllMonthsCount})</span>
@@ -819,6 +1027,28 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
         </div>
       ) : (
         <>
+          {/* Mobile Selection Action Bar */}
+          <div className="md:hidden px-4 py-2.5 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+            <label className="flex items-center gap-2 font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filteredInvoices.length > 0 && selectedIds.length === filteredInvoices.length}
+                onChange={handleSelectAll}
+                className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4"
+              />
+              <span>Tout cocher ({filteredInvoices.length})</span>
+            </label>
+            {selectedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedIds([])}
+                className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+              >
+                Désélectionner ({selectedIds.length})
+              </button>
+            )}
+          </div>
+
           {/* Mobile Card List (md:hidden) */}
           <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800/60">
             {filteredInvoices.map((inv) => {
@@ -1533,6 +1763,50 @@ export const RecentInvoicesTable: React.FC<RecentInvoicesTableProps> = ({
         invoice={shareInvoice}
         onClose={() => setShareInvoice(null)}
       />
+
+      {/* Barre Flottante Fixe en bas de page pour le Calculateur de sélection (dès 2 factures sélectionnées) */}
+      {selectedStats.count >= 2 && (
+        <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] sm:w-auto max-w-2xl bg-slate-950/95 dark:bg-[#0c1017]/95 backdrop-blur-md text-white border border-slate-700/80 shadow-2xl rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 flex items-center justify-between gap-3 sm:gap-6 ring-1 ring-white/10 animate-slideUp">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-brand-600/30">
+              <Calculator className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0 truncate">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-300 font-semibold truncate">
+                <span>{selectedStats.count} sélectionné{selectedStats.count > 1 ? 's' : ''}</span>
+                {selectedStats.remaining > 0 && selectedStats.amountPaid > 0 && (
+                  <span className="hidden sm:inline text-amber-400">• Reste dû : {formatFCFA(selectedStats.remaining)}</span>
+                )}
+              </div>
+              <div className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                Total : <span className="text-brand-300">{formatFCFA(selectedStats.totalTTC)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleExportSelectedCSV}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all active:scale-95 border border-white/15 cursor-pointer"
+              title="Télécharger le fichier CSV récapitulatif de cette sélection avec le total"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Exporter CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer"
+              title="Désélectionner tout"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Désélectionner</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

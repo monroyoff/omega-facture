@@ -10,7 +10,7 @@ import { RevenueOverview } from '@/components/dashboard/RevenueChart';
 import { RecentInvoicesTable, DashboardTableTab } from '@/components/dashboard/RecentInvoicesTable';
 import { InvoicePreviewModal } from '@/components/dashboard/InvoicePreviewModal';
 import { CreateInvoiceModal } from '@/components/invoices/CreateInvoiceModal';
-import { useInvoices } from '@/lib/store/invoice-context';
+import { useInvoices, getCurrentMonthPeriodId } from '@/lib/store/invoice-context';
 import { Invoice } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
 import { Sparkles, ArrowRight, ShieldCheck, Calendar, Plus, FileCheck2, ArrowLeft } from 'lucide-react';
@@ -89,6 +89,9 @@ export default function DashboardPage() {
   const handleCardClick = (cardType: 'invoiced' | 'paid' | 'pending' | 'overdue') => {
     // Les cartes d'indicateurs financiers affichent exclusivement les opérations de Factures (hors devis)
     setActiveKind('invoice');
+    // Dès qu'on quitte un bouton pour aller sur un autre, le filtre s'annule
+    // pour revenir aux données réelles du mois en cours
+    setSelectedPeriod(getCurrentMonthPeriodId());
 
     if (cardType === 'invoiced') {
       setActiveTab('all');
@@ -97,10 +100,7 @@ export default function DashboardPage() {
       setActiveTab('paid');
       scrollToInvoices();
     } else if (cardType === 'pending') {
-      setActiveKind('invoice');
       setActiveTab('sent');
-      // Pour les factures en attente, afficher toutes les factures en attente de tous les mois
-      setSelectedPeriod('ALL');
       setTimeout(() => {
         const el = document.getElementById('pending-month-filter') || document.getElementById('invoices-section');
         if (el) {
