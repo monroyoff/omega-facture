@@ -57,7 +57,15 @@ export async function POST(req: NextRequest) {
     const transactionId = transaction.id || `FEDAPAY-${Date.now()}`;
     const amount = Number(transaction.amount || 0);
     const metadata = transaction.custom_metadata || transaction.metadata || {};
-    const plan = metadata.plan || '';
+    let plan = metadata.plan || '';
+
+    // Détermination stricte et inviolable : si montant >= 15 000 FCFA -> Plan Business garanti
+    if (amount >= 15000) {
+      plan = 'business';
+    } else if (!plan && amount >= 5000) {
+      plan = 'pro';
+    }
+
     const companyId = metadata.company_id || metadata.companyId || '';
     const userId = metadata.user_id || metadata.userId || '';
     const invoiceId = metadata.invoice_id || metadata.invoiceId || '';
@@ -73,43 +81,42 @@ export async function POST(req: NextRequest) {
 
     // A. Cas 1 : Abonnement SaaS (Plan Pro / Business)
     if (plan === 'pro' || plan === 'business') {
-      console.log(`[FedaPay Webhook] Activation abonnement ${plan.toUpperCase()} pour société ${companyId || userId}`);
-
-      if (companyId && companyId.length === 36) {
-        await supabase
-          .from('companies')
-          .update({
-            subscription_plan: plan,
-            subscription_status: 'active',
-            subscription_updated_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq('id', companyId);
-      } else if (userId && userId.length === 36) {
-        await supabase
-          .from('companies')
-          .update({
-            subscription_plan: plan,
-            subscription_status: 'active',
-            subscription_updated_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq('user_id', userId);
-      } else {
-        await supabase
-          .from('companies')
-          .update({
-            subscription_plan: plan,
-            subscription_status: 'active',
-            subscription_updated_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq('id', 'c0000000-0000-0000-0000-000000000001');
+      let targetCompanyId = companyId;
+      if (!targetCompanyId || targetCompanyId.length !== 36) {
+        if (userId && userId.length === 36) {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (comp?.id) targetCompanyId = comp.id;
+        }
+        if (!targetCompanyId && transaction.customer?.email) {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('email', transaction.customer.email.toLowerCase().trim())
+            .maybeSingle();
+          if (comp?.id) targetCompanyId = comp.id;
+        }
       }
+      if (!targetCompanyId) targetCompanyId = 'c0000000-0000-0000-0000-000000000003';
+
+      console.log(`[FedaPay Webhook] Activation garantie abonnement ${plan.toUpperCase()} pour société ${targetCompanyId}`);
+
+      await supabase
+        .from('companies')
+        .update({
+          subscription_plan: plan,
+          subscription_status: 'active',
+          subscription_updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', targetCompanyId);
 
       await supabase.from('payments').insert({
-        company_id: companyId || 'c0000000-0000-0000-0000-000000000001',
-        amount: amount || 5000,
+        company_id: targetCompanyId,
+        amount: amount || (plan === 'business' ? 15000 : 5000),
         method: 'mobile_money',
         reference: `FedaPay: ${transactionId} (Abonnement ${plan.toUpperCase()})`,
         payment_date: new Date().toISOString().split('T')[0],

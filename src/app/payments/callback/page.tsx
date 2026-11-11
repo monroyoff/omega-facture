@@ -38,25 +38,34 @@ function PaymentCallbackContent() {
     hasProcessedRef.current = true;
 
     const processPayment = async () => {
-      // 1. Détermination du plan cible
+      // 1. Détermination du plan cible avec règle inviolable : montant >= 15 000 FCFA => Plan Business garanti
       let targetPlan: SubscriptionPlan = 'pro';
       let pendingTxId = transactionId;
+      let pendingAmount = Number(paramAmount || 0);
 
-      if (paramPlan === 'pro' || paramPlan === 'business') {
-        targetPlan = paramPlan as SubscriptionPlan;
-      } else {
-        try {
-          const rawPending = localStorage.getItem('facturo:v1:pending_upgrade');
-          if (rawPending) {
-            const parsed = JSON.parse(rawPending);
-            if (parsed.plan === 'pro' || parsed.plan === 'business') {
-              targetPlan = parsed.plan;
-            }
-            if (!pendingTxId && parsed.transactionId) {
-              pendingTxId = String(parsed.transactionId);
-            }
+      try {
+        const rawPending = localStorage.getItem('facturo:v1:pending_upgrade');
+        if (rawPending) {
+          const parsed = JSON.parse(rawPending);
+          if (parsed.plan === 'business' || parsed.plan === 'pro') {
+            targetPlan = parsed.plan;
           }
-        } catch (e) {}
+          if (parsed.amount) {
+            pendingAmount = Number(parsed.amount);
+          }
+          if (!pendingTxId && parsed.transactionId) {
+            pendingTxId = String(parsed.transactionId);
+          }
+        }
+      } catch (e) {}
+
+      if (paramPlan === 'business' || paramPlan === 'pro') {
+        targetPlan = paramPlan as SubscriptionPlan;
+      }
+
+      // Si le montant payé est supérieur ou égal à 15 000 FCFA -> Plan Business absolu garanti
+      if (pendingAmount >= 15000) {
+        targetPlan = 'business';
       }
 
       setActivePlan(targetPlan);

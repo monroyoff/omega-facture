@@ -88,6 +88,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
             'facturo:v1:pending_upgrade',
             JSON.stringify({
               plan: selectedPlan,
+              amount: SUBSCRIPTION_PLANS[selectedPlan].priceFCFA,
               userId: currentUser?.id,
               companyId: currentUser?.companyId,
               transactionId: data.transactionId,

@@ -634,3 +634,34 @@ export async function supabaseDeleteProduct(id: string): Promise<boolean> {
   }
 }
 
+/**
+ * Met à jour le plan d'abonnement d'une entreprise dans Supabase de façon garantie et persistante
+ */
+export async function supabaseUpdateCompanySubscription(
+  companyId: string,
+  plan: SubscriptionPlan
+): Promise<boolean> {
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('companies')
+      .update({
+        subscription_plan: plan,
+        subscription_status: 'active',
+        subscription_updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', companyId);
+
+    if (error) {
+      console.warn('[Supabase Services] Erreur mise à jour plan abonnement :', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[Supabase Services] Exception mise à jour abonnement :', err);
+    return false;
+  }
+}
+
+

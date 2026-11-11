@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     let isConfirmed = false;
-    let confirmedPlan = requestedPlan || 'pro';
-    let transactionAmount = body.amount ? Number(body.amount) : 5000;
+    let transactionAmount = body.amount ? Number(body.amount) : 0;
+    let confirmedPlan = requestedPlan || '';
     let transactionStatus = 'pending';
 
     // 1. Interrogation de l'API FedaPay si un ID est fourni
@@ -58,6 +58,17 @@ export async function POST(req: NextRequest) {
       transactionStatus = 'completed';
     }
 
+    // Détermination stricte et inviolable du plan selon le montant :
+    // 15 000 FCFA = Plan Business garanti | 5 000 FCFA = Plan Pro
+    if (transactionAmount >= 15000) {
+      confirmedPlan = 'business';
+    } else if (confirmedPlan !== 'business' && transactionAmount >= 5000) {
+      confirmedPlan = 'pro';
+    }
+    if (!confirmedPlan) {
+      confirmedPlan = requestedPlan || 'pro';
+    }
+
     if (!isConfirmed) {
       return NextResponse.json({
         success: false,
@@ -68,49 +79,42 @@ export async function POST(req: NextRequest) {
 
     // 2. Mise à jour de la société dans Supabase
     const supabase = getSupabaseServerClient();
+    let targetCompanyId = companyId;
 
-    if (companyId && companyId.length === 36) {
-      await supabase
-        .from('companies')
-        .update({
-          subscription_plan: confirmedPlan,
-          subscription_status: 'active',
-          subscription_updated_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq('id', companyId);
-    } else if (userId && userId.length === 36) {
-      await supabase
-        .from('companies')
-        .update({
-          subscription_plan: confirmedPlan,
-          subscription_status: 'active',
-          subscription_updated_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq('user_id', userId);
-    } else {
-      // Société principale par défaut
-      await supabase
-        .from('companies')
-        .update({
-          subscription_plan: confirmedPlan,
-          subscription_status: 'active',
-          subscription_updated_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq('id', 'c0000000-0000-0000-0000-000000000001');
+    if (!targetCompanyId || targetCompanyId.length !== 36) {
+      if (userId && userId.length === 36) {
+        const { data: comp } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (comp?.id) targetCompanyId = comp.id;
+      }
     }
+
+    if (!targetCompanyId) {
+      targetCompanyId = 'c0000000-0000-0000-0000-000000000003';
+    }
+
+    await supabase
+      .from('companies')
+      .update({
+        subscription_plan: confirmedPlan,
+        subscription_status: 'active',
+        subscription_updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', targetCompanyId);
 
     // 3. Enregistrement dans la table payments
     try {
       await supabase.from('payments').insert({
-        company_id: companyId || 'c0000000-0000-0000-0000-000000000001',
-        amount: transactionAmount,
+        company_id: targetCompanyId,
+        amount: transactionAmount || (confirmedPlan === 'business' ? 15000 : 5000),
         method: 'mobile_money',
         reference: `FedaPay: ${transactionId || 'CONFIRMED'} (Abonnement ${confirmedPlan.toUpperCase()})`,
         payment_date: new Date().toISOString().split('T')[0],
-        notes: `Règlement validé abonnement ${confirmedPlan.toUpperCase()} OMEGA FACTURE via FedaPay`,
+        notes: `Validation officielle FedaPay • Abonnement ${confirmedPlan.toUpperCase()} OMEGA FACTURE`,
       } as any);
     } catch (e) {
       console.warn('[Verify Route FedaPay] Erreur enregistrement payment log :', e);

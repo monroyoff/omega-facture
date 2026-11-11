@@ -17,6 +17,7 @@ import {
   supabaseUpdateProduct,
   supabaseDeleteProduct,
   supabaseAddPayment,
+  supabaseUpdateCompanySubscription,
 } from '@/lib/supabase/services';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -664,8 +665,12 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setInvoices(reconciledInvoices);
         setPayments(remote.payments);
 
-        // Synchronisation automatique de l'abonnement SaaS de la société
-        if (remote.subscriptionPlan && user.plan !== remote.subscriptionPlan) {
+        // Synchronisation automatique de l'abonnement SaaS de la société avec protection inviolable anti-rétrogradation
+        const planTier: Record<SubscriptionPlan, number> = { free: 0, pro: 1, business: 2 };
+        const localTier = planTier[user.plan || 'free'] ?? 0;
+        const remoteTier = planTier[remote.subscriptionPlan || 'free'] ?? 0;
+
+        if (remote.subscriptionPlan && remoteTier >= localTier && user.plan !== remote.subscriptionPlan) {
           console.log(`[InvoiceContext] Synchronisation plan distant : ${remote.subscriptionPlan}`);
           user.plan = remote.subscriptionPlan;
           setCurrentUser((prev) => (prev ? { ...prev, plan: remote.subscriptionPlan } : prev));
@@ -678,6 +683,10 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
               localStorage.setItem('facturo:v1:auth', JSON.stringify(parsed));
             }
           } catch (e) {}
+        } else if (localTier > remoteTier && companyId) {
+          // L'utilisateur est sur un plan supérieur en local (ex: Business) : réaligner Supabase vers le haut
+          console.log(`[InvoiceContext] Réalignement ascendant Supabase vers ${user.plan}`);
+          supabaseUpdateCompanySubscription(companyId, user.plan as SubscriptionPlan).catch(() => {});
         }
 
         try {
@@ -1731,6 +1740,13 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         JSON.stringify({ isAuthenticated: true, currentUser: updatedUser })
       );
     } catch (e) {}
+
+    // Persistance immédiate et garantie dans Supabase pour que le plan ne soit plus jamais écrasé
+    if (currentUser.companyId) {
+      supabaseUpdateCompanySubscription(currentUser.companyId, newPlan).catch((err) => {
+        console.warn('[InvoiceContext] Échec persistance abonnement Supabase :', err);
+      });
+    }
 
     showToast({
       title: `Passage au ${SUBSCRIPTION_PLANS[newPlan].name} activé ! 🎉`,
