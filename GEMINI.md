@@ -271,18 +271,39 @@
      - Modèle de facture et devis standard OHADA.
      - Calcul automatique de la TVA (18% ou exonéré).
      - Export PDF et partages WhatsApp / Email.
-  2. **Plan Pro (5 000 FCFA/mois)** :
+  2. **Plan Pro (base 5 000 FCFA/mois — Durée 30 jours)** :
      - **Factures et devis 100% illimités**.
      - **1 utilisateur inclus**.
      - Relances automatiques personnalisées (WhatsApp & Email).
      - Rapports financiers avancés, Balance Âgée et exports comptables certifiés (CSV avec BOM UTF-8, PDF officiel, PNG).
      - Logo d'entreprise personnalisé et mentions fiscales sur-mesure.
-  3. **Plan Business (15 000 FCFA/mois)** :
+     - **Grille multi-durées avec -10% de remise** :
+       - *1 mois* : 5 000 FCFA (30 jours)
+       - *3 mois (-10%)* : 13 500 FCFA (au lieu de 15 000 F, soit 4 500 F/mois, 90 jours)
+       - *6 mois (-10%)* : 27 000 FCFA (au lieu de 30 000 F, soit 4 500 F/mois, 180 jours)
+       - *1 an (-10%)* : 54 000 FCFA (au lieu de 60 000 F, soit 4 500 F/mois, 365 jours)
+  3. **Plan Business (base 15 000 FCFA/mois — Durée 30 jours)** :
      - Tout ce qui est inclus dans le Plan Pro.
      - Équipe jusqu'à **10 membres**.
      - Rôles comptables et permissions d'accès multi-agences.
      - **Support prioritaire 24/7 dédié sur WhatsApp**.
      - Accès API et intégrations logicielles sur-mesure.
+     - **Grille multi-durées avec -10% de remise** :
+       - *1 mois* : 15 000 FCFA (30 jours)
+       - *3 mois (-10%)* : 40 500 FCFA (au lieu de 45 000 F, soit 13 500 F/mois, 90 jours)
+       - *6 mois (-10%)* : 81 000 FCFA (au lieu de 90 000 F, soit 13 500 F/mois, 180 jours)
+       - *1 an (-10%)* : 162 000 FCFA (au lieu de 180 000 F, soit 13 500 F/mois, 365 jours)
+- **Surveillance Proactive d'Abonnement, Alertes J-2 / J-1 / Jour J et Rétrogradation Automatique** :
+  - **Durée stricte de 30 jours par mois d'activation** : Date d'expiration calculée avec précision et persistée dans Supabase sous format `subscription_status: active|expires:<ISO>`.
+  - **Alertes Multi-Canales Automatiques** :
+    - *J-2 (Rappel ambre)* : Notification in-app + Email d'alerte officiel informant de l'échéance à venir dans 2 jours avec bouton direct de renouvellement.
+    - *J-1 (Vigilance orange)* : Notification in-app + Email d'alerte officiel informant que le forfait expire demain.
+    - *Jour J (Urgence rouge)* : Notification in-app + Email d'alerte officiel avertissant que le forfait expire le jour même.
+  - **Rétrogradation Automatique Inviolable sur Plan Gratuit** : Si l'utilisateur ne se réabonne pas avant la date d'expiration (`diffMs <= 0`), le forfait bascule instantanément sur le **Plan Gratuit** (limité à 5 factures/mois) avec mise à jour immédiate dans Supabase (`subscription_plan: 'free'`, `subscription_status: 'expired'`), affichage d'un toast informatif et notification persistante invitant au réabonnement.
+- **Architecture Responsive Universelle du Panneau de Notifications (`Header.tsx` via React Portal)** :
+  - **Problème résolu définitivement** : Sur smartphone, l'en-tête contenant un filtre CSS `backdrop-blur-md` enfermait tout élément `position: fixed` à l'intérieur de sa boîte englobante de 64px, provoquant un débordement horizontal tronquant le panneau sur la gauche (ex: *« tions & »*, *« a facture... »*, *« 026-0003 »*).
+  - **Résolution par React Portal (`createPortal`)** : Le panneau mobile se monte désormais directement à la racine de `document.body` avec son propre backdrop plein écran semi-transparent (`z-[150]`), centré de manière déterministe avec marges garanties de 12px de part et d'autre (`p-3`, `w-full max-w-sm mx-auto`).
+  - **Zéro coupure, zéro débordement** : Les titres complets, badges d'échéance et boutons d'action restent 100% lisibles et cliquables sur tous les formats d'écrans de 320px à la tablette. Les numéros de document comportent la classe `hyphens-none font-mono whitespace-nowrap` pour empêcher toute césure maladroite au niveau du trait d'union.
 - **Mécanisme de Gating & Déclenchement Automatique de la Modale d'Upgrade** :
   - **Comptage Mensuel Dynamique (`invoicesThisMonthCount`)** : Dénombrement en temps réel des factures réelles émises au cours du mois en cours (`inv.date` dans le mois courant).
   - **Blocage Préventif à la 6ème Facture** : Dès qu'un utilisateur sur le Plan Gratuit tente de créer une 6ème facture (`!canCreateInvoice`), la modale `UpgradePlanModal` s'ouvre automatiquement avec message d'avertissement toast et mise en avant des avantages du Plan Pro.
