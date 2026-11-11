@@ -20,6 +20,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
+import { formatDateFR } from '@/lib/money/format';
 
 interface UserSessionModalProps {
   isOpen: boolean;
@@ -261,7 +262,11 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
                   {userPlan === 'business' ? 'Plan Business' : userPlan === 'pro' ? 'Plan Pro' : 'Plan Gratuit'}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                  {userPlan === 'free' ? `${realInvoicesCount}/5 factures émises` : 'Factures & devis illimités'}
+                  {userPlan === 'free'
+                    ? `${realInvoicesCount}/5 factures émises`
+                    : currentUser.subscriptionExpiresAt
+                    ? `Actif jusqu'au ${formatDateFR(currentUser.subscriptionExpiresAt)}`
+                    : 'Factures & devis illimités'}
                 </div>
               </div>
             </div>
@@ -270,11 +275,11 @@ export const UserSessionModal: React.FC<UserSessionModalProps> = ({ isOpen, onCl
               type="button"
               onClick={() => {
                 onClose();
-                openUpgradeModal(userPlan === 'pro' ? 'business' : 'pro');
+                openUpgradeModal(userPlan === 'pro' ? 'pro' : 'business');
               }}
               className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-[11px] shadow-xs transition-all cursor-pointer shrink-0"
             >
-              {userPlan === 'free' ? 'Passer à Pro' : 'Gérer'}
+              {userPlan === 'free' ? 'Passer à Pro' : 'Prolonger'}
             </button>
           </div>
 

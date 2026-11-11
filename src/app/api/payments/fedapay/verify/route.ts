@@ -37,13 +37,15 @@ export async function POST(req: NextRequest) {
     let transactionAmount = body.amount ? Number(body.amount) : 0;
     let confirmedPlan = requestedPlan || '';
     let transactionStatus = 'pending';
+    let customMeta: any = {};
 
     // 1. Interrogation de l'API FedaPay si un ID est fourni
     if (transactionId) {
       const verifyRes = await confirmFedaPayTransaction(transactionId);
       transactionStatus = verifyRes.status || 'pending';
-      if (verifyRes.customMetadata?.plan) {
-        confirmedPlan = verifyRes.customMetadata.plan;
+      customMeta = verifyRes.customMetadata || {};
+      if (customMeta?.plan) {
+        confirmedPlan = customMeta.plan;
       }
       if (verifyRes.amount) {
         transactionAmount = verifyRes.amount;
@@ -96,13 +98,31 @@ export async function POST(req: NextRequest) {
       targetCompanyId = 'c0000000-0000-0000-0000-000000000003';
     }
 
+    // Détermination rigoureuse de la durée d'abonnement en jours
+    let durationDays = 30;
+    if (body.durationDays) {
+      durationDays = Number(body.durationDays);
+    } else if (customMeta?.duration_days) {
+      durationDays = Number(customMeta.duration_days);
+    } else if (transactionAmount >= 160000 || (confirmedPlan === 'pro' && transactionAmount >= 50000)) {
+      durationDays = 365; // 1 an
+    } else if (transactionAmount >= 80000 || (confirmedPlan === 'pro' && transactionAmount >= 25000)) {
+      durationDays = 180; // 6 mois
+    } else if (transactionAmount >= 40000 || (confirmedPlan === 'pro' && transactionAmount >= 13000)) {
+      durationDays = 90; // 3 mois
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const subscriptionStatus = `active|expires:${expiresAt}`;
+
     await supabase
       .from('companies')
       .update({
         subscription_plan: confirmedPlan,
-        subscription_status: 'active',
-        subscription_updated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        subscription_status: subscriptionStatus,
+        subscription_updated_at: now.toISOString(),
+        updated_at: now.toISOString(),
       } as any)
       .eq('id', targetCompanyId);
 
@@ -112,9 +132,9 @@ export async function POST(req: NextRequest) {
         company_id: targetCompanyId,
         amount: transactionAmount || (confirmedPlan === 'business' ? 15000 : 5000),
         method: 'mobile_money',
-        reference: `FedaPay: ${transactionId || 'CONFIRMED'} (Abonnement ${confirmedPlan.toUpperCase()})`,
+        reference: `FedaPay: ${transactionId || 'CONFIRMED'} (Abonnement ${confirmedPlan.toUpperCase()} ${durationDays}j)`,
         payment_date: new Date().toISOString().split('T')[0],
-        notes: `Validation officielle FedaPay • Abonnement ${confirmedPlan.toUpperCase()} OMEGA FACTURE`,
+        notes: `Validation officielle FedaPay • Abonnement ${confirmedPlan.toUpperCase()} (${durationDays} jours jusqu'au ${expiresAt.split('T')[0]}) OMEGA FACTURE`,
       } as any);
     } catch (e) {
       console.warn('[Verify Route FedaPay] Erreur enregistrement payment log :', e);
@@ -124,8 +144,10 @@ export async function POST(req: NextRequest) {
       success: true,
       status: 'completed',
       plan: confirmedPlan,
+      durationDays,
+      expiresAt,
       amount: transactionAmount,
-      message: `Abonnement ${confirmedPlan.toUpperCase()} activé avec succès via FedaPay.`,
+      message: `Abonnement ${confirmedPlan.toUpperCase()} activé avec succès (${durationDays} jours).`,
     });
   } catch (error: any) {
     console.error('[API Verify FedaPay] Erreur :', error);

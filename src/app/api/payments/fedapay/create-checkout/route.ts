@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
       companyId,
       userId,
       plan,
+      duration,
+      durationDays,
+      months,
     } = body;
 
     if (!amount || Number(amount) <= 0) {
@@ -42,6 +45,9 @@ export async function POST(req: NextRequest) {
       companyId,
       userId,
       plan,
+      duration,
+      durationDays: durationDays ? Number(durationDays) : undefined,
+      months: months ? Number(months) : undefined,
     });
 
     if (!result.success || !result.checkoutUrl) {

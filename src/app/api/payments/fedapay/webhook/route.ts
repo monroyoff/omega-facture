@@ -102,15 +102,31 @@ export async function POST(req: NextRequest) {
       }
       if (!targetCompanyId) targetCompanyId = 'c0000000-0000-0000-0000-000000000003';
 
-      console.log(`[FedaPay Webhook] Activation garantie abonnement ${plan.toUpperCase()} pour société ${targetCompanyId}`);
+      // Détermination rigoureuse de la durée d'abonnement en jours
+      let durationDays = 30;
+      if (metadata.duration_days) {
+        durationDays = Number(metadata.duration_days);
+      } else if (amount >= 160000 || (plan === 'pro' && amount >= 50000)) {
+        durationDays = 365; // 1 an
+      } else if (amount >= 80000 || (plan === 'pro' && amount >= 25000)) {
+        durationDays = 180; // 6 mois
+      } else if (amount >= 40000 || (plan === 'pro' && amount >= 13000)) {
+        durationDays = 90; // 3 mois
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+      const subscriptionStatus = `active|expires:${expiresAt}`;
+
+      console.log(`[FedaPay Webhook] Activation garantie abonnement ${plan.toUpperCase()} (${durationDays}j) pour société ${targetCompanyId}`);
 
       await supabase
         .from('companies')
         .update({
           subscription_plan: plan,
-          subscription_status: 'active',
-          subscription_updated_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          subscription_status: subscriptionStatus,
+          subscription_updated_at: now.toISOString(),
+          updated_at: now.toISOString(),
         } as any)
         .eq('id', targetCompanyId);
 
@@ -118,15 +134,17 @@ export async function POST(req: NextRequest) {
         company_id: targetCompanyId,
         amount: amount || (plan === 'business' ? 15000 : 5000),
         method: 'mobile_money',
-        reference: `FedaPay: ${transactionId} (Abonnement ${plan.toUpperCase()})`,
+        reference: `FedaPay: ${transactionId} (Abonnement ${plan.toUpperCase()} ${durationDays}j)`,
         payment_date: new Date().toISOString().split('T')[0],
-        notes: `Validation automatique FedaPay Webhook • ${customerName} (${customerPhone})`,
+        notes: `Validation automatique FedaPay Webhook • ${customerName} (${customerPhone}) • Expire le ${expiresAt.split('T')[0]}`,
       } as any);
 
       return NextResponse.json({
         success: true,
         action: 'subscription_upgraded',
         plan,
+        durationDays,
+        expiresAt,
       });
     }
 

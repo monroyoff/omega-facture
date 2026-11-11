@@ -11,6 +11,9 @@ export interface FedaPayTransactionPayload {
   companyId?: string;
   userId?: string;
   plan?: string;
+  duration?: string;
+  durationDays?: number;
+  months?: number;
   callbackUrl?: string;
 }
 
@@ -88,6 +91,9 @@ export async function createFedaPayTransaction(
     if (params.amount) queryParams.set('amount', String(params.amount));
     if (params.companyId) queryParams.set('companyId', params.companyId);
     if (params.userId) queryParams.set('userId', params.userId);
+    if (params.duration) queryParams.set('duration', params.duration);
+    if (params.durationDays) queryParams.set('durationDays', String(params.durationDays));
+    if (params.months) queryParams.set('months', String(params.months));
     if (params.invoiceId) queryParams.set('invoiceId', params.invoiceId);
     if (params.invoiceNumber) queryParams.set('invoiceNumber', params.invoiceNumber);
 
@@ -124,6 +130,9 @@ export async function createFedaPayTransaction(
         company_id: params.companyId || '',
         user_id: params.userId || '',
         plan: params.plan || '',
+        duration: params.duration || '',
+        duration_days: params.durationDays ? String(params.durationDays) : '',
+        months: params.months ? String(params.months) : '',
         customer_name: params.customerName || '',
         customer_phone: params.customerPhone || '',
       },

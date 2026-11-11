@@ -26,6 +26,7 @@ function PaymentCallbackContent() {
   const paramCompanyId = searchParams.get('companyId') || '';
   const paramUserId = searchParams.get('userId') || '';
   const paramAmount = searchParams.get('amount') || '';
+  const paramDurationDays = searchParams.get('durationDays') || searchParams.get('duration_days') || '';
 
   const { currentUser, upgradePlan, refreshData, showToast } = useInvoices();
   const [loading, setLoading] = useState(true);
@@ -38,10 +39,11 @@ function PaymentCallbackContent() {
     hasProcessedRef.current = true;
 
     const processPayment = async () => {
-      // 1. Détermination du plan cible avec règle inviolable : montant >= 15 000 FCFA => Plan Business garanti
+      // 1. Détermination du plan cible et de la durée avec règles rigoureuses
       let targetPlan: SubscriptionPlan = 'pro';
       let pendingTxId = transactionId;
       let pendingAmount = Number(paramAmount || 0);
+      let durationDays = paramDurationDays ? Number(paramDurationDays) : 30;
 
       try {
         const rawPending = localStorage.getItem('facturo:v1:pending_upgrade');
@@ -53,6 +55,9 @@ function PaymentCallbackContent() {
           if (parsed.amount) {
             pendingAmount = Number(parsed.amount);
           }
+          if (parsed.durationDays) {
+            durationDays = Number(parsed.durationDays);
+          }
           if (!pendingTxId && parsed.transactionId) {
             pendingTxId = String(parsed.transactionId);
           }
@@ -63,8 +68,8 @@ function PaymentCallbackContent() {
         targetPlan = paramPlan as SubscriptionPlan;
       }
 
-      // Si le montant payé est supérieur ou égal à 15 000 FCFA -> Plan Business absolu garanti
-      if (pendingAmount >= 15000) {
+      // Si le montant payé correspond à des formules Business
+      if (pendingAmount >= 15000 && targetPlan !== 'pro') {
         targetPlan = 'business';
       }
 
@@ -83,6 +88,7 @@ function PaymentCallbackContent() {
             transactionId: pendingTxId || transactionId,
             token,
             plan: targetPlan,
+            durationDays,
             companyId: paramCompanyId || currentUser?.companyId,
             userId: paramUserId || currentUser?.id,
             amount: paramAmount || SUBSCRIPTION_PLANS[targetPlan].priceFCFA,
@@ -92,6 +98,9 @@ function PaymentCallbackContent() {
         const verifyData = await verifyRes.json();
         if (verifyData.success && verifyData.plan) {
           targetPlan = verifyData.plan as SubscriptionPlan;
+          if (verifyData.durationDays) {
+            durationDays = Number(verifyData.durationDays);
+          }
           setActivePlan(targetPlan);
         }
       } catch (err) {
@@ -100,7 +109,7 @@ function PaymentCallbackContent() {
 
       // 3. Basculement garanti de l'état client local
       try {
-        await upgradePlan(targetPlan);
+        await upgradePlan(targetPlan, durationDays);
 
         // Mise à jour de sécurité directe dans localStorage
         const savedAuth = localStorage.getItem('facturo:v1:auth');

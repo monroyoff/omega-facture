@@ -88,6 +88,8 @@ export async function fetchSupabaseData(companyId?: string): Promise<{
   invoices: Invoice[];
   payments: PaymentRecord[];
   subscriptionPlan?: SubscriptionPlan;
+  subscriptionStatus?: string;
+  subscriptionUpdatedAt?: string;
 } | null> {
   try {
     const targetCompanyId = companyId || DEFAULT_COMPANY_ID;
@@ -230,20 +232,28 @@ export async function fetchSupabaseData(companyId?: string): Promise<{
       };
     });
 
-    // 5. Fetch Company subscription plan
+    // 5. Fetch Company subscription plan and status
     let subscriptionPlan: SubscriptionPlan | undefined = undefined;
+    let subscriptionStatus: string | undefined = undefined;
+    let subscriptionUpdatedAt: string | undefined = undefined;
     try {
       const { data: comp } = await supabase
         .from('companies')
-        .select('subscription_plan')
+        .select('subscription_plan, subscription_status, subscription_updated_at')
         .eq('id', targetCompanyId)
         .maybeSingle();
       if (comp?.subscription_plan) {
         subscriptionPlan = comp.subscription_plan as SubscriptionPlan;
       }
+      if (comp?.subscription_status) {
+        subscriptionStatus = comp.subscription_status;
+      }
+      if (comp?.subscription_updated_at) {
+        subscriptionUpdatedAt = comp.subscription_updated_at;
+      }
     } catch (e) {}
 
-    return { clients, products, invoices, payments, subscriptionPlan };
+    return { clients, products, invoices, payments, subscriptionPlan, subscriptionStatus, subscriptionUpdatedAt };
   } catch (err) {
     console.warn('[Supabase Services] Échec du chargement distant, bascule sur cache/mock :', err);
     return null;
@@ -636,20 +646,29 @@ export async function supabaseDeleteProduct(id: string): Promise<boolean> {
 
 /**
  * Met à jour le plan d'abonnement d'une entreprise dans Supabase de façon garantie et persistante
+ * Enregistre le plan et la date d'expiration exacte sous format 'active|expires:ISO' ou 'expired'
  */
 export async function supabaseUpdateCompanySubscription(
   companyId: string,
-  plan: SubscriptionPlan
+  plan: SubscriptionPlan,
+  durationDays: number = 30
 ): Promise<boolean> {
   try {
     const supabase = createClient();
+    const now = new Date();
+    const isFree = plan === 'free';
+    const expiresAt = isFree
+      ? now.toISOString()
+      : new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const statusVal = isFree ? 'expired' : `active|expires:${expiresAt}`;
+
     const { error } = await supabase
       .from('companies')
       .update({
         subscription_plan: plan,
-        subscription_status: 'active',
-        subscription_updated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        subscription_status: statusVal,
+        subscription_updated_at: now.toISOString(),
+        updated_at: now.toISOString(),
       })
       .eq('id', companyId);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
@@ -21,6 +22,7 @@ import {
   Eye,
   Pencil,
   FileCheck2,
+  Crown,
 } from 'lucide-react';
 import { useInvoices } from '@/lib/store/invoice-context';
 import { formatFCFA } from '@/lib/money/format';
@@ -79,13 +81,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
     invoices,
     currentUser,
     isAuthenticated,
+    openUpgradeModal,
   } = useInvoices();
 
   const handleCardClick = (n: typeof notifications[0]) => {
     markNotificationAsRead(n.id);
     setNotificationsOpen(false);
 
-    if (n.type === 'draft' && n.invoiceId) {
+    if (n.type === 'subscription_expiring' || n.type === 'subscription_expired') {
+      openUpgradeModal(currentUser?.plan && currentUser.plan !== 'free' ? currentUser.plan : 'business');
+    } else if (n.type === 'draft' && n.invoiceId) {
       router.push(`/invoices/${n.invoiceId}/edit`);
     } else if (n.type === 'payment') {
       router.push('/payments');
@@ -94,6 +99,295 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
       if (inv) setPreviewInvoice(inv);
     }
   };
+
+  const renderNotificationsBody = () => (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-slate-900 dark:text-white text-sm">
+            Notifications &amp; Alertes
+          </span>
+          {mounted && unreadNotificationCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-600">
+              {unreadNotificationCount} nouvelle{unreadNotificationCount > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {unreadNotificationCount > 0 && (
+            <button
+              onClick={markAllNotificationsAsRead}
+              className="text-[11px] font-semibold text-brand-600 hover:underline cursor-pointer"
+            >
+              Tout marquer comme lu
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setNotificationsOpen(false)}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            aria-label="Fermer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Notifications List */}
+      {notifications.length === 0 ? (
+        <div className="py-8 text-center text-slate-400 flex-1 flex flex-col items-center justify-center">
+          <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-60" />
+          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Aucune alerte en attente
+          </p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Toutes vos factures, échéances et abonnements sont à jour.
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-100 dark:divide-slate-800 flex-1 min-h-0 overflow-y-auto py-1">
+          {notifications.map((n) => {
+            const isSubExpiring = n.type === 'subscription_expiring';
+            const isSubExpired = n.type === 'subscription_expired';
+            const isOverdue = n.type === 'overdue';
+            const isDueToday = n.type === 'due_today';
+            const isDueSoon = n.type === 'due_soon';
+            const isPayment = n.type === 'payment';
+            const isDraft = n.type === 'draft';
+
+            const iconBg = isSubExpired
+              ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40'
+              : isSubExpiring
+              ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
+              : isOverdue
+              ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40'
+              : isDueToday
+              ? 'text-orange-500 bg-orange-50 dark:bg-orange-950/40'
+              : isDueSoon
+              ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
+              : isPayment
+              ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40'
+              : 'text-slate-500 bg-slate-50 dark:bg-slate-950/40';
+
+            const Icon = isSubExpired || isSubExpiring
+              ? Crown
+              : isOverdue
+              ? AlertTriangle
+              : isDueToday
+              ? AlertCircle
+              : isDueSoon
+              ? Clock
+              : isPayment
+              ? CheckCircle2
+              : FileText;
+
+            return (
+              <div
+                key={n.id}
+                onClick={() => handleCardClick(n)}
+                className={`py-3.5 px-2.5 rounded-2xl transition-all cursor-pointer relative group ${
+                  n.unread
+                    ? 'bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'
+                    : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 opacity-80 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-start gap-2.5 sm:gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight min-w-0 break-words hyphens-none">
+                        {n.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {n.unread && <span className="w-2 h-2 rounded-full bg-brand-600" />}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissNotification(n.id);
+                          }}
+                          className="p-1 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          title="Supprimer la notification"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                      {n.desc}
+                    </p>
+
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-1.5">
+                      <Clock className="w-2.5 h-2.5" />
+                      {n.time}
+                    </span>
+
+                    {/* Operational Action: Subscription Renewal */}
+                    {(isSubExpiring || isSubExpired) && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                            openUpgradeModal(currentUser?.plan && currentUser.plan !== 'free' ? currentUser.plan : 'business');
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white text-[11px] font-black transition-all shadow-xs cursor-pointer"
+                        >
+                          <Crown className="w-3.5 h-3.5 text-amber-300" />
+                          <span>{isSubExpired ? 'Réactiver mon forfait' : 'Prolonger mon forfait'}</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Operational Action: Invoices Reminder & Collection */}
+                    {(isOverdue || isDueToday || isDueSoon) && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            const phone = n.clientPhone?.replace(/[^0-9]/g, '') || '2290166889911';
+                            let text = '';
+                            if (n.type === 'due_soon') {
+                              text = `Bonjour ${n.clientName || 'Cher client'}, nous vous rappelons courtoisement que la facture ${n.invoiceNumber} d'un montant de ${formatFCFA(n.remainingAmount || 0)} arrive à échéance demain (${n.dueDate || ''}). Merci de votre confiance ! OMEGA FACTURE.`;
+                            } else if (n.type === 'due_today') {
+                              text = `Bonjour ${n.clientName || 'Cher client'}, la facture ${n.invoiceNumber} d'un montant de ${formatFCFA(n.remainingAmount || 0)} arrive à échéance aujourd'hui (${n.dueDate || ''}). Merci de bien vouloir procéder à son règlement. OMEGA FACTURE.`;
+                            } else {
+                              text = `Bonjour ${n.clientName || 'Cher client'}, sauf erreur de notre part, la facture ${n.invoiceNumber} d'un montant restant de ${formatFCFA(n.remainingAmount || 0)} échue le ${n.dueDate || ''} reste impayée. Merci de bien vouloir procéder à la régularisation. OMEGA FACTURE.`;
+                            }
+                            window.open(
+                              `https://wa.me/${phone}?text=${encodeURIComponent(text)}`,
+                              '_blank'
+                            );
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold transition-colors shadow-2xs cursor-pointer"
+                        >
+                          <MessageSquare className="w-3 h-3 text-emerald-600" />
+                          <span>{n.type === 'due_soon' ? 'Rappel WhatsApp' : 'Relancer WhatsApp'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                            setPaymentInvoiceId(n.invoiceId || null);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 text-[11px] font-bold transition-colors shadow-2xs"
+                        >
+                          <CreditCard className="w-3 h-3 text-brand-600" />
+                          <span>Encaisser</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                            const inv = invoices.find((i) => i.id === n.invoiceId);
+                            if (inv) setPreviewInvoice(inv);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors ml-auto"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Voir</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {isDraft && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                        <Link
+                          href={`/invoices/${n.invoiceId}/edit`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] font-bold transition-colors shadow-2xs"
+                        >
+                          <Pencil className="w-3 h-3 text-amber-600" />
+                          <span>Modifier &amp; Émettre</span>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                            const inv = invoices.find((i) => i.id === n.invoiceId);
+                            if (inv) setPreviewInvoice(inv);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors ml-auto"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Aperçu</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {isPayment && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+                        <Link
+                          href="/payments"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold transition-colors shadow-2xs"
+                        >
+                          <FileText className="w-3 h-3 text-emerald-600" />
+                          <span>Voir le Reçu</span>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(n.id);
+                            setNotificationsOpen(false);
+                            const inv = invoices.find((i) => i.id === n.invoiceId);
+                            if (inv) setPreviewInvoice(inv);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors ml-auto"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Facture</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer link */}
+      <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 text-center shrink-0">
+        <Link
+          href="/invoices"
+          onClick={() => setNotificationsOpen(false)}
+          className="text-xs font-semibold text-brand-600 hover:underline"
+        >
+          Voir toutes les factures &amp; créances →
+        </Link>
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -168,277 +462,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
               )}
             </button>
 
-            {/* Notifications Dropdown Panel */}
+            {/* Desktop Notifications Dropdown Panel (Anchored directly under Bell) */}
             {notificationsOpen && (
-              <>
+              <div className="hidden sm:block">
                 <div
-                  className="fixed inset-0 z-40 bg-slate-950/30 backdrop-blur-[1px] sm:bg-transparent sm:backdrop-blur-none"
+                  className="fixed inset-0 z-40"
                   onClick={() => setNotificationsOpen(false)}
                 />
-                <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-11 z-50 sm:w-96 max-w-[calc(100vw-24px)] bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-100 max-h-[85vh] flex flex-col">
-                  {/* Header */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 dark:text-white text-sm">
-                        Notifications & Alertes
-                      </span>
-                      {mounted && unreadNotificationCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-600">
-                          {unreadNotificationCount} nouvelle{unreadNotificationCount > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {unreadNotificationCount > 0 && (
-                        <button
-                          onClick={markAllNotificationsAsRead}
-                          className="text-[11px] font-semibold text-brand-600 hover:underline cursor-pointer"
-                        >
-                          Tout marquer comme lu
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setNotificationsOpen(false)}
-                        className="sm:hidden p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        aria-label="Fermer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Notifications List */}
-                  {notifications.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400">
-                      <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-60" />
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Aucune alerte en attente
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Toutes vos factures et relances sont à jour.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800 flex-1 min-h-0 max-h-[60vh] sm:max-h-96 overflow-y-auto py-1">
-                      {notifications.map((n) => {
-                        const isOverdue = n.type === 'overdue';
-                        const isDueToday = n.type === 'due_today';
-                        const isDueSoon = n.type === 'due_soon';
-                        const isPayment = n.type === 'payment';
-                        const isDraft = n.type === 'draft';
-
-                        const iconBg = isOverdue
-                          ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40'
-                          : isDueToday
-                          ? 'text-orange-500 bg-orange-50 dark:bg-orange-950/40'
-                          : isDueSoon
-                          ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
-                          : isPayment
-                          ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40'
-                          : 'text-slate-500 bg-slate-50 dark:bg-slate-950/40';
-
-                        const Icon = isOverdue
-                          ? AlertTriangle
-                          : isDueToday
-                          ? AlertCircle
-                          : isDueSoon
-                          ? Clock
-                          : isPayment
-                          ? CheckCircle2
-                          : FileText;
-
-                        return (
-                          <div
-                            key={n.id}
-                            onClick={() => handleCardClick(n)}
-                            className={`py-3.5 px-2 rounded-2xl transition-all cursor-pointer relative group ${
-                              n.unread
-                                ? 'bg-slate-50/70 dark:bg-slate-800/30 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'
-                                : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 opacity-80 hover:opacity-100'
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}
-                              >
-                                <Icon className="w-4 h-4" />
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                                    {n.title}
-                                  </p>
-                                  <div className="flex items-center gap-1.5">
-                                    {n.unread && (
-                                      <span className="w-2 h-2 rounded-full bg-brand-600" />
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        dismissNotification(n.id);
-                                      }}
-                                      className="p-1 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                      title="Supprimer la notification"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                                  {n.desc}
-                                </p>
-
-                                <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-1.5">
-                                  <Clock className="w-2.5 h-2.5" />
-                                  {n.time}
-                                </span>
-
-                                {/* Dedicated Operational Action Buttons */}
-                                {(isOverdue || isDueToday || isDueSoon) && (
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        const phone = n.clientPhone?.replace(/[^0-9]/g, '') || '2290166889911';
-                                        let text = '';
-                                        if (n.type === 'due_soon') {
-                                          text = `Bonjour ${n.clientName || 'Cher client'}, nous vous rappelons courtoisement que la facture ${n.invoiceNumber} d'un montant de ${formatFCFA(n.remainingAmount || 0)} arrive à échéance demain (${n.dueDate || ''}). Merci de votre confiance ! OMEGA FACTURE.`;
-                                        } else if (n.type === 'due_today') {
-                                          text = `Bonjour ${n.clientName || 'Cher client'}, la facture ${n.invoiceNumber} d'un montant de ${formatFCFA(n.remainingAmount || 0)} arrive à échéance aujourd'hui (${n.dueDate || ''}). Merci de bien vouloir procéder à son règlement. OMEGA FACTURE.`;
-                                        } else {
-                                          text = `Bonjour ${n.clientName || 'Cher client'}, sauf erreur de notre part, la facture ${n.invoiceNumber} d'un montant restant de ${formatFCFA(n.remainingAmount || 0)} échue le ${n.dueDate || ''} reste impayée. Merci de bien vouloir procéder à la régularisation. OMEGA FACTURE.`;
-                                        }
-                                        window.open(
-                                          `https://wa.me/${phone}?text=${encodeURIComponent(text)}`,
-                                          '_blank'
-                                        );
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold transition-colors shadow-2xs cursor-pointer"
-                                    >
-                                      <MessageSquare className="w-3 h-3 text-emerald-600" />
-                                      <span>{n.type === 'due_soon' ? 'Rappel WhatsApp' : 'Relancer WhatsApp'}</span>
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        setNotificationsOpen(false);
-                                        setPaymentInvoiceId(n.invoiceId || null);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300 text-[11px] font-bold transition-colors shadow-2xs"
-                                    >
-                                      <CreditCard className="w-3 h-3 text-brand-600" />
-                                      <span>Encaisser</span>
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        setNotificationsOpen(false);
-                                        const inv = invoices.find((i) => i.id === n.invoiceId);
-                                        if (inv) setPreviewInvoice(inv);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors ml-auto"
-                                    >
-                                      <Eye className="w-3 h-3" />
-                                      <span>Voir</span>
-                                    </button>
-                                  </div>
-                                )}
-
-                                {isDraft && (
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                                    <Link
-                                      href={`/invoices/${n.invoiceId}/edit`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        setNotificationsOpen(false);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] font-bold transition-colors shadow-2xs"
-                                    >
-                                      <Pencil className="w-3 h-3 text-amber-600" />
-                                      <span>Modifier & Émettre</span>
-                                    </Link>
-
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        setNotificationsOpen(false);
-                                        const inv = invoices.find((i) => i.id === n.invoiceId);
-                                        if (inv) setPreviewInvoice(inv);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors ml-auto"
-                                    >
-                                      <Eye className="w-3 h-3" />
-                                      <span>Aperçu</span>
-                                    </button>
-                                  </div>
-                                )}
-
-                                {isPayment && (
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                                    <Link
-                                      href="/payments"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        setNotificationsOpen(false);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold transition-colors shadow-2xs"
-                                    >
-                                      <FileText className="w-3 h-3 text-emerald-600" />
-                                      <span>Voir le Reçu</span>
-                                    </Link>
-
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        markNotificationAsRead(n.id);
-                                        setNotificationsOpen(false);
-                                        const inv = invoices.find((i) => i.id === n.invoiceId);
-                                        if (inv) setPreviewInvoice(inv);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors ml-auto"
-                                    >
-                                      <Eye className="w-3 h-3" />
-                                      <span>Facture</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Footer link */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
-                    <Link
-                      href="/invoices"
-                      onClick={() => setNotificationsOpen(false)}
-                      className="text-xs font-semibold text-brand-600 hover:underline"
-                    >
-                      Voir toutes les factures & créances →
-                    </Link>
-                  </div>
+                <div className="absolute right-0 top-11 z-50 w-96 max-h-[85vh] bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-100 flex flex-col">
+                  {renderNotificationsBody()}
                 </div>
-              </>
+              </div>
             )}
           </div>
 
@@ -479,7 +513,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSidebar, onNewInvoice, hid
         </div>
       </header>
 
-
+      {/* Mobile Notifications Dialog (Mounted in document.body via Portal to guarantee 100% viewport centering, 12px margins and 0% clipping) */}
+      {mounted && typeof document !== 'undefined' && notificationsOpen && createPortal(
+        <div className="sm:hidden fixed inset-0 z-[150] flex flex-col justify-start items-center p-3 pt-16">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+            onClick={() => setNotificationsOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm bg-white dark:bg-[#111622] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 flex flex-col max-h-[82vh] animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+            {renderNotificationsBody()}
+          </div>
+        </div>,
+        document.body
+      )}
 
       <NewPaymentModal
         isOpen={!!paymentInvoiceId}

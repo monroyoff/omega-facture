@@ -17,6 +17,11 @@ import {
 import { useInvoices, SUBSCRIPTION_PLANS } from '@/lib/store/invoice-context';
 import { SubscriptionPlan } from '@/lib/types';
 import { formatFCFA } from '@/lib/money/format';
+import {
+  SUBSCRIPTION_DURATIONS,
+  SubscriptionDuration,
+  calculatePlanPrice,
+} from '@/lib/subscription/durations';
 
 interface UpgradePlanModalProps {
   isOpen: boolean;
@@ -33,10 +38,15 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(
     defaultPlan === 'free' ? 'pro' : defaultPlan
   );
+  const [selectedDuration, setSelectedDuration] = useState<SubscriptionDuration>('1m');
   const [paymentMethod, setPaymentMethod] = useState<'mtn' | 'moov' | 'celtiis' | 'wave' | 'card'>('mtn');
   const [phoneNumber, setPhoneNumber] = useState('64000001');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const currentPricing = calculatePlanPrice(selectedPlan, selectedDuration);
+  const proPricing = calculatePlanPrice('pro', selectedDuration);
+  const businessPricing = calculatePlanPrice('business', selectedDuration);
 
   useEffect(() => {
     if (defaultPlan && defaultPlan !== 'free') {
@@ -69,9 +79,12 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: SUBSCRIPTION_PLANS[selectedPlan].priceFCFA,
-          description: `Abonnement ${SUBSCRIPTION_PLANS[selectedPlan].name} OMEGA FACTURE`,
+          amount: currentPricing.totalFCFA,
+          description: `Abonnement ${SUBSCRIPTION_PLANS[selectedPlan].name} (${selectedDuration === '1m' ? '1 mois' : selectedDuration === '3m' ? '3 mois' : selectedDuration === '6m' ? '6 mois' : '1 an'}) OMEGA FACTURE`,
           plan: selectedPlan,
+          duration: selectedDuration,
+          durationDays: currentPricing.durationDays,
+          months: currentPricing.months,
           customerName: currentUser?.name || 'Abonné OMEGA FACTURE',
           customerEmail: currentUser?.email || '',
           customerPhone: phoneNumber,
@@ -88,7 +101,9 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
             'facturo:v1:pending_upgrade',
             JSON.stringify({
               plan: selectedPlan,
-              amount: SUBSCRIPTION_PLANS[selectedPlan].priceFCFA,
+              amount: currentPricing.totalFCFA,
+              duration: selectedDuration,
+              durationDays: currentPricing.durationDays,
               userId: currentUser?.id,
               companyId: currentUser?.companyId,
               transactionId: data.transactionId,
@@ -173,8 +188,34 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
           </p>
         </div>
 
-        {/* Modal Body with 2 Upgrade Cards */}
+        {/* Modal Body with Duration Selector & 2 Upgrade Cards */}
         <div className="px-6 sm:px-8 py-6 overflow-y-auto space-y-6">
+          {/* Segmented Duration Selector with -10% Badge */}
+          <div className="bg-slate-100 dark:bg-slate-900/90 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-1.5 justify-center sm:justify-start">
+            {SUBSCRIPTION_DURATIONS.map((dur) => {
+              const isSelected = selectedDuration === dur.id;
+              return (
+                <button
+                  key={dur.id}
+                  type="button"
+                  onClick={() => setSelectedDuration(dur.id)}
+                  className={`flex-1 min-w-[120px] sm:min-w-0 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md border border-slate-200/80 dark:border-slate-700 ring-2 ring-brand-500/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  <span>{dur.label}</span>
+                  {dur.badge && (
+                    <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      {dur.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 1. Plan Pro Card */}
             <div
@@ -213,10 +254,35 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                 </p>
 
                 <div className="py-3 border-y border-slate-200/80 dark:border-slate-800 mb-4">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono">
-                    {formatFCFA(proPlan.priceFCFA)}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500"> / mois</span>
+                  {proPricing.discountPercent > 0 ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-slate-400 line-through font-mono">
+                          {formatFCFA(proPricing.rawTotalFCFA)}
+                        </span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                          -10% REMISE
+                        </span>
+                      </div>
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono">
+                        {formatFCFA(proPricing.totalFCFA)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500"> / {proPricing.months} mois</span>
+                      <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                        Soit {formatFCFA(proPricing.monthlyEquivalentFCFA)} / mois • Économie de {formatFCFA(proPricing.savingsFCFA)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono">
+                        {formatFCFA(proPricing.totalFCFA)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500"> / mois</span>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Engagement 30 jours calendaires
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
@@ -231,7 +297,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
               <div className="mt-6 pt-4 border-t border-slate-200/60 dark:border-slate-800">
                 <span className="text-[11px] font-semibold text-brand-700 dark:text-brand-300">
-                  ⚡ Activation instantanée après paiement
+                  ⚡ Activation instantanée ({proPricing.durationDays} jours)
                 </span>
               </div>
             </div>
@@ -272,10 +338,35 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                 </p>
 
                 <div className="py-3 border-y border-slate-200/80 dark:border-slate-800 mb-4">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono">
-                    {formatFCFA(businessPlan.priceFCFA)}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500"> / mois</span>
+                  {businessPricing.discountPercent > 0 ? (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-slate-400 line-through font-mono">
+                          {formatFCFA(businessPricing.rawTotalFCFA)}
+                        </span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                          -10% REMISE
+                        </span>
+                      </div>
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono">
+                        {formatFCFA(businessPricing.totalFCFA)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500"> / {businessPricing.months} mois</span>
+                      <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                        Soit {formatFCFA(businessPricing.monthlyEquivalentFCFA)} / mois • Économie de {formatFCFA(businessPricing.savingsFCFA)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono">
+                        {formatFCFA(businessPricing.totalFCFA)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500"> / mois</span>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Engagement 30 jours calendaires
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
@@ -290,7 +381,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
               <div className="mt-6 pt-4 border-t border-slate-200/60 dark:border-slate-800">
                 <span className="text-[11px] font-semibold text-purple-700 dark:text-purple-300">
-                  🚀 Support WhatsApp VIP 24/7 inclus
+                  🚀 Support WhatsApp VIP 24/7 ({businessPricing.durationDays} jours)
                 </span>
               </div>
             </div>
@@ -377,7 +468,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                   ) : (
                     <>
                       <span>
-                        Payer {formatFCFA(SUBSCRIPTION_PLANS[selectedPlan].priceFCFA)} &amp; Activer
+                        Payer {formatFCFA(currentPricing.totalFCFA)} &amp; Activer ({SUBSCRIPTION_DURATIONS.find((d) => d.id === selectedDuration)?.label})
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </>

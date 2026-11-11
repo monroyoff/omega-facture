@@ -72,7 +72,7 @@ export interface PaymentRecord {
 
 export interface AppNotification {
   id: string;
-  type: 'overdue' | 'payment' | 'draft' | 'due_soon' | 'due_today';
+  type: 'overdue' | 'payment' | 'draft' | 'due_soon' | 'due_today' | 'subscription_expiring' | 'subscription_expired';
   title: string;
   desc: string;
   time: string;
@@ -85,6 +85,8 @@ export interface AppNotification {
   amount?: number;
   remainingAmount?: number;
   dueDate?: string;
+  planName?: string;
+  daysRemaining?: number;
 }
 
 export interface PeriodOption {
@@ -267,6 +269,9 @@ export interface UserProfile {
   emailVerified?: boolean;
   password?: string;
   plan?: SubscriptionPlan;
+  subscriptionStatus?: string;
+  subscriptionExpiresAt?: string;
+  subscriptionUpdatedAt?: string;
   ifu?: string;
   rccm?: string;
   address?: string;
@@ -498,7 +503,7 @@ interface InvoiceContextType {
   userPlan: SubscriptionPlan;
   realInvoicesCount: number;
   canCreateInvoice: boolean;
-  upgradePlan: (plan: SubscriptionPlan) => Promise<void>;
+  upgradePlan: (plan: SubscriptionPlan, durationDays?: number) => Promise<void>;
   isUpgradeModalOpen: boolean;
   setIsUpgradeModalOpen: (open: boolean) => void;
   openUpgradeModal: (defaultPlan?: SubscriptionPlan) => void;
@@ -665,28 +670,73 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setInvoices(reconciledInvoices);
         setPayments(remote.payments);
 
-        // Synchronisation automatique de l'abonnement SaaS de la société avec protection inviolable anti-rétrogradation
+        // Synchronisation automatique de l'abonnement SaaS de la société avec gestion stricte de la durée (30j) et expiration
         const planTier: Record<SubscriptionPlan, number> = { free: 0, pro: 1, business: 2 };
-        const localTier = planTier[user.plan || 'free'] ?? 0;
-        const remoteTier = planTier[remote.subscriptionPlan || 'free'] ?? 0;
+        const candidatePlan: SubscriptionPlan = remote.subscriptionPlan || user.plan || 'free';
 
-        if (remote.subscriptionPlan && remoteTier >= localTier && user.plan !== remote.subscriptionPlan) {
-          console.log(`[InvoiceContext] Synchronisation plan distant : ${remote.subscriptionPlan}`);
-          user.plan = remote.subscriptionPlan;
-          setCurrentUser((prev) => (prev ? { ...prev, plan: remote.subscriptionPlan } : prev));
+        // Extraction de la date d'expiration
+        let expiryIso: string | undefined = undefined;
+        if (remote.subscriptionStatus && remote.subscriptionStatus.includes('expires:')) {
+          expiryIso = remote.subscriptionStatus.split('expires:')[1];
+        } else if (user.subscriptionExpiresAt) {
+          expiryIso = user.subscriptionExpiresAt;
+        } else if (remote.subscriptionUpdatedAt) {
+          expiryIso = new Date(new Date(remote.subscriptionUpdatedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        }
+
+        // Vérification de la validité temporelle
+        let isExpired = false;
+        if (candidatePlan !== 'free' && expiryIso) {
+          const expiryTime = new Date(expiryIso).getTime();
+          if (!isNaN(expiryTime) && expiryTime <= Date.now()) {
+            isExpired = true;
+          }
+        }
+        if (remote.subscriptionStatus === 'expired') {
+          isExpired = true;
+        }
+
+        if (isExpired) {
+          // L'abonnement a expiré : bascule automatique inviolable sur le Plan Gratuit
+          console.log(`[InvoiceContext] Abonnement expiré pour l'entreprise ${companyId} : bascule automatique sur le Plan Gratuit.`);
+          user.plan = 'free';
+          user.subscriptionStatus = 'expired';
+          user.subscriptionExpiresAt = expiryIso;
+          setCurrentUser((prev) => (prev ? { ...prev, plan: 'free', subscriptionStatus: 'expired', subscriptionExpiresAt: expiryIso } : prev));
           saveUserToRegistry(user);
           try {
             const currentAuth = localStorage.getItem('facturo:v1:auth');
             if (currentAuth) {
               const parsed = JSON.parse(currentAuth);
-              parsed.currentUser = { ...parsed.currentUser, plan: remote.subscriptionPlan };
+              parsed.currentUser = { ...parsed.currentUser, plan: 'free', subscriptionStatus: 'expired', subscriptionExpiresAt: expiryIso };
               localStorage.setItem('facturo:v1:auth', JSON.stringify(parsed));
             }
           } catch (e) {}
-        } else if (localTier > remoteTier && companyId) {
-          // L'utilisateur est sur un plan supérieur en local (ex: Business) : réaligner Supabase vers le haut
-          console.log(`[InvoiceContext] Réalignement ascendant Supabase vers ${user.plan}`);
-          supabaseUpdateCompanySubscription(companyId, user.plan as SubscriptionPlan).catch(() => {});
+          if (companyId) {
+            supabaseUpdateCompanySubscription(companyId, 'free', 0).catch(() => {});
+          }
+        } else {
+          // L'abonnement est actif
+          const localTier = planTier[user.plan || 'free'] ?? 0;
+          const remoteTier = planTier[remote.subscriptionPlan || 'free'] ?? 0;
+
+          if (remote.subscriptionPlan && remoteTier >= localTier) {
+            user.plan = remote.subscriptionPlan;
+            user.subscriptionStatus = 'active';
+            user.subscriptionExpiresAt = expiryIso;
+            setCurrentUser((prev) => (prev ? { ...prev, plan: remote.subscriptionPlan, subscriptionStatus: 'active', subscriptionExpiresAt: expiryIso } : prev));
+            saveUserToRegistry(user);
+            try {
+              const currentAuth = localStorage.getItem('facturo:v1:auth');
+              if (currentAuth) {
+                const parsed = JSON.parse(currentAuth);
+                parsed.currentUser = { ...parsed.currentUser, plan: remote.subscriptionPlan, subscriptionStatus: 'active', subscriptionExpiresAt: expiryIso };
+                localStorage.setItem('facturo:v1:auth', JSON.stringify(parsed));
+              }
+            } catch (e) {}
+          } else if (localTier > remoteTier && companyId) {
+            supabaseUpdateCompanySubscription(companyId, user.plan as SubscriptionPlan).catch(() => {});
+          }
         }
 
         try {
@@ -1657,6 +1707,122 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [invoices]);
 
+  // Surveillance proactive de la fin de l'abonnement SaaS (J-2, J-1, Jour J et Expiration)
+  useEffect(() => {
+    if (!currentUser) return;
+    const plan = currentUser.plan || 'free';
+    if (plan === 'free') return;
+
+    let dismissedIds: string[] = [];
+    try {
+      const raw = localStorage.getItem('facturo:v1:dismissed_notifs');
+      if (raw) dismissedIds = JSON.parse(raw);
+    } catch (e) {}
+
+    const expiryIso = currentUser.subscriptionExpiresAt;
+    if (!expiryIso) return;
+
+    const expiryTime = new Date(expiryIso).getTime();
+    if (isNaN(expiryTime)) return;
+
+    const now = Date.now();
+    const diffMs = expiryTime - now;
+    const daysRemaining = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+    const planName = SUBSCRIPTION_PLANS[plan]?.name || 'Plan Payant';
+
+    // 1. Si expiré (diffMs <= 0) : bascule automatique immédiate sur le Plan Gratuit
+    if (diffMs <= 0) {
+      console.warn(`[Surveillance Abonnement] Expiration constatée pour ${currentUser.name} (${plan}). Bascule sur Plan Gratuit.`);
+      const notifId = `notif-sub-expired-${expiryIso.slice(0, 10)}`;
+      if (!dismissedIds.includes(notifId)) {
+        const expiredNotif: AppNotification = {
+          id: notifId,
+          type: 'subscription_expired',
+          title: `🔴 Votre ${planName} est arrivé à son terme`,
+          desc: `Votre abonnement a expiré le ${formatDateFR(expiryIso)}. Votre compte est automatiquement repassé sur le Plan Gratuit (limité à 5 factures/mois). Réactivez votre formule pour continuer en illimité.`,
+          time: 'Abonnement expiré',
+          unread: true,
+          planName,
+          daysRemaining: 0,
+        };
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === notifId)) return prev;
+          const updated = [expiredNotif, ...prev];
+          try {
+            localStorage.setItem('facturo:v1:notifications', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+      }
+      upgradePlan('free', 0);
+      return;
+    }
+
+    // 2. Alertes préventives J-2, J-1 et Jour J
+    if (daysRemaining >= 0 && daysRemaining <= 2) {
+      const notifId = `notif-sub-j${daysRemaining}-${expiryIso.slice(0, 10)}`;
+      if (!dismissedIds.includes(notifId)) {
+        let title = '';
+        let desc = '';
+        let timeLabel = '';
+
+        if (daysRemaining === 2) {
+          title = `⏰ Rappel : Votre ${planName} expire dans 2 jours`;
+          desc = `Votre abonnement sera valide jusqu'au ${formatDateFR(expiryIso)}. Prolongez votre formule dès maintenant pour conserver vos factures illimitées et relances.`;
+          timeLabel = 'Échéance forfait J-2';
+        } else if (daysRemaining === 1) {
+          title = `⚠️ Vigilance : Votre ${planName} expire demain !`;
+          desc = `Votre abonnement se termine demain (${formatDateFR(expiryIso)}). Sans réabonnement, vos fonctionnalités illimitées seront suspendues.`;
+          timeLabel = 'Échéance forfait J-1 (Demain)';
+        } else {
+          title = `🔴 Dernier jour : Votre ${planName} expire aujourd'hui !`;
+          desc = `Votre abonnement prend fin aujourd'hui (${formatDateFR(expiryIso)}). Renouvelez avant ce soir pour éviter la bascule sur le Plan Gratuit.`;
+          timeLabel = "Aujourd'hui (Fin de forfait)";
+        }
+
+        const alertNotif: AppNotification = {
+          id: notifId,
+          type: 'subscription_expiring',
+          title,
+          desc,
+          time: timeLabel,
+          unread: true,
+          planName,
+          daysRemaining,
+        };
+
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === notifId)) return prev;
+          const updated = [alertNotif, ...prev];
+          try {
+            localStorage.setItem('facturo:v1:notifications', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+
+        // Envoi de l'alerte email avec verrouillage anti-doublon quotidien
+        const emailLockKey = `sub_alert_${currentUser.companyId || currentUser.id}_d${daysRemaining}_${expiryIso.slice(0, 10)}`;
+        try {
+          if (!localStorage.getItem(emailLockKey) && currentUser.email && currentUser.email.includes('@')) {
+            localStorage.setItem(emailLockKey, 'sent');
+            fetch('/api/subscription/send-alert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: currentUser.email,
+                name: currentUser.name || currentUser.firstName,
+                planName,
+                daysRemaining,
+                expiresAtFormatted: formatDateFR(expiryIso),
+                companyId: currentUser.companyId,
+              }),
+            }).catch((err) => console.warn('[Subscription email alert API call failed] :', err));
+          }
+        } catch (e) {}
+      }
+    }
+  }, [currentUser?.plan, currentUser?.subscriptionExpiresAt]);
+
   const unreadNotificationCount = notifications.filter((n) => n.unread).length;
 
   // Toast notifications temporaires (émissions, sauvegardes, validations)
@@ -1729,9 +1895,20 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const realInvoicesCount = invoices.filter((i) => i.documentKind !== 'quote').length;
   const canCreateInvoice = userPlan !== 'free' || realInvoicesCount < 5;
 
-  const upgradePlan = async (newPlan: SubscriptionPlan) => {
+  const upgradePlan = async (newPlan: SubscriptionPlan, durationDays: number = 30) => {
     if (!currentUser) return;
-    const updatedUser: UserProfile = { ...currentUser, plan: newPlan };
+    const now = new Date();
+    const isFree = newPlan === 'free';
+    const expiresAt = isFree
+      ? now.toISOString()
+      : new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      plan: newPlan,
+      subscriptionStatus: isFree ? 'expired' : 'active',
+      subscriptionExpiresAt: expiresAt,
+      subscriptionUpdatedAt: now.toISOString(),
+    };
     setCurrentUser(updatedUser);
     saveUserToRegistry(updatedUser);
     try {
@@ -1743,17 +1920,26 @@ export const InvoiceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Persistance immédiate et garantie dans Supabase pour que le plan ne soit plus jamais écrasé
     if (currentUser.companyId) {
-      supabaseUpdateCompanySubscription(currentUser.companyId, newPlan).catch((err) => {
+      supabaseUpdateCompanySubscription(currentUser.companyId, newPlan, durationDays).catch((err) => {
         console.warn('[InvoiceContext] Échec persistance abonnement Supabase :', err);
       });
     }
 
-    showToast({
-      title: `Passage au ${SUBSCRIPTION_PLANS[newPlan].name} activé ! 🎉`,
-      message: `Votre abonnement est maintenant actif. Profitez de toutes les fonctionnalités avancées.`,
-      kind: 'success',
-      duration: 5000,
-    });
+    if (isFree) {
+      showToast({
+        title: 'Plan Gratuit activé',
+        message: 'Votre compte est repassé sur le Plan Gratuit (jusqu’à 5 factures / mois).',
+        kind: 'info',
+        duration: 5000,
+      });
+    } else {
+      showToast({
+        title: `Passage au ${SUBSCRIPTION_PLANS[newPlan].name} activé ! 🎉`,
+        message: `Votre abonnement (${durationDays} jours) est maintenant actif jusqu'au ${formatDateFR(expiresAt)}. Profitez de toutes les fonctionnalités avancées.`,
+        kind: 'success',
+        duration: 5000,
+      });
+    }
   };
 
   // Add a new invoice
