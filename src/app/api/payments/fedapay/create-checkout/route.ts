@@ -25,9 +25,12 @@ export async function POST(req: NextRequest) {
       duration,
       durationDays,
       months,
+      isTestLive,
     } = body;
 
-    if (!amount || Number(amount) <= 0) {
+    const finalAmount = isTestLive ? 100 : Number(amount);
+
+    if (!finalAmount || Number(finalAmount) <= 0) {
       return NextResponse.json(
         { success: false, error: 'Montant invalide.' },
         { status: 400 }
@@ -35,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await createFedaPayTransaction({
-      amount: Number(amount),
+      amount: Math.round(finalAmount),
       description: description || `Règlement facture ${invoiceNumber || ''}`,
       invoiceId,
       invoiceNumber,

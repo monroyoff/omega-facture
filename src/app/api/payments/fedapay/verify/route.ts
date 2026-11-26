@@ -60,15 +60,16 @@ export async function POST(req: NextRequest) {
       transactionStatus = 'completed';
     }
 
-    // Détermination stricte et inviolable du plan selon le montant :
-    // 15 000 FCFA = Plan Business garanti | 5 000 FCFA = Plan Pro
-    if (transactionAmount >= 15000) {
+    // Détermination rigoureuse du plan :
+    // 1. Priorité au plan explicitement configuré dans les métadonnées ou la requête
+    if (customMeta?.plan === 'business' || customMeta?.plan === 'pro') {
+      confirmedPlan = customMeta.plan;
+    } else if (requestedPlan === 'business' || requestedPlan === 'pro') {
+      confirmedPlan = requestedPlan;
+    } else if (transactionAmount >= 15000) {
       confirmedPlan = 'business';
-    } else if (confirmedPlan !== 'business' && transactionAmount >= 5000) {
+    } else {
       confirmedPlan = 'pro';
-    }
-    if (!confirmedPlan) {
-      confirmedPlan = requestedPlan || 'pro';
     }
 
     if (!isConfirmed) {
@@ -100,16 +101,27 @@ export async function POST(req: NextRequest) {
 
     // Détermination rigoureuse de la durée d'abonnement en jours
     let durationDays = 30;
-    if (body.durationDays) {
+    if (body.durationDays && Number(body.durationDays) > 0) {
       durationDays = Number(body.durationDays);
-    } else if (customMeta?.duration_days) {
+    } else if (customMeta?.duration_days && Number(customMeta.duration_days) > 0) {
       durationDays = Number(customMeta.duration_days);
-    } else if (transactionAmount >= 160000 || (confirmedPlan === 'pro' && transactionAmount >= 50000)) {
-      durationDays = 365; // 1 an
-    } else if (transactionAmount >= 80000 || (confirmedPlan === 'pro' && transactionAmount >= 25000)) {
-      durationDays = 180; // 6 mois
-    } else if (transactionAmount >= 40000 || (confirmedPlan === 'pro' && transactionAmount >= 13000)) {
-      durationDays = 90; // 3 mois
+    } else if (customMeta?.duration === '1y' || customMeta?.months === '12') {
+      durationDays = 365;
+    } else if (customMeta?.duration === '6m' || customMeta?.months === '6') {
+      durationDays = 180;
+    } else if (customMeta?.duration === '3m' || customMeta?.months === '3') {
+      durationDays = 90;
+    } else if (confirmedPlan === 'business') {
+      if (transactionAmount >= 140000) durationDays = 365; // 1 an Business (162 000 FCFA)
+      else if (transactionAmount >= 70000) durationDays = 180; // 6 mois Business (81 000 FCFA)
+      else if (transactionAmount >= 35000) durationDays = 90; // 3 mois Business (40 500 FCFA)
+      else durationDays = 30; // 1 mois Business (15 000 FCFA)
+    } else {
+      // Plan Pro
+      if (transactionAmount >= 45000) durationDays = 365; // 1 an Pro (54 000 FCFA)
+      else if (transactionAmount >= 22000) durationDays = 180; // 6 mois Pro (27 000 FCFA)
+      else if (transactionAmount >= 11000) durationDays = 90; // 3 mois Pro (13 500 FCFA)
+      else durationDays = 30; // 1 mois Pro (5 000 FCFA ou test 100 FCFA)
     }
 
     const now = new Date();

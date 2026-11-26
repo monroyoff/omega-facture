@@ -251,7 +251,7 @@ export async function fetchSupabaseData(companyId?: string): Promise<{
       if (comp?.subscription_updated_at) {
         subscriptionUpdatedAt = comp.subscription_updated_at;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     return { clients, products, invoices, payments, subscriptionPlan, subscriptionStatus, subscriptionUpdatedAt };
   } catch (err) {

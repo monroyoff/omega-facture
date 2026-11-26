@@ -40,13 +40,20 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   );
   const [selectedDuration, setSelectedDuration] = useState<SubscriptionDuration>('1m');
   const [paymentMethod, setPaymentMethod] = useState<'mtn' | 'moov' | 'celtiis' | 'wave' | 'card'>('mtn');
-  const [phoneNumber, setPhoneNumber] = useState('64000001');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isTestLive, setIsTestLive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const currentPricing = calculatePlanPrice(selectedPlan, selectedDuration);
   const proPricing = calculatePlanPrice('pro', selectedDuration);
   const businessPricing = calculatePlanPrice('business', selectedDuration);
+
+  useEffect(() => {
+    if (currentUser?.phone) {
+      setPhoneNumber(currentUser.phone);
+    }
+  }, [currentUser?.phone]);
 
   useEffect(() => {
     if (defaultPlan && defaultPlan !== 'free') {
@@ -75,12 +82,14 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   const handleUpgrade = async () => {
     setLoading(true);
     try {
+      const finalAmount = isTestLive ? 100 : currentPricing.totalFCFA;
       const res = await fetch('/api/payments/fedapay/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: currentPricing.totalFCFA,
-          description: `Abonnement ${SUBSCRIPTION_PLANS[selectedPlan].name} (${selectedDuration === '1m' ? '1 mois' : selectedDuration === '3m' ? '3 mois' : selectedDuration === '6m' ? '6 mois' : '1 an'}) OMEGA FACTURE`,
+          amount: finalAmount,
+          isTestLive,
+          description: `Abonnement ${SUBSCRIPTION_PLANS[selectedPlan].name} (${selectedDuration === '1m' ? '1 mois' : selectedDuration === '3m' ? '3 mois' : selectedDuration === '6m' ? '6 mois' : '1 an'}) ${isTestLive ? '[TEST LIVE 100F]' : ''} OMEGA FACTURE`,
           plan: selectedPlan,
           duration: selectedDuration,
           durationDays: currentPricing.durationDays,
@@ -101,7 +110,8 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
             'facturo:v1:pending_upgrade',
             JSON.stringify({
               plan: selectedPlan,
-              amount: currentPricing.totalFCFA,
+              amount: finalAmount,
+              isTestLive,
               duration: selectedDuration,
               durationDays: currentPricing.durationDays,
               userId: currentUser?.id,
@@ -114,7 +124,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
 
         showToast({
           kind: 'info',
-          title: 'Redirection vers FedaPay',
+          title: 'Redirection vers FedaPay Live',
           message: 'Ouverture du guichet officiel sécurisé (MTN, Moov, Celtiis, Wave, Carte)...',
           duration: 3500,
         });
@@ -425,22 +435,31 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <div className="w-full sm:flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">
-                    Numéro Mobile Money pour débit :
+                  <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                    Numéro de téléphone (Mobile Money / Contact) :
                   </label>
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">
-                    Sandbox : 64000001
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsTestLive(!isTestLive)}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                      isTestLive
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800'
+                    }`}
+                    title="Activer le mode test direct 100 FCFA"
+                  >
+                    <span>{isTestLive ? '⚡ Test Live (100 F) Activé' : 'Option Test Live (100 F)'}</span>
+                  </button>
                 </div>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="64000001"
+                  placeholder="Ex: 97 00 00 00 ou +229..."
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-brand-500 outline-none"
                 />
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                  💡 Mode test FedaPay : saisissez <code className="font-bold text-brand-600 dark:text-brand-400">64000001</code> ou <code className="font-bold text-brand-600 dark:text-brand-400">66000001</code> pour simuler un paiement réussi.
+                  💡 Débit sécurisé instantané en direct via <strong>MTN Mobile Money</strong>, <strong>Moov Money</strong>, <strong>Celtiis Cash</strong>, <strong>Wave</strong> ou <strong>Carte Visa / Mastercard</strong>.
                 </p>
               </div>
 
@@ -468,7 +487,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
                   ) : (
                     <>
                       <span>
-                        Payer {formatFCFA(currentPricing.totalFCFA)} &amp; Activer ({SUBSCRIPTION_DURATIONS.find((d) => d.id === selectedDuration)?.label})
+                        Payer {formatFCFA(isTestLive ? 100 : currentPricing.totalFCFA)} &amp; Activer {isTestLive ? '(Test 100F)' : `(${SUBSCRIPTION_DURATIONS.find((d) => d.id === selectedDuration)?.label})`}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </>

@@ -31,18 +31,18 @@ export interface FedaPayTransactionResponse {
 export function getFedaPayConfig() {
   const secretKey =
     process.env.FEDAPAY_SECRET_KEY ||
-    'sk_sandbox_Ud7pUx2L0ALLmdQgU6nfo5rj';
+    'sk_live_3JsUiarJe-EvU002SIYQ54yW';
   const publicKey =
     process.env.FEDAPAY_PUBLIC_KEY ||
-    'pk_sandbox_jZjz_EYIpak9w9yfgyK1O0Gj';
+    'pk_live_wTR6s15XDHVkeABM0UPDFyx';
   const environment =
     process.env.FEDAPAY_ENVIRONMENT ||
     (secretKey.startsWith('sk_live_') ? 'live' : 'sandbox');
   const isSandbox = environment === 'sandbox' || secretKey.startsWith('sk_sandbox_');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.omegafacture.site';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://omegafacture.site';
   const webhookSecret =
     process.env.FEDAPAY_WEBHOOK_SECRET ||
-    'wh_sandbox_iwGvefDSRFF99BkVD2tKUE-p';
+    'wh_live_MONROY_AG_2026';
 
   // URLs officielles FedaPay API
   const apiBaseUrl = isSandbox
@@ -105,15 +105,17 @@ export async function createFedaPayTransaction(
       lastname,
       email: params.customerEmail && params.customerEmail.includes('@')
         ? params.customerEmail
-        : 'contact@omegafacture.site',
+        : 'omegafacture@gmail.com',
     };
 
     if (params.customerPhone) {
-      const cleanPhone = params.customerPhone.replace(/[\s-]/g, '');
-      customerPayload.phone_number = {
-        number: cleanPhone,
-        country: 'bj',
-      };
+      const cleanPhone = params.customerPhone.replace(/\D/g, '');
+      if (cleanPhone.length >= 8) {
+        customerPayload.phone_number = {
+          number: cleanPhone,
+          country: 'bj',
+        };
+      }
     }
 
     const transactionPayload = {

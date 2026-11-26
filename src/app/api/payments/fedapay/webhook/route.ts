@@ -59,11 +59,13 @@ export async function POST(req: NextRequest) {
     const metadata = transaction.custom_metadata || transaction.metadata || {};
     let plan = metadata.plan || '';
 
-    // Détermination stricte et inviolable : si montant >= 15 000 FCFA -> Plan Business garanti
-    if (amount >= 15000) {
-      plan = 'business';
-    } else if (!plan && amount >= 5000) {
-      plan = 'pro';
+    // Détermination rigoureuse du plan :
+    if (plan !== 'business' && plan !== 'pro') {
+      if (amount >= 15000) {
+        plan = 'business';
+      } else if (amount >= 5000) {
+        plan = 'pro';
+      }
     }
 
     const companyId = metadata.company_id || metadata.companyId || '';
@@ -104,14 +106,24 @@ export async function POST(req: NextRequest) {
 
       // Détermination rigoureuse de la durée d'abonnement en jours
       let durationDays = 30;
-      if (metadata.duration_days) {
+      if (metadata.duration_days && Number(metadata.duration_days) > 0) {
         durationDays = Number(metadata.duration_days);
-      } else if (amount >= 160000 || (plan === 'pro' && amount >= 50000)) {
-        durationDays = 365; // 1 an
-      } else if (amount >= 80000 || (plan === 'pro' && amount >= 25000)) {
-        durationDays = 180; // 6 mois
-      } else if (amount >= 40000 || (plan === 'pro' && amount >= 13000)) {
-        durationDays = 90; // 3 mois
+      } else if (metadata.duration === '1y' || metadata.months === '12') {
+        durationDays = 365;
+      } else if (metadata.duration === '6m' || metadata.months === '6') {
+        durationDays = 180;
+      } else if (metadata.duration === '3m' || metadata.months === '3') {
+        durationDays = 90;
+      } else if (plan === 'business') {
+        if (amount >= 140000) durationDays = 365;
+        else if (amount >= 70000) durationDays = 180;
+        else if (amount >= 35000) durationDays = 90;
+        else durationDays = 30;
+      } else {
+        if (amount >= 45000) durationDays = 365;
+        else if (amount >= 22000) durationDays = 180;
+        else if (amount >= 11000) durationDays = 90;
+        else durationDays = 30;
       }
 
       const now = new Date();
