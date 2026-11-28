@@ -6,7 +6,7 @@ import { AuthGuard } from '@/components/layout/AuthGuard';
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://omegafacture.site';
 
 export const viewport: Viewport = {
-  themeColor: '#0284c7',
+  themeColor: '#1D4ED8',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -39,8 +39,14 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   icons: {
-    icon: '/icons/icon-192.png',
-    apple: '/icons/icon-192.png',
+    icon: [
+      { url: '/icons/favicon-48x48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
   appleWebApp: {
     capable: true,
